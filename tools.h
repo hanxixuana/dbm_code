@@ -5,7 +5,9 @@
 #ifndef DBM_CODE_TOOLS_H
 #define DBM_CODE_TOOLS_H
 
+#ifndef _DEBUG_TOOLS
 #define _DEBUG_TOOLS 1
+#endif
 
 #include <string>
 #include <ctime>

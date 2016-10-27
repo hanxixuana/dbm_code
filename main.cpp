@@ -22,6 +22,8 @@ void build_a_tree();
 
 int main() {
 
+    prepare_data();
+    test_save_load_dbm();
 
     return 0;
 }

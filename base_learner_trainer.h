@@ -5,7 +5,9 @@
 #ifndef DBM_CODE_BASE_LEARNER_TRAINER_H
 #define DBM_CODE_BASE_LEARNER_TRAINER_H
 
+#ifndef _DEBUG_BASE_LEARNER_TRAINER
 #define _DEBUG_BASE_LEARNER_TRAINER 1
+#endif
 
 #include "matrix.h"
 #include "base_learner.h"

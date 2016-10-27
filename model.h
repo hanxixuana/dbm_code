@@ -5,7 +5,9 @@
 #ifndef DBM_CODE_MODEL_H
 #define DBM_CODE_MODEL_H
 
+#ifndef _DEBUG_MODEL
 #define _DEBUG_MODEL 1
+#endif
 
 #include "matrix.h"
 #include "data_set.h"

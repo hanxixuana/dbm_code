@@ -5,7 +5,9 @@
 #ifndef DBM_CODE_LOSS_FUNCTION_H
 #define DBM_CODE_LOSS_FUNCTION_H
 
+#ifndef _DEBUG_LOSS_FUNCTION
 #define _DEBUG_LOSS_FUNCTION 1
+#endif
 
 #include "matrix.h"
 

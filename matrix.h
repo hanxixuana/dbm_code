@@ -5,8 +5,13 @@
 #ifndef DBM_CODE_MATRIX_H
 #define DBM_CODE_MATRIX_H
 
+#ifndef _DEBUG_MATRIX
 #define _DEBUG_MATRIX 1
+#endif
+
+#ifndef _CD_INDICATOR
 #define _CD_INDICATOR 0
+#endif
 
 #include <string>
 

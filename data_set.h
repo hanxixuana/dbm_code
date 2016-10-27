@@ -7,7 +7,9 @@
 
 #include "matrix.h"
 
-#define _DEBUG_DATA_SET
+#ifndef _DEBUG_DATA_SET
+#define _DEBUG_DATA_SET 1
+#endif
 
 namespace dbm {
 
