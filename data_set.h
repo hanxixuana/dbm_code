@@ -30,13 +30,13 @@ namespace dbm {
 
         ~Data_set();
 
-        const Matrix<T> &get_train_x() const;
+        const Matrix<T> & get_train_x() const;
 
-        const Matrix<T> &get_train_y() const;
+        const Matrix<T> & get_train_y() const;
 
-        const Matrix<T> &get_test_x() const;
+        const Matrix<T> & get_test_x() const;
 
-        const Matrix<T> &get_test_y() const;
+        const Matrix<T> & get_test_y() const;
 
         void shuffle_all();
 
@@ -45,3 +45,6 @@ namespace dbm {
 }
 
 #endif //DBM_CODE_DATA_SET_H
+
+
+

@@ -396,3 +396,7 @@ namespace dbm {
     template void load_dbm<float>(std::ifstream &in, DBM<float> *&dbm);
 
 }
+
+
+
+
