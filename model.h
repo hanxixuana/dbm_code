@@ -33,9 +33,9 @@ namespace dbm {
     class Regressor {
     public:
 
-        virtual void train(const Matrix<T> &train_x, const Matrix<T> &train_y) = 0;
+        virtual void train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints) = 0;
 
-        virtual void train(const Data_set<T> &data_set) = 0;
+        virtual void train(const Data_set<T> &data_set, const int * input_monotonic_constaints) = 0;
 
         virtual void predict(const Matrix<T> &data_x, Matrix<T> &predict_y) = 0;
 
@@ -56,6 +56,9 @@ namespace dbm {
 
         Tree_info<T> *tree_info;
 
+        // 1: positive relationship; 0: anything; -1: negative relationship
+        // by only allowing 1, 0, -1, we could be able to check if the length is correct in some sense
+
     public:
 
         Matrix<T> *prediction_train_data = nullptr;
@@ -68,9 +71,9 @@ namespace dbm {
 
         ~DBM();
 
-        void train(const Matrix<T> &train_x, const Matrix<T> &train_y);
+        void train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints = nullptr);
 
-        void train(const Data_set<T> &data_set);
+        void train(const Data_set<T> &data_set, const int * input_monotonic_constaints = nullptr);
 
         void predict(const Matrix<T> &data_x, Matrix<T> &predict_y);
 

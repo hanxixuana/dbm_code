@@ -26,7 +26,6 @@ namespace dbm {
         bool record_every_tree = true;
         int freq_showing_loss_on_test = 10;
 
-
         // CART
         int max_depth = 5;
         int no_candidate_split_point = 5;

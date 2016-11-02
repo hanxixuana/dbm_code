@@ -33,8 +33,9 @@ namespace dbm {
 
         void train(Tree_node<T> *tree, const Matrix<T> &train_x,
                    const Matrix<T> &train_y, const Matrix<T> &prediction,
-                   const int *row_inds = NULL, int n_rows = 0,
-                   const int *col_inds = NULL, int n_cols = 0);
+                   const int *monotonic_constraints,
+                   const int *row_inds = nullptr, int n_rows = 0,
+                   const int *col_inds = nullptr, int n_cols = 0);
 
         void prune(Tree_node<T> *tree);
     };

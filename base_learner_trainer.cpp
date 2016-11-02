@@ -31,8 +31,12 @@ namespace dbm {
     template<typename T>
     void Tree_trainer<T>::train(Tree_node<T> *tree, const Matrix<T> &train_x,
                                 const Matrix<T> &train_y, const Matrix<T> &prediction,
+                                const int *monotonic_constraints,
                                 const int *row_inds, int n_rows,
                                 const int *col_inds, int n_cols) {
+        /*
+         * default case has not been implemented
+        */
 
         if (tree->depth == 0 && display_training_progress)
             std::cout << "Training Tree at " << tree
@@ -42,9 +46,9 @@ namespace dbm {
 
         tree->no_training_samples = n_rows;
 
-#if _DEBUG_BASE_LEARNER_TRAINER
-        assert(n_rows > 0 && n_cols > 0);
-#endif
+        #if _DEBUG_BASE_LEARNER_TRAINER
+            assert(n_rows > 0 && n_cols > 0);
+        #endif
 
         tree->prediction = loss_function.estimate_mean(train_y, prediction, 'n', row_inds, n_rows);
         if (tree->depth == max_depth || n_rows < no_candidate_split_point) {
@@ -73,6 +77,9 @@ namespace dbm {
                 larger_beta = loss_function.estimate_mean(train_y, prediction, 'n', larger_inds, larger_smaller_n[0]);
                 smaller_beta = loss_function.estimate_mean(train_y, prediction, 'n', smaller_inds, larger_smaller_n[1]);
 
+                if ( (larger_beta - smaller_beta) * monotonic_constraints[col_inds[j]] < 0 )
+                    continue;
+
                 loss = loss_function.loss(train_y, prediction, 'n', larger_beta, larger_inds, larger_smaller_n[0]) +
                        loss_function.loss(train_y, prediction, 'n', smaller_beta, smaller_inds, larger_smaller_n[1]);
 
@@ -86,27 +93,34 @@ namespace dbm {
 
         }
 
-        train_x.inds_split(tree->column, tree->split_value, larger_inds,
-                           smaller_inds, larger_smaller_n, row_inds, n_rows);
+        if(tree->loss < std::numeric_limits<T>::max()) {
+            train_x.inds_split(tree->column, tree->split_value, larger_inds,
+                               smaller_inds, larger_smaller_n, row_inds, n_rows);
 
-        if (tree->larger != nullptr)
-            delete tree->larger;
-        if (tree->smaller != nullptr)
-            delete tree->smaller;
+            if (tree->larger != nullptr)
+                delete tree->larger;
+            if (tree->smaller != nullptr)
+                delete tree->smaller;
 
-        tree->larger = new Tree_node<T>(tree->depth + 1);
-        tree->smaller = new Tree_node<T>(tree->depth + 1);
+            tree->larger = new Tree_node<T>(tree->depth + 1);
+            tree->smaller = new Tree_node<T>(tree->depth + 1);
 
-        train(tree->larger, train_x, train_y, prediction, larger_inds, larger_smaller_n[0], col_inds, n_cols);
-        train(tree->smaller, train_x, train_y, prediction, smaller_inds, larger_smaller_n[1], col_inds, n_cols);
+            train(tree->larger, train_x, train_y, prediction, monotonic_constraints, larger_inds, larger_smaller_n[0], col_inds, n_cols);
+            train(tree->smaller, train_x, train_y, prediction, monotonic_constraints, smaller_inds, larger_smaller_n[1], col_inds, n_cols);
+        }
+        else {
+            tree->last_node = true;
+            return;
+        }
     }
 
     template<typename T>
     void Tree_trainer<T>::prune(Tree_node<T> *tree) {
+
         if (tree->last_node) return;
-#if _DEBUG_BASE_LEARNER_TRAINER
-        assert(tree->larger != NULL && tree->smaller != NULL);
-#endif
+        #if _DEBUG_BASE_LEARNER_TRAINER
+            assert(tree->larger != NULL && tree->smaller != NULL);
+        #endif
         if (tree->larger->loss > tree->smaller->loss) {
             tree->larger->last_node = true;
 

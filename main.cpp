@@ -23,7 +23,7 @@ void build_a_tree();
 int main() {
 
     prepare_data();
-    test_save_load_dbm();
+    train_a_dbm();
 
     return 0;
 }
@@ -111,7 +111,7 @@ void test_save_load_tree() {
 
     {
         dbm::Time_measurer time_measurer;
-        trainer.train(tree, train_x, train_y, prediction, row_inds, n_samples, col_inds, n_features);
+        trainer.train(tree, train_x, train_y, prediction, nullptr, row_inds, n_samples, col_inds, n_features);
 //        trainer.prune(tree);
     }
 
@@ -157,6 +157,9 @@ void train_a_dbm() {
     dbm::Data_set<float> data_set(train_x, train_y, 0.25);
 
     // ================
+    int mon_const[n_features] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
     string param_string = "no_learners 670 no_candidate_feature 5 "
             "no_train_sample 10000 max_depth 5 no_candidate_split_point 5";
     dbm::DBM<float> dbm(param_string);
@@ -165,9 +168,10 @@ void train_a_dbm() {
 //    dbm.train(train_x, train_y);
 //    delete timer_0;
 
-    dbm::Time_measurer *timer_1 = new dbm::Time_measurer();
-    dbm.train(data_set);
-    delete timer_1;
+    {
+        dbm::Time_measurer timer_1;
+        dbm.train(data_set, mon_const);
+    }
 
     dbm.predict(train_x, prediction);
 
@@ -209,7 +213,7 @@ void build_a_tree() {
 
     dbm::Time_measurer time_measurer;
 
-    trainer.train(tree, train_x, train_y, prediction, row_inds, n_samples, col_inds, n_features);
+    trainer.train(tree, train_x, train_y, prediction, nullptr, row_inds, n_samples, col_inds, n_features);
 
     time_measurer.~Time_measurer();
 

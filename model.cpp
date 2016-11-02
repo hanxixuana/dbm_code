@@ -63,11 +63,36 @@ namespace dbm {
     }
 
     template<typename T>
-    void DBM<T>::train(const Matrix<T> &train_x, const Matrix<T> &train_y) {
+    void DBM<T>::train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints) {
 
         int n_samples = train_y.get_height(), n_features = train_x.get_width();
-        int row_inds[n_samples], col_inds[n_features];
 
+        #if _DEBUG_MODEL
+            assert(no_train_sample < n_samples && no_candidate_feature < n_features);
+        #endif
+
+        int * monotonic_constraints = nullptr;
+        if (input_monotonic_constaints == nullptr) {
+            monotonic_constraints = new int[n_features];
+            for (int i = 0; i < n_features; ++i)
+                monotonic_constraints[i] = 0;
+        }
+        else {
+            monotonic_constraints = new int[n_features];
+            for (int i = 0; i < n_features; ++i) {
+                monotonic_constraints[i] = input_monotonic_constaints[i];
+
+                // serves as a check of whether the length of monotonic_constraints is equal to the length of features
+                // in some sense
+                #if _DEBUG_MODEL
+                    assert(monotonic_constraints[i] != 0 ||
+                           monotonic_constraints[i] != -1 ||
+                           monotonic_constraints[i] != 1);
+                #endif
+            }
+        }
+
+        int row_inds[n_samples], col_inds[n_features];
         for (int i = 0; i < n_features; ++i)
             col_inds[i] = i;
         for (int i = 0; i < n_samples; ++i)
@@ -88,6 +113,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -108,6 +134,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -125,6 +152,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -145,6 +173,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -158,7 +187,7 @@ namespace dbm {
     }
 
     template<typename T>
-    void DBM<T>::train(const Data_set<T> &data_set) {
+    void DBM<T>::train(const Data_set<T> &data_set, const int * input_monotonic_constaints) {
 
         Matrix<T> const &train_x = data_set.get_train_x();
         Matrix<T> const &train_y = data_set.get_train_y();
@@ -169,6 +198,32 @@ namespace dbm {
 
         int n_samples = train_x.get_height(), n_features = train_x.get_width();
         int test_n_samples = test_x.get_height();
+
+        #if _DEBUG_MODEL
+            assert(no_train_sample < n_samples && no_candidate_feature < n_features);
+        #endif
+
+        int * monotonic_constraints = nullptr;
+        if (input_monotonic_constaints == nullptr) {
+            monotonic_constraints = new int[n_features];
+            for (int i = 0; i < n_features; ++i)
+                monotonic_constraints[i] = 0;
+        }
+        else {
+            monotonic_constraints = new int[n_features];
+            for (int i = 0; i < n_features; ++i) {
+                monotonic_constraints[i] = input_monotonic_constaints[i];
+
+                // serves as a check of whether the length of monotonic_constraints is equal to the length of features
+                // in some sense
+                #if _DEBUG_MODEL
+                    assert(monotonic_constraints[i] != 0 ||
+                           monotonic_constraints[i] != -1 ||
+                           monotonic_constraints[i] != 1);
+                #endif
+            }
+        }
+
         int row_inds[n_samples], col_inds[n_features];
 
         for (int i = 0; i < n_features; ++i)
@@ -195,6 +250,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -227,6 +283,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -256,6 +313,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -283,6 +341,7 @@ namespace dbm {
 
                     tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
                                         train_x, train_y, *prediction_train_data,
+                                        monotonic_constraints,
                                         row_inds, no_train_sample,
                                         col_inds, no_candidate_feature);
                     tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -311,9 +370,9 @@ namespace dbm {
 
         int data_height = data_x.get_height();
 
-#if _DEBUG_MODEL
-        assert(data_height == predict_y.get_height() && predict_y.get_width() == 1);
-#endif
+        #if _DEBUG_MODEL
+            assert(data_height == predict_y.get_height() && predict_y.get_width() == 1);
+        #endif
 
         for (int i = 0; i < data_height; ++i) predict_y[i][0] = 0;
 
