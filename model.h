@@ -50,7 +50,9 @@ namespace dbm {
         int no_train_sample;
 
         Base_learner<T> **learners;
+
         Tree_trainer<T> *tree_trainer;
+        Mean_trainer<T> *mean_trainer;
 
         Params params;
 

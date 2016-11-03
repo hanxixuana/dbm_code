@@ -43,7 +43,9 @@ namespace dbm {
 
         learners = new Base_learner<T> *[no_learners];
 
-        for (int i = 0; i < no_learners; ++i) {
+        learners[0] = new Global_mean<T>;
+
+        for (int i = 1; i < no_learners; ++i) {
             learners[i] = new Tree_node<T>(0);
         }
 
@@ -102,6 +104,8 @@ namespace dbm {
             delete prediction_train_data;
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
 
+        char type;
+
         if (params.display_training_progress) {
             if (params.record_every_tree)
                 for (int i = 0; i < no_learners; ++i) {
@@ -111,17 +115,35 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    learners[i]->predict(train_x, *prediction_train_data);
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
 
-                    tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
-                    delete tree_info;
+                            tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
+                            delete tree_info;
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
                 }
             else
@@ -132,13 +154,31 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    learners[i]->predict(train_x, *prediction_train_data);
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
                 }
         } else {
@@ -150,17 +190,35 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    learners[i]->predict(train_x, *prediction_train_data);
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
 
-                    tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
-                    delete tree_info;
+                            tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
+                            delete tree_info;
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
                 }
             else
@@ -171,13 +229,31 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    learners[i]->predict(train_x, *prediction_train_data);
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
                 }
         }
@@ -239,6 +315,8 @@ namespace dbm {
 
         Matrix<T> prediction_test_data(test_n_samples, 1, 0);
 
+        char type;
+
         if (params.display_training_progress) {
             if (params.record_every_tree)
                 for (int i = 0; i < no_learners; ++i) {
@@ -248,16 +326,38 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
 
-                    learners[i]->predict(train_x, *prediction_train_data);
+                            tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
+                            delete tree_info;
+
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
+
                     learners[i]->predict(test_x, prediction_test_data);
-
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 prediction_test_data, test_y, 'n');
@@ -268,10 +368,6 @@ namespace dbm {
                                   << std::endl << std::endl;
                     }
 
-                    tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
-                    delete tree_info;
-
                 }
             else
                 for (int i = 0; i < no_learners; ++i) {
@@ -281,16 +377,33 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
-                    learners[i]->predict(train_x, *prediction_train_data);
                     learners[i]->predict(test_x, prediction_test_data);
-
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 prediction_test_data, test_y, 'n');
@@ -311,16 +424,38 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
 
-                    learners[i]->predict(train_x, *prediction_train_data);
+                            tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            tree_info->print_to_file("trees/tree_" + std::to_string(i) + ".txt");
+                            delete tree_info;
+
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
+
                     learners[i]->predict(test_x, prediction_test_data);
-
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] =
                                 loss_function.loss(prediction_test_data, test_y, 'n');
@@ -339,16 +474,33 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
-                    tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                        train_x, train_y, *prediction_train_data,
-                                        monotonic_constraints,
-                                        row_inds, no_train_sample,
-                                        col_inds, no_candidate_feature);
-                    tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                    type = learners[i]->get_type();
+                    switch (type) {
+                        case 'm': {
+                            mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        case 't': {
+                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
+                                                train_x, train_y, *prediction_train_data,
+                                                monotonic_constraints,
+                                                row_inds, no_train_sample,
+                                                col_inds, no_candidate_feature);
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
+                            learners[i]->predict(train_x, *prediction_train_data);
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
 
-                    learners[i]->predict(train_x, *prediction_train_data);
                     learners[i]->predict(test_x, prediction_test_data);
-
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] =
                                 loss_function.loss(prediction_test_data, test_y, 'n');
@@ -394,11 +546,31 @@ namespace dbm {
             << dbm->no_candidate_feature << ' '
             << dbm->no_train_sample << ' '
             << std::endl;
-
+        char type;
         for (int i = 0; i < dbm->no_learners; ++i) {
+            type = dbm->learners[i]->get_type();
+            switch (type) {
 
-            out << "== Tree " << std::to_string(i) << " ==" << std::endl;
-            dbm::save_tree_node(dynamic_cast<Tree_node<T> *>(dbm->learners[i]), out);
+                case 'm': {
+                    out << "== Mean " << std::to_string(i) << " ==" << std::endl;
+                    dbm::save_global_mean(dynamic_cast<Global_mean<T> *>(dbm->learners[i]), out);
+                    out << "== End of Mean " << std::to_string(i) << " ==" << std::endl;
+                    break;
+                }
+
+                case 't': {
+                    out << "== Tree " << std::to_string(i) << " ==" << std::endl;
+                    dbm::save_tree_node(dynamic_cast<Tree_node<T> *>(dbm->learners[i]), out);
+                    out << "== End of Tree " << std::to_string(i) << " ==" << std::endl;
+                    break;
+                }
+
+                default: {
+                    std::cout << "Wrong learner type: " << type <<  std::endl;
+                    throw std::invalid_argument("Specified learner does not exist.");
+                }
+
+            }
 
         }
 
@@ -428,15 +600,61 @@ namespace dbm {
 
         dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]));
 
-        std::getline(in, line);
-        Tree_node<T> *temp;
+        Tree_node<T> *temp_tree_ptr;
+        Global_mean<T> *temp_mean_ptr;
+
+        char type;
+
         for (int i = 0; i < dbm->no_learners; ++i) {
 
-            temp = nullptr;
-            load_tree_node(in, temp);
-            dbm->learners[i] = temp;
-
+            line.clear();
             std::getline(in, line);
+
+            prev = 0, next = 0, count = 0;
+            while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
+                if (next - prev != 0) {
+                    words[count].clear();
+                    words[count] = line.substr(prev, next - prev);
+                    count += 1;
+                }
+                prev = next + 1;
+            }
+            if (prev < line.size()) {
+                words[count] = line.substr(prev);
+                count += 1;
+            }
+
+            type = words[1].front();
+            switch (type) {
+
+                case 'M': {
+                    temp_mean_ptr = nullptr;
+                    load_global_mean(in, temp_mean_ptr);
+                    dbm->learners[i] = temp_mean_ptr;
+
+                    // skip the end line
+                    std::getline(in, line);
+
+                    break;
+                }
+
+                case 'T': {
+                    temp_tree_ptr = nullptr;
+                    load_tree_node(in, temp_tree_ptr);
+                    dbm->learners[i] = temp_tree_ptr;
+
+                    // skip the end line
+                    std::getline(in, line);
+
+                    break;
+                }
+
+                default: {
+                    std::cout << "Wrong learner type: " << type <<  std::endl;
+                    throw std::invalid_argument("Specified learner does not exist.");
+                }
+
+            }
 
         }
 

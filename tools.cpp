@@ -22,6 +22,42 @@ namespace dbm {
 
 namespace dbm {
 
+    template <typename T>
+    void save_global_mean(const Global_mean<T> *mean, std::ofstream &out) {
+        out << mean->mean << std::endl;
+    }
+
+    template <typename T>
+    void load_global_mean(std::ifstream &in, Global_mean<T> *&mean) {
+        std::string line;
+        std::getline(in, line);
+
+        std::string words[100];
+        size_t prev = 0, next = 0;
+        int count = 0;
+        while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
+            if (next - prev != 0) {
+                words[count] = line.substr(prev, next - prev);
+                count += 1;
+            }
+            prev = next + 1;
+        }
+        if (prev < line.size()) {
+            words[count] = line.substr(prev);
+            count += 1;
+        }
+
+        #if _DEBUG_TOOLS
+            assert(count == 1);
+        #endif
+        mean = new Global_mean<T>;
+        mean->mean = T(std::stod(words[0]));
+    }
+
+}
+
+namespace dbm {
+
     template<typename T>
     void save_tree_node(const Tree_node<T> *node, std::ofstream &out) {
         if (node == nullptr) {
@@ -34,7 +70,7 @@ namespace dbm {
                 << node->loss << ' '
                 << node->prediction << ' '
                 << node->no_training_samples << ' '
-                << '\n';
+                << std::endl;
             save_tree_node(node->larger, out);
             save_tree_node(node->smaller, out);
         }
@@ -357,6 +393,14 @@ namespace dbm {
 
 // explicit instantiation of templated functions
 namespace dbm {
+
+    template void save_global_mean<double>(const Global_mean<double> *mean, std::ofstream &out);
+
+    template void save_global_mean<float>(const Global_mean<float> *mean, std::ofstream &out);
+
+    template void load_global_mean<float>(std::ifstream &in, Global_mean<float> *&mean);
+
+    template void load_global_mean<double>(std::ifstream &in, Global_mean<double> *&mean);
 
     template void save_tree_node<double>(const Tree_node<double> *node, std::ofstream &out);
 

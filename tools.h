@@ -32,6 +32,22 @@ namespace dbm {
 
     };
 
+    template <typename T>
+    void save_tree_node(const Tree_node<T> *node, std::ofstream &out);
+
+    template <typename T>
+    void load_tree_node(std::ifstream &in, Tree_node<T> *&node);
+
+    template <typename T>
+    void delete_tree(Tree_node<T> *tree);
+
+    template <typename T>
+    void save_global_mean(const Global_mean<T> *mean, std::ofstream &out);
+
+    template <typename T>
+    void load_global_mean(std::ifstream &in, Global_mean<T> *&mean);
+
+
     // display tree information
     template<typename T>
     void print_tree_info(const dbm::Tree_node<T> *tree);

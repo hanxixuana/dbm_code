@@ -23,7 +23,7 @@ void build_a_tree();
 int main() {
 
     prepare_data();
-    train_a_dbm();
+    test_save_load_dbm();
 
     return 0;
 }
@@ -46,6 +46,8 @@ void test_save_load_dbm() {
     dbm::Matrix<float> train_y = train_data.col(n_features);
 
     // ================
+    int mon_const[n_features] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
     dbm::Data_set<float> data_set(train_x, train_y, 0.25);
 
@@ -56,7 +58,7 @@ void test_save_load_dbm() {
 
     {
         dbm::Time_measurer *timer_1 = new dbm::Time_measurer();
-        dbm.train(data_set);
+        dbm.train(data_set, mon_const);
     }
 
     dbm.predict(train_x, prediction);
@@ -157,8 +159,10 @@ void train_a_dbm() {
     dbm::Data_set<float> data_set(train_x, train_y, 0.25);
 
     // ================
-    int mon_const[n_features] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+//    int mon_const[n_features] = {0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1,
+//                                 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1};
+    int mon_const[n_features] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     string param_string = "no_learners 670 no_candidate_feature 5 "
             "no_train_sample 10000 max_depth 5 no_candidate_split_point 5";

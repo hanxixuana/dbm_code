@@ -15,6 +15,53 @@ namespace dbm {
     template
     class Tree_node<double>;
 
+    template
+    class Global_mean<float>;
+
+    template
+    class Global_mean<double>;
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    Global_mean<T>::Global_mean() : Base_learner<T>('m') {}
+
+    template <typename T>
+    Global_mean<T>::~Global_mean() {};
+
+    template <typename T>
+    T Global_mean<T>::predict_for_row(const Matrix<T> &data, int row_ind) {
+        return mean;
+    }
+
+    template <typename T>
+    void Global_mean<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds, int n_rows) {
+
+        if (row_inds == NULL) {
+            int data_height = data_x.get_height();
+            #if _DEBUG_BASE_LEARNER
+                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < data_height; ++i) {
+                predicted_value = prediction.get(i, 0) + predict_for_row(data_x, i);
+                prediction.assign(i, 0, predicted_value);
+            }
+        } else {
+            #if _DEBUG_BASE_LEARNER
+                assert(n_rows > 0 && prediction.get_height() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < n_rows; ++i) {
+                predicted_value = prediction.get(row_inds[i], 0) + predict_for_row(data_x, row_inds[i]);
+                prediction.assign(row_inds[i], 0, predicted_value);
+            }
+        }
+
+    }
+
 }
 
 namespace dbm {
@@ -23,7 +70,7 @@ namespace dbm {
     Tree_node<T>::Tree_node(int depth) : larger(nullptr), smaller(nullptr), column(-1),
                                          split_value(0), loss(std::numeric_limits<T>::max()),
                                          depth(depth), last_node(false), prediction(0),
-                                         no_training_samples(0), Base_learner<T>('t') {};
+                                         no_training_samples(0), Base_learner<T>('t') {}
 
     template<typename T>
     Tree_node<T>::Tree_node(int depth, int column, bool last_node,
@@ -31,7 +78,7 @@ namespace dbm {
                             int no_tr_samples) : larger(nullptr), smaller(nullptr), column(column),
                                                  split_value(split_value), loss(loss),
                                                  depth(depth), last_node(last_node), prediction(prediction),
-                                                 no_training_samples(no_tr_samples), Base_learner<T>('t') {};
+                                                 no_training_samples(no_tr_samples), Base_learner<T>('t') {}
 
     template<typename T>
     Tree_node<T>::~Tree_node() {
@@ -44,7 +91,7 @@ namespace dbm {
         delete smaller;
         smaller = nullptr;
 
-    };
+    }
 
     template<typename T>
     T Tree_node<T>::predict_for_row(const Matrix<T> &data_x, int row_ind) {
@@ -67,23 +114,19 @@ namespace dbm {
     void Tree_node<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds, int n_rows) {
 
         if (row_inds == NULL) {
-            int data_height = data_x.get_height(), data_width = data_x.get_width();
-#if _DEBUG_BASE_LEARNER
-            assert(data_height == prediction.get_height() && prediction.get_width() == 1);
-#endif
+            int data_height = data_x.get_height();
+            #if _DEBUG_BASE_LEARNER
+                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+            #endif
             T predicted_value;
             for (int i = 0; i < data_height; ++i) {
                 predicted_value = prediction.get(i, 0) + predict_for_row(data_x, i);
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-#if _DEBUG_BASE_LEARNER
-            assert(n_rows > 0);
-#endif
-            int data_width = data_x.get_width();
-#if _DEBUG_BASE_LEARNER
-            assert(prediction.get_height() == 1);
-#endif
+            #if _DEBUG_BASE_LEARNER
+                assert(n_rows > 0 && prediction.get_height() == 1);
+            #endif
             T predicted_value;
             for (int i = 0; i < n_rows; ++i) {
                 predicted_value = prediction.get(row_inds[i], 0) + predict_for_row(data_x, row_inds[i]);

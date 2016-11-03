@@ -16,32 +16,11 @@
 namespace dbm {
 
     template<typename T>
-    class Tree_node;
-
-    template<typename T>
-    class Tree_trainer;
-
-    template<typename T>
-    class Tree_info;
-
-    template<typename T>
-    void save_tree_node(const Tree_node<T> *node, std::ofstream &out);
-
-    template<typename T>
-    void load_tree_node(std::ifstream &in, Tree_node<T> *&tree);
-
-    template<typename T>
-    void delete_tree(Tree_node<T> *tree);
-
-    template<typename T>
-    void print_tree_info(const dbm::Tree_node<T> *tree);
-
-    template<typename T>
     class Base_learner {
     protected:
         char learner_type;
 
-        virtual T predict_for_row(const Matrix<T> &data, int row_ind) = 0;
+        virtual T predict_for_row(const Matrix<T> &data_x, int row_ind) = 0;
 
     public:
         Base_learner(const char &type) : learner_type(type) {};
@@ -49,8 +28,64 @@ namespace dbm {
         char get_type() const { return learner_type; };
 
         virtual void
-        predict(const Matrix<T> &data, Matrix<T> &prediction, const int *row_inds = NULL, int n_rows = 0) = 0;
+        predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = NULL, int n_rows = 0) = 0;
     };
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    class Global_mean;
+
+    template <typename T>
+    class Mean_trainer;
+
+    template <typename T>
+    void save_global_mean(const Global_mean<T> *mean, std::ofstream &out);
+
+    template <typename T>
+    void load_global_mean(std::ifstream &in, Global_mean<T> *&mean);
+
+    template <typename T>
+    class Global_mean : public Base_learner<T> {
+    private:
+        T mean = 0;
+        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+    public:
+        Global_mean();
+        ~Global_mean();
+
+        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = nullptr, int n_rows = 0);
+
+        friend void save_global_mean<>(const Global_mean<T> *mean, std::ofstream &out);
+
+        friend void load_global_mean<>(std::ifstream &in, Global_mean<T> *&mean);
+
+        friend class Mean_trainer<T>;
+
+    };
+
+}
+
+namespace dbm {
+
+    template<typename T>
+    class Tree_node;
+    template<typename T>
+    class Tree_trainer;
+    template<typename T>
+    class Tree_info;
+
+    template<typename T>
+    void save_tree_node(const Tree_node<T> *node, std::ofstream &out);
+    template<typename T>
+    void load_tree_node(std::ifstream &in, Tree_node<T> *&tree);
+
+    template<typename T>
+    void delete_tree(Tree_node<T> *tree);
+    template<typename T>
+    void print_tree_info(const dbm::Tree_node<T> *tree);
 
     template<typename T>
     class Tree_node : public Base_learner<T> {
@@ -81,7 +116,7 @@ namespace dbm {
 
         ~Tree_node();
 
-        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = NULL, int n_rows = 0);
+        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = nullptr, int n_rows = 0);
 
         friend void save_tree_node<>(const Tree_node<T> *node, std::ofstream &out);
 

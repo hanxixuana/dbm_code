@@ -16,6 +16,42 @@ namespace dbm {
     template
     class Tree_trainer<float>;
 
+    template
+    class Mean_trainer<double>;
+
+    template
+    class Mean_trainer<float>;
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    Mean_trainer<T>::Mean_trainer(const Params &params) {}
+
+    template <typename T>
+    Mean_trainer<T>::~Mean_trainer() {}
+
+    template <typename T>
+    void Mean_trainer<T>::train(Global_mean<T> *mean, const Matrix<T> &train_x,
+                                const Matrix<T> &train_y, const Matrix<T> &prediction,
+                                const int *row_inds, int n_rows,
+                                const int *col_inds, int n_cols) {
+        std::cout << "Training Global Mean at " << mean
+                  << " ... " << std::endl;
+
+        if(row_inds == nullptr) {
+            mean->mean = loss_function.estimate_mean(train_y, prediction, 'n');
+        }
+        else {
+            #if _DEBUG_BASE_LEARNER_TRAINER
+                assert(n_rows > 0);
+            #endif
+            mean->mean = loss_function.estimate_mean(train_y, prediction, 'n', row_inds, n_rows);
+        }
+
+    }
+
 }
 
 namespace dbm {
