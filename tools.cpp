@@ -287,6 +287,7 @@ namespace dbm {
 
     template<typename T>
     inline void shuffle(T *values, int no_values) {
+        std::srand(std::time(NULL));
         std::random_shuffle(values, values + no_values);
     }
 
