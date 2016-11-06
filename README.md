@@ -15,15 +15,33 @@ Note on adding new base learners:
 
 6. instantiation of two functions in base_learner.cpp
 
+#Simon Edit:
+a.) output required: marginal influence, variable importance
+b.) considered exporting tree in XML format to avoid creating thousands of files.
+c.) Include at least 3-4 distributions, (normal, poisson, bernoulli, gamma, tweedie in sequence)
+d.) Include at least 3-4 base learners excluding intercepts (tree, spline, svr, spline, straight line)
+e.) Compare the results of the results over original DBM, GBM and GLM.
 
 
 Programs to be done:
 
-1. conputing engine
+1. computing engine
 
 2. client-server connection
+#Simon Edit:
+a.) allow scoring only one observation
+b.) allow scoring a batch
+c.) One-click process
 
 3. client user interface
+#Simon Edit:
+a.) Analytics interface for data scientistics : displaying diagnostics, modeling anlayses, marginal influence, (refer to Simon DBM paper).
+b.) Business Intelligence interface for actuaries: Allow investigation on a certain segmentation (e.g only age 30-35 years old analysis) 
+
+Plan for Simon
+1. To provide inputs/refinement on both modeling and interface on a weekly basis.
+2. To provide mathematics derivation for DBM processing of loss functions
+
 
 Plan for Xixuan in Nov
 
@@ -39,7 +57,7 @@ Plan for Yi in Nov
 	
 	- the client package realizes functions like starting connection, sending commands to server, receiving feedbacks from server, transmiting large files to server, receiving large files from server
 	- probably multiple threads or processes are needed for status transmission and data file transmission (one thread for keep sending and receiving commands and feedbacks and another thread for transmiting large files)
-	- both the client and the server sides verify the integraty of files by checking hash values
+	- both the client and the server sides verify the integrity of files by checking hash values
 	- both sides also have the capability of and storing organizing received files
 
 3. before Nov. 30, complete a well-functioning client-server framework
