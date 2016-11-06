@@ -15,7 +15,7 @@ Note on adding new base learners:
 
 6. instantiation of two functions in base_learner.cpp
 
-#Simon Edit:
+##Simon Edit:
 a.) output required: marginal influence, variable importance
 b.) considered exporting tree in XML format to avoid creating thousands of files.
 c.) Include at least 3-4 distributions, (normal, poisson, bernoulli, gamma, tweedie in sequence)
@@ -26,21 +26,34 @@ e.) Compare the results of the results over original DBM, GBM and GLM.
 Programs to be done:
 
 1. computing engine
+(Simon Edit:)
+a.) To create documentation to explain fucntionality
+b.) To demonstrate the engine through jupyter notebook: either through python or R.
 
 2. client-server connection
-#Simon Edit:
+(Simon Edit:)
 a.) allow scoring only one observation
 b.) allow scoring a batch
 c.) One-click process
+d.) To disclose the security risk and suggest more secure approach.
 
 3. client user interface
-#Simon Edit:
-a.) Analytics interface for data scientistics : displaying diagnostics, modeling anlayses, marginal influence, (refer to Simon DBM paper).
-b.) Business Intelligence interface for actuaries: Allow investigation on a certain segmentation (e.g only age 30-35 years old analysis) 
+(Simon Edit:)
+a.) Analytics interface for data scientistics : 
+	i. displaying diagnostics, 
+	ii. modeling anlayses, 
+	iii. marginal influence, 
+	iv. others that are common for data statisticians. E.g Lorenz curve, double lift etc. (refer to Simon DBM paper).
+b.) Business Intelligence interface for actuaries: 
+	i. Allow investigation on a certain segmentation (e.g only age 30-35 years old analysis) 
+	ii. Allow users to create features and investigate the segments of the features (e.g create ratio of prediction of model 		    1/prediction of model 2 and analyse only high ratio segment) 
+
 
 Plan for Simon
 1. To provide inputs/refinement on both modeling and interface on a weekly basis.
-2. To provide mathematics derivation for DBM processing of loss functions
+2. To review all works and provide comments.
+3. To provide mathematics derivation for DBM processing of loss functions.
+
 
 
 Plan for Xixuan in Nov
