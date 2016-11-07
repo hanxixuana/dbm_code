@@ -247,8 +247,10 @@ namespace dbm {
     }
 
     template<typename T>
-    void Tree_info<T>::print_to_file(const std::string &file_name) const {
-        std::ofstream file(file_name.c_str());
+    void Tree_info<T>::print_to_file(const std::string &file_name, const int & number) const {
+        std::ofstream file(file_name.c_str(), std::ios_base::app);
+        file << std::endl;
+        file << "=======================  Tree " << number << "  =======================" << std::endl;
         for (int i = 0; i < height; ++i) {
             for (int j = 0; j < depth + 1; ++j) {
                 file << tree_nodes[i][j] << "\t\t";
@@ -292,7 +294,7 @@ namespace dbm {
     }
 
     template<typename T>
-    void make_data(const std::string &file_name, int n_samples, int n_features,
+    void make_data(const std::string &file_name, int n_samples, int n_features, char data_type,
                    const int *sig_lin_inds, const T *coef_sig_lin, int n_sig_lin_feats,
                    const int *sig_quad_inds, const T *coef_sig_quad, int n_sig_quad_feats) {
 
@@ -311,24 +313,66 @@ namespace dbm {
             T coef_quad[] = {5, -3, -10, 4, 10, -5, 1, -2};
 
 
-            dbm::Matrix<float> train_data(n_samples, n_features + 1);
+            dbm::Matrix<T> train_data(n_samples, n_features + 1);
 
             for (int i = 0; i < n_samples; ++i) {
                 for (int j = 0; j < n_sig_lin_feats; ++j)
                     train_data[i][n_features] += coef_lin[j] * train_data[i][lin_inds[j]];
                 for (int j = 0; j < n_sig_quad_feats; ++j)
-                    train_data[i][n_features] += coef_quad[j] * train_data[i][quad_inds[j]];
+                    train_data[i][n_features] += coef_quad[j] * pow(train_data[i][quad_inds[j]], T(2.0));
+                switch (data_type) {
+
+                    case 'n' : {
+                        break;
+                    }
+
+                    case 'p' : {
+                        train_data[i][n_features] = std::round(std::max(train_data[i][n_features], T(0.001)));
+                        break;
+                    }
+
+                    case 'b' : {
+                        train_data[i][n_features] = train_data[i][n_features] < 0 ? 0 : 1;
+                        break;
+                    }
+
+                    default: {
+                        throw std::invalid_argument("Specified data type does not exist.");
+                    }
+
+                }
             }
 
             train_data.print_to_file(file_name);
         } else {
-            dbm::Matrix<float> train_data(n_samples, n_features + 1);
+            dbm::Matrix<T> train_data(n_samples, n_features + 1);
 
             for (int i = 0; i < n_samples; ++i) {
                 for (int j = 0; j < n_sig_lin_feats; ++j)
                     train_data[i][n_features] += coef_sig_lin[j] * train_data[i][sig_lin_inds[j]];
                 for (int j = 0; j < n_sig_quad_feats; ++j)
-                    train_data[i][n_features] += coef_sig_quad[j] * train_data[i][sig_quad_inds[j]];
+                    train_data[i][n_features] += coef_sig_quad[j] * pow(train_data[i][sig_quad_inds[j]], T(2.0));
+                switch (data_type) {
+
+                    case 'n' : {
+                        break;
+                    }
+
+                    case 'p' : {
+                        train_data[i][n_features] = std::round(std::max(train_data[i][n_features], T(0.001)));
+                        break;
+                    }
+
+                    case 'b' : {
+                        train_data[i][n_features] = train_data[i][n_features] < 0 ? 0 : 1;
+                        break;
+                    }
+
+                    default: {
+                        throw std::invalid_argument("Specified data type does not exist.");
+                    }
+
+                }
             }
 
             train_data.print_to_file(file_name);
@@ -355,9 +399,9 @@ namespace dbm {
             count += 1;
         }
 
-#if _DEBUG_TOOLS
-        assert(count % 2 == 0);
-#endif
+        #if _DEBUG_TOOLS
+            assert(count % 2 == 0);
+        #endif
 
         Params params;
 
@@ -371,6 +415,9 @@ namespace dbm {
             else if (words[2 * i] == "no_train_sample")
                 params.no_train_sample = std::stoi(words[2 * i + 1]);
 
+            else if (words[2 * i] == "loss_function")
+                params.loss_function = words[2 * i + 1].front();
+
             else if (words[2 * i] == "display_training_progress")
                 params.display_training_progress = std::stoi(words[2 * i + 1]) > 0;
             else if (words[2 * i] == "record_every_tree")
@@ -383,6 +430,11 @@ namespace dbm {
                 params.max_depth = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "no_candidate_split_point")
                 params.no_candidate_split_point = std::stoi(words[2 * i + 1]);
+
+                // throw an exception
+            else {
+                throw std::invalid_argument("Specified parameter does not exist.");
+            }
 
         }
 
@@ -429,11 +481,11 @@ namespace dbm {
 
     template void print_tree_info<float>(const dbm::Tree_node<float> *tree);
 
-    template void make_data<double>(const std::string &file_name, int n_samples, int n_features,
+    template void make_data<double>(const std::string &file_name, int n_samples, int n_features, char data_type,
                                     const int *sig_lin_inds, const double *coef_sig_lin, int n_sig_lin_feats,
                                     const int *sig_quad_inds, const double *coef_sig_quad, int n_sig_quad_feats);
 
-    template void make_data<float>(const std::string &file_name, int n_samples, int n_features,
+    template void make_data<float>(const std::string &file_name, int n_samples, int n_features, char data_type,
                                    const int *sig_lin_inds, const float *coef_sig_lin, int n_sig_lin_feats,
                                    const int *sig_quad_inds, const float *coef_sig_quad, int n_sig_quad_feats);
 

@@ -16,10 +16,7 @@
 
 namespace dbm {
 
-    /* to-do note:
-     * loss type has not included in trainer as a parameter from Params
-     */
-
+    // for means
     template <typename T>
     class Mean_trainer {
     private:
@@ -30,11 +27,13 @@ namespace dbm {
 
         void train(Global_mean<T> *mean, const Matrix<T> &train_x,
                    const Matrix<T> &train_y, const Matrix<T> &prediction,
-                   const int *row_inds = nullptr, int n_rows = 0,
-                   const int *col_inds = nullptr, int n_cols = 0);
+                   char loss_function_type = 'n',
+                   const int *row_inds = nullptr, int n_rows = 0);
 
     };
 
+
+    // for trees
     template<typename T>
     class Tree_trainer {
 
@@ -51,7 +50,7 @@ namespace dbm {
 
         void train(Tree_node<T> *tree, const Matrix<T> &train_x,
                    const Matrix<T> &train_y, const Matrix<T> &prediction,
-                   const int *monotonic_constraints,
+                   const int *monotonic_constraints, char loss_function_type = 'n',
                    const int *row_inds = nullptr, int n_rows = 0,
                    const int *col_inds = nullptr, int n_cols = 0);
 

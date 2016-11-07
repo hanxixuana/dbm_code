@@ -5,7 +5,7 @@
 #include "loss_function.h"
 
 #include <cassert>
-#include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 namespace dbm {
@@ -33,29 +33,26 @@ namespace dbm {
                     // mean suared error
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        result += pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
+                        result += std::pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
                     }
                     return result / T(train_y_height);
                 }
                 case 'p': {
                     // negative log likelihood of poission distribution
-                    T result = 0, lambda, k;
+                    T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        lambda = std::max(prediction.get(i, 0) + beta, T(0.01));
-                        k = round(std::max(train_y.get(i, 0), T(0.01)));
-                        result += lambda - k * log(lambda) + tgamma(k + 1);
+                        result += std::exp(prediction.get(i, 0) + beta) -
+                                train_y.get(i, 0) * (prediction.get(i, 0) + beta);
                     }
                     return result;
                 }
                 case 'b': {
                     // negative log likelihood of bernoulli distribution
-                    // negative is considered to be 0
-                    // positive is considered to be 1
-                    T result = 0, k, p;
+                    T result = 0, pi_inversed;
                     for (int i = 0; i < train_y_height; ++i) {
-                        k = train_y.get(i, 0) < 0? 0 : 1;
-                        p = 1 / (1 + exp(prediction.get(i, 0)));
-                        result += -k * log(p) - (1 - k) * log(1 - p);
+                        pi_inversed = 1 + std::exp(-prediction.get(i, 0));
+                        result += train_y.get(i, 0) * std::log(pi_inversed) -
+                                (1 - train_y.get(i, 0)) * std::log(1 - 1 / pi_inversed);
                     }
                     return result;
                 }
@@ -68,26 +65,25 @@ namespace dbm {
                 case 'n': {
                     T result = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        result += pow(train_y.get(row_inds[i], 0) -
-                                      prediction.get(row_inds[i], 0) - beta, 2.0);
+                        result += std::pow(train_y.get(row_inds[i], 0) -
+                                                   prediction.get(row_inds[i], 0) - beta, 2.0);
                     }
                     return result / T(n_rows);
                 }
                 case 'p': {
-                    T result = 0, lambda, k;
+                    T result = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        lambda = std::max(prediction.get(row_inds[i], 0) + beta, T(0.01));
-                        k = round(std::max(train_y.get(row_inds[i], 0), T(0.01)));
-                        result += lambda - k * log(lambda) + tgamma(k + 1);
+                        result += std::exp(prediction.get(row_inds[i], 0) + beta) -
+                                  train_y.get(row_inds[i], 0) * (prediction.get(row_inds[i], 0) + beta);
                     }
                     return result;
                 }
                 case 'b': {
-                    T result = 0, k, p;
+                    T result = 0, pi_inversed;
                     for (int i = 0; i < n_rows; ++i) {
-                        k = train_y.get(row_inds[i], 0) < 0? 0 : 1;
-                        p = 1 / (1 + exp(prediction.get(row_inds[i], 0)));
-                        result += -k * log(p) - (1 - k) * log(1 - p);
+                        pi_inversed = 1 + std::exp(-prediction.get(row_inds[i], 0));
+                        result += train_y.get(row_inds[i], 0) * std::log(pi_inversed) -
+                                  (1 - train_y.get(row_inds[i], 0)) * std::log(1 - 1 / pi_inversed);
                     }
                     return result;
                 }
@@ -120,13 +116,13 @@ namespace dbm {
                         y_sum += train_y.get(i, 0);
                         exp_pred_sum += exp(prediction.get(i, 0));
                     }
-                    return log(y_sum / exp_pred_sum);
+                    return log(y_sum / exp_pred_sum + T(0.000001));
                 }
                 case 'b': {
                     T numerator = 0, denominator = 0, p;
                     for (int i = 0; i < train_y_height; ++i) {
-                        p = 1 / (1 + exp(prediction.get(i, 0)));
-                        numerator += train_y.get(i, 0) < 0? 0 : 1 - p;
+                        p = 1 / (1 + exp(-prediction.get(i, 0)));
+                        numerator += train_y.get(i, 0) - p;
                         denominator += p * (1 - p);
                     }
                     return numerator / denominator;
@@ -150,13 +146,13 @@ namespace dbm {
                         y_sum += train_y.get(row_inds[i], 0);
                         exp_pred_sum += exp(prediction.get(row_inds[i], 0));
                     }
-                    return log(y_sum / exp_pred_sum);
+                    return log(y_sum / exp_pred_sum + T(0.000001));
                 }
                 case 'b': {
                     T numerator = 0, denominator = 0, p;
                     for (int i = 0; i < n_rows; ++i) {
-                        p = 1 / (1 + exp(prediction.get(row_inds[i], 0)));
-                        numerator += train_y.get(row_inds[i], 0) < 0? 0 : 1 - p;
+                        p = 1 / (1 + exp(-prediction.get(row_inds[i], 0)));
+                        numerator += train_y.get(row_inds[i], 0) - p;
                         denominator += p * (1 - p);
                     }
                     return numerator / denominator;
@@ -164,6 +160,42 @@ namespace dbm {
                 default: {
                     throw std::invalid_argument("Specified distribution does not exist.");
                 }
+            }
+        }
+
+    }
+
+    template <typename T>
+    void Loss_function<T>::mean_function(Matrix<T> &in_and_out, char &dist) {
+
+        int lpp_height = in_and_out.get_height(),
+                lpp_width = in_and_out.get_width();
+        #if _DEBUG_LOSS_FUNCTION
+            assert(lpp_width == 1);
+        #endif
+
+        T temp = 0;
+        switch (dist) {
+            case 'n': {
+                //do nothing
+                break;
+            }
+            case 'p': {
+                for(int i = 0; i < lpp_height; ++i) {
+                    temp = std::exp(in_and_out.get(i, 0));
+                    in_and_out.assign(i, 0, temp);
+                }
+                break;
+            }
+            case 'b': {
+                for(int i = 0; i < lpp_height; ++i) {
+                    temp = 1 + std::exp(-in_and_out.get(i, 0));
+                    in_and_out.assign(i, 0, 1 / temp);
+                }
+                break;
+            }
+            default: {
+                throw std::invalid_argument("Specified distribution does not exist.");
             }
         }
 

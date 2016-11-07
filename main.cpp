@@ -28,6 +28,11 @@ int main() {
     return 0;
 }
 
+void prepare_data() {
+    string file_name = "train_data.txt";
+    dbm::make_data<float>(file_name, 100000, 30, 'b');
+}
+
 void test_save_load_dbm() {
     int n_samples = 100000, n_features = 30, n_width = 31;
 
@@ -50,18 +55,20 @@ void test_save_load_dbm() {
                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
     dbm::Data_set<float> data_set(train_x, train_y, 0.25);
+    dbm::Matrix<float> smaller_prediction(int(0.75 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_learners 15 no_candidate_feature 5 "
+    string param_string = "no_learners 100 no_candidate_feature 5 loss_function b "
             "no_train_sample 10000 max_depth 5 no_candidate_split_point 5";
     dbm::DBM<float> dbm(param_string);
 
     {
         dbm::Time_measurer *timer_1 = new dbm::Time_measurer();
-        dbm.train(data_set, mon_const);
+        dbm.train(data_set);
     }
 
     dbm.predict(train_x, prediction);
+    dbm.predict(data_set.get_train_x(), smaller_prediction);
 
     {
         ofstream out("dbm.txt");
@@ -84,8 +91,12 @@ void test_save_load_dbm() {
 
     re_dbm->predict(train_x, re_prediction);
 
+    dbm::Matrix<float> temp = dbm::hori_merge(smaller_prediction, *dbm.get_prediction_on_train_data());
+    temp.print_to_file("check.txt");
+
     dbm::Matrix<float> combined = dbm::hori_merge(prediction, re_prediction);
-    combined.print_to_file("combined.txt");
+    dbm::Matrix<float> result = dbm::hori_merge(train_y, combined);
+    result.print_to_file("whole_result.txt");
 }
 
 void test_save_load_tree() {
@@ -113,13 +124,13 @@ void test_save_load_tree() {
 
     {
         dbm::Time_measurer time_measurer;
-        trainer.train(tree, train_x, train_y, prediction, nullptr, row_inds, n_samples, col_inds, n_features);
+        trainer.train(tree, train_x, train_y, prediction, nullptr, 'n', row_inds, n_samples, col_inds, n_features);
 //        trainer.prune(tree);
     }
 
     {
         dbm::Tree_info<float> info(tree);
-        info.print_to_file("tree.txt");
+        info.print_to_file("tree.txt", 0);
     }
 
     {
@@ -133,7 +144,7 @@ void test_save_load_tree() {
         ifstream in("save.txt");
         dbm::load_tree_node(in, re_tree);
         dbm::Tree_info<float> info(re_tree);
-        info.print_to_file("re_tree.txt");
+        info.print_to_file("re_tree.txt", 0);
     }
 }
 
@@ -179,16 +190,11 @@ void train_a_dbm() {
 
     dbm.predict(train_x, prediction);
 
-    dbm::Matrix<float> temp = dbm::hori_merge(data_set.get_train_y(), *dbm.prediction_train_data);
+    dbm::Matrix<float> temp = dbm::hori_merge(data_set.get_train_y(), *dbm.get_prediction_on_train_data());
     temp.print_to_file("train_result.txt");
 
     dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
     result.print_to_file("whole_result.txt");
-}
-
-void prepare_data() {
-    string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name);
 }
 
 void build_a_tree() {
@@ -217,7 +223,7 @@ void build_a_tree() {
 
     dbm::Time_measurer time_measurer;
 
-    trainer.train(tree, train_x, train_y, prediction, nullptr, row_inds, n_samples, col_inds, n_features);
+    trainer.train(tree, train_x, train_y, prediction, nullptr, 'n', row_inds, n_samples, col_inds, n_features);
 
     time_measurer.~Time_measurer();
 
@@ -231,11 +237,11 @@ void build_a_tree() {
     // ========================================================
 
     dbm::Tree_info<float> original_tree_info(tree);
-    original_tree_info.print_to_file("original_tree.txt");
+    original_tree_info.print_to_file("original_tree.txt", 0);
 
     trainer.prune(tree);
     dbm::Tree_info<float> pruned_tree_info(tree);
-    pruned_tree_info.print_to_file("pruned_tree.txt");
+    pruned_tree_info.print_to_file("pruned_tree.txt", 0);
 
 }
 

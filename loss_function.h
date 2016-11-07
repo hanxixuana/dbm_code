@@ -24,6 +24,11 @@ namespace dbm {
         T estimate_mean(const Matrix<T> &train_y, const Matrix<T> &prediction, const char &dist,
                         const int *row_inds = NULL, int n_rows = 0) const;
 
+        void mean_function(Matrix<T> &in_and_out, char &dist);
+
+//        T calculate_ind_delta(const Matrix<T> &train_y, const Matrix<T> &prediction,
+//                              Matrix<T> &ind_delta, const char &dist);
+
     };
 
 }
