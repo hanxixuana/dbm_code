@@ -27,27 +27,27 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Mean_trainer<T>::Mean_trainer(const Params &params) {}
+    Mean_trainer<T>::Mean_trainer(const Params &params) :loss_function(Loss_function<T>(params)) {};
 
     template <typename T>
     Mean_trainer<T>::~Mean_trainer() {}
 
     template <typename T>
     void Mean_trainer<T>::train(Global_mean<T> *mean, const Matrix<T> &train_x,
-                                const Matrix<T> &train_y, const Matrix<T> &prediction,
+                                const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                                 char loss_function_type,
                                 const int *row_inds, int n_rows) {
         std::cout << "Training Global Mean at " << mean
                   << " ... " << std::endl;
 
         if(row_inds == nullptr) {
-            mean->mean = loss_function.estimate_mean(train_y, prediction, loss_function_type);
+            mean->mean = loss_function.estimate_mean(ind_delta, prediction, loss_function_type);
         }
         else {
             #if _DEBUG_BASE_LEARNER_TRAINER
                 assert(n_rows > 0);
             #endif
-            mean->mean = loss_function.estimate_mean(train_y, prediction, loss_function_type, row_inds, n_rows);
+            mean->mean = loss_function.estimate_mean(ind_delta, prediction, loss_function_type, row_inds, n_rows);
         }
 
     }
@@ -59,14 +59,15 @@ namespace dbm {
     template<typename T>
     Tree_trainer<T>::Tree_trainer(const Params &params) :
             max_depth(params.max_depth), no_candidate_split_point(params.no_candidate_split_point),
-            display_training_progress(params.display_training_progress) {};
+            display_training_progress(params.display_training_progress),
+            loss_function(Loss_function<T>(params)) {};
 
     template<typename T>
     Tree_trainer<T>::~Tree_trainer() {};
 
     template<typename T>
-    void Tree_trainer<T>::train(Tree_node<T> *tree, const Matrix<T> &train_x,
-                                const Matrix<T> &train_y, const Matrix<T> &prediction,
+    void Tree_trainer<T>::train(Tree_node<T> *tree, const Matrix<T> &train_x, const Matrix<T> &train_y,
+                                const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                                 const int *monotonic_constraints, char loss_function_type,
                                 const int *row_inds, int n_rows,
                                 const int *col_inds, int n_cols) {
@@ -86,8 +87,8 @@ namespace dbm {
             assert(n_rows > 0 && n_cols > 0);
         #endif
 
-        tree->prediction = loss_function.estimate_mean(train_y, prediction, loss_function_type, row_inds, n_rows);
-        if (tree->depth == max_depth || n_rows < no_candidate_split_point) {
+        tree->prediction = loss_function.estimate_mean(ind_delta, prediction, loss_function_type, row_inds, n_rows);
+        if (tree->depth == max_depth || n_rows < no_candidate_split_point * 4) {
             tree->last_node = true;
             return;
         }
@@ -110,9 +111,9 @@ namespace dbm {
                 train_x.inds_split(col_inds[i], uniques[j], larger_inds,
                                    smaller_inds, larger_smaller_n, row_inds, n_rows);
 
-                larger_beta = loss_function.estimate_mean(train_y, prediction, loss_function_type,
+                larger_beta = loss_function.estimate_mean(ind_delta, prediction, loss_function_type,
                                                           larger_inds, larger_smaller_n[0]);
-                smaller_beta = loss_function.estimate_mean(train_y, prediction, loss_function_type,
+                smaller_beta = loss_function.estimate_mean(ind_delta, prediction, loss_function_type,
                                                            smaller_inds, larger_smaller_n[1]);
 
                 if ( (larger_beta - smaller_beta) * monotonic_constraints[col_inds[j]] < 0 )
@@ -145,9 +146,9 @@ namespace dbm {
             tree->larger = new Tree_node<T>(tree->depth + 1);
             tree->smaller = new Tree_node<T>(tree->depth + 1);
 
-            train(tree->larger, train_x, train_y, prediction, monotonic_constraints, loss_function_type,
+            train(tree->larger, train_x, train_y, ind_delta, prediction, monotonic_constraints, loss_function_type,
                   larger_inds, larger_smaller_n[0], col_inds, n_cols);
-            train(tree->smaller, train_x, train_y, prediction, monotonic_constraints, loss_function_type,
+            train(tree->smaller, train_x, train_y, ind_delta, prediction, monotonic_constraints, loss_function_type,
                   smaller_inds, larger_smaller_n[1], col_inds, n_cols);
         }
         else {

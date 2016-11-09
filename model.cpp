@@ -21,7 +21,8 @@ namespace dbm {
 
     template<typename T>
     DBM<T>::DBM(int no_learners, int no_candidate_feature, int no_train_sample):
-            no_learners(no_learners), no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample) {
+            no_learners(no_learners), no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample),
+            loss_function(Loss_function<T>(params)) {
 
         learners = new Base_learner<T> *[no_learners];
 
@@ -30,10 +31,11 @@ namespace dbm {
         }
 
         tree_trainer = nullptr;
+        mean_trainer = nullptr;
     }
 
     template<typename T>
-    DBM<T>::DBM(const std::string &param_string) {
+    DBM<T>::DBM(const std::string &param_string) : loss_function(Loss_function<T>(params)) {
 
         params = set_params(param_string);
 
@@ -50,6 +52,7 @@ namespace dbm {
         }
 
         tree_trainer = new Tree_trainer<T>(params);
+        mean_trainer = new Mean_trainer<T>(params);
     }
 
     template<typename T>
@@ -111,6 +114,8 @@ namespace dbm {
             delete prediction_train_data;
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
 
+        Matrix<T> ind_delta(n_samples, 1, 0);
+
         char type;
 
         if (params.display_training_progress) {
@@ -122,25 +127,30 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -169,25 +179,30 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -211,25 +226,30 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -258,25 +278,30 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -304,8 +329,6 @@ namespace dbm {
         Matrix<T> const &train_y = data_set.get_train_y();
         Matrix<T> const &test_x = data_set.get_test_x();
         Matrix<T> const &test_y = data_set.get_test_y();
-
-        Loss_function<T> loss_function;
 
         int n_samples = train_x.get_height(), n_features = train_x.get_width();
         int test_n_samples = test_x.get_height();
@@ -348,6 +371,7 @@ namespace dbm {
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_learners / params.freq_showing_loss_on_test];
 
+        Matrix<T> ind_delta(n_samples, 1, 0);
         Matrix<T> prediction_test_data(test_n_samples, 1, 0);
 
         char type;
@@ -361,25 +385,30 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data, params.loss_function);
+                                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -418,25 +447,29 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -471,25 +504,29 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -510,8 +547,8 @@ namespace dbm {
 
                     learners[i]->predict(test_x, prediction_test_data);
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] =
-                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
+                                test_y, prediction_test_data, params.loss_function);
                     }
 
                     tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
@@ -527,25 +564,29 @@ namespace dbm {
                     shuffle(row_inds, n_samples);
                     shuffle(col_inds, n_features);
 
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+
                     type = learners[i]->get_type();
                     switch (type) {
                         case 'm': {
                             if (i > 0) {
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data,
+                                                    train_x, ind_delta, *prediction_train_data,
                                                     params.loss_function, row_inds, no_train_sample);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             }
                             else if (i == 0) {
+                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                                  ind_delta, params.loss_function);
                                 mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, train_y, *prediction_train_data);
+                                                    train_x, ind_delta, *prediction_train_data);
                                 learners[i]->predict(train_x, *prediction_train_data);
                             };
                             break;
                         }
                         case 't': {
                             tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, *prediction_train_data,
+                                                train_x, train_y, ind_delta, *prediction_train_data,
                                                 monotonic_constraints, params.loss_function,
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
@@ -561,8 +602,8 @@ namespace dbm {
 
                     learners[i]->predict(test_x, prediction_test_data);
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] =
-                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
+                                test_y, prediction_test_data, params.loss_function);
                     }
 
                 }

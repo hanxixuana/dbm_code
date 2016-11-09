@@ -336,6 +336,11 @@ namespace dbm {
                         break;
                     }
 
+                    case 't': {
+                        train_data[i][n_features] = std::max(train_data[i][n_features], T(0));
+                        break;
+                    }
+
                     default: {
                         throw std::invalid_argument("Specified data type does not exist.");
                     }
@@ -365,6 +370,11 @@ namespace dbm {
 
                     case 'b' : {
                         train_data[i][n_features] = train_data[i][n_features] < 0 ? 0 : 1;
+                        break;
+                    }
+
+                    case 't': {
+                        train_data[i][n_features] = std::max(train_data[i][n_features], T(0));
                         break;
                     }
 
@@ -424,6 +434,10 @@ namespace dbm {
                 params.record_every_tree = std::stoi(words[2 * i + 1]) > 0;
             else if (words[2 * i] == "freq_showing_loss_on_test")
                 params.freq_showing_loss_on_test = std::stoi(words[2 * i + 1]);
+
+                // tweedie
+            else if (words[2 * i] == "tweedie_p")
+                params.tweedie_p = std::stoi(words[2 * i + 1]);
 
                 // CART
             else if (words[2 * i] == "max_depth")

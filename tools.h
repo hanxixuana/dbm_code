@@ -32,6 +32,9 @@ namespace dbm {
         bool record_every_tree = true;
         int freq_showing_loss_on_test = 10;
 
+        // tweedie: p should in (1, 2)
+        double tweedie_p = 1.2;
+
         // CART
         int max_depth = 5;
         int no_candidate_split_point = 5;

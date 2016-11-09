@@ -7,6 +7,9 @@
 #include <cassert>
 #include <cmath>
 #include <stdexcept>
+#include <limits>
+
+#include <iostream>
 
 namespace dbm {
 
@@ -20,6 +23,9 @@ namespace dbm {
 
 namespace dbm {
 
+    template <typename T>
+    Loss_function<T>::Loss_function(const Params &params) : params(params) {};
+
     template<typename T>
     inline T Loss_function<T>::loss(const Matrix<T> &train_y, const Matrix<T> &prediction, const char &dist,
                                     const T beta, const int *row_inds, int n_rows) const {
@@ -27,6 +33,13 @@ namespace dbm {
         #if _DEBUG_LOSS_FUNCTION
             assert(train_y_width == 1);
         #endif
+
+
+        /*
+         *  1. Remember that a link function may be needed when calculating losses
+         *  2. Also remember to put beta in it
+         */
+
         if (row_inds == NULL) {
             switch (dist) {
                 case 'n': {
@@ -42,17 +55,36 @@ namespace dbm {
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
                         result += std::exp(prediction.get(i, 0) + beta) -
-                                train_y.get(i, 0) * (prediction.get(i, 0) + beta);
+                                  train_y.get(i, 0) * (prediction.get(i, 0) + beta);
                     }
                     return result;
                 }
                 case 'b': {
                     // negative log likelihood of bernoulli distribution
-                    T result = 0, pi_inversed;
+                    auto prob = [](auto &&f, auto &&b) {
+                        auto temp = 1 / (1 + std::exp( - f - b));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
+                    };
+                    auto nll = [&prob](auto &&y, auto &&f, auto &&b) {
+                        auto p = prob(f, b);
+                        return -y * std::log(p) - (1 - y) * std::log(1 - p);
+                    };
+                    T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        pi_inversed = 1 + std::exp(-prediction.get(i, 0));
-                        result += train_y.get(i, 0) * std::log(pi_inversed) -
-                                (1 - train_y.get(i, 0)) * std::log(1 - 1 / pi_inversed);
+                        result += nll(train_y.get(i, 0), prediction.get(i, 0), beta);
+                    }
+                    return result;
+                }
+                case 't': {
+                    T result = 0;
+                    for (int i = 0; i < train_y_height; ++i) {
+                        result += std::pow(std::exp(prediction.get(i, 0) + beta), 2 - T(params.tweedie_p)) /
+                                          (2 - params.tweedie_p) -
+                                train_y.get(i, 0) * std::pow(std::exp(prediction.get(i, 0)),
+                                                             1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
+                        if(std::isnan(result) || std::isinf(result))
+                            int a = 0;
                     }
                     return result;
                 }
@@ -66,7 +98,7 @@ namespace dbm {
                     T result = 0;
                     for (int i = 0; i < n_rows; ++i) {
                         result += std::pow(train_y.get(row_inds[i], 0) -
-                                                   prediction.get(row_inds[i], 0) - beta, 2.0);
+                                           prediction.get(row_inds[i], 0) - beta, 2.0);
                     }
                     return result / T(n_rows);
                 }
@@ -79,11 +111,32 @@ namespace dbm {
                     return result;
                 }
                 case 'b': {
-                    T result = 0, pi_inversed;
+                    auto prob = [](auto &&f, auto &&b) {
+                        auto temp = 1 / (1 + std::exp( - f - b));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
+                    };
+                    auto nll = [&prob](auto &&y, auto &&f, auto &&b) {
+                        auto p = prob(f, b);
+                        return - y * std::log(p) - (1 - y) * std::log(1 - p);
+                    };
+                    T result = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        pi_inversed = 1 + std::exp(-prediction.get(row_inds[i], 0));
-                        result += train_y.get(row_inds[i], 0) * std::log(pi_inversed) -
-                                  (1 - train_y.get(row_inds[i], 0)) * std::log(1 - 1 / pi_inversed);
+                        result += nll(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0), beta);
+                    }
+                    return result;
+                }
+                case 't': {
+                    T result = 0;
+                    for (int i = 0; i < n_rows; ++i) {
+                        result += std::pow(std::exp(prediction.get(row_inds[i], 0) + beta),
+                                           2 - T(params.tweedie_p)) /
+                                  (2 - params.tweedie_p) -
+                                train_y.get(row_inds[i], 0) *
+                                          std::pow(std::exp(prediction.get(row_inds[i], 0)),
+                                                   1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
+                        if(std::isnan(result) || std::isinf(result))
+                            int a = 0;
                     }
                     return result;
                 }
@@ -94,38 +147,64 @@ namespace dbm {
         }
     }
 
+
     template<typename T>
-    inline T Loss_function<T>::estimate_mean(const Matrix<T> &train_y, const Matrix<T> &prediction,
+    inline T Loss_function<T>::estimate_mean(const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                                              const char &dist, const int *row_inds, int n_rows) const {
-        int train_y_width = train_y.get_width(), train_y_height = train_y.get_height();
+        int train_y_width = ind_delta.get_width(), train_y_height = ind_delta.get_height();
         #if _DEBUG_LOSS_FUNCTION
             assert(train_y_width == 1);
         #endif
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             switch (dist) {
                 case 'n': {
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        result += train_y.get(i, 0) - prediction.get(i, 0);
+                        result += ind_delta.get(i, 0);
                     }
                     return result / T(train_y_height);
                 }
                 case 'p': {
                     T y_sum = 0, exp_pred_sum = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        y_sum += train_y.get(i, 0);
-                        exp_pred_sum += exp(prediction.get(i, 0));
+                        y_sum += ind_delta.get(i, 0) * std::exp(prediction.get(i, 0));
+                        exp_pred_sum += std::exp(prediction.get(i, 0));
                     }
-                    return log(y_sum / exp_pred_sum + T(0.000001));
+                    return std::log(y_sum / exp_pred_sum);
                 }
                 case 'b': {
-                    T numerator = 0, denominator = 0, p;
+                    auto prob = [](auto &&f) {
+                        auto temp = 1 / (1 + std::exp( - f));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
+                    };
+                    T numerator = 0,
+                            denominator = 0,
+                            p;
                     for (int i = 0; i < train_y_height; ++i) {
-                        p = 1 / (1 + exp(-prediction.get(i, 0)));
-                        numerator += train_y.get(i, 0) - p;
+                        p = prob(prediction.get(i, 0));
+                        numerator += ind_delta.get(i, 0) * p * (1 - p);
                         denominator += p * (1 - p);
                     }
                     return numerator / denominator;
+                }
+                case 't': {
+                    T numerator = 0,
+                            denominator = 0;
+                    for (int i = 0; i < train_y_height; ++i) {
+                        numerator += ind_delta.get(i, 0) * std::exp(prediction.get(i, 0) * (2 - T(params.tweedie_p)));
+                        denominator += std::exp(prediction.get(i, 0) * (2 - params.tweedie_p));
+                        if(std::isnan(numerator) ||
+                           std::isinf(numerator) ||
+                           std::isnan(denominator) ||
+                           std::isinf(denominator))
+                            int a = 0;
+                    }
+                    numerator += MIN_NUMERATOR_TWEEDIE;
+                    if(std::isinf(std::log(numerator / denominator)) ||
+                            std::isinf(std::log(numerator / denominator)))
+                        std::cout << std::log(numerator / denominator) << std::endl;
+                    return std::log(numerator / denominator);
                 }
                 default: {
                     throw std::invalid_argument("Specified distribution does not exist.");
@@ -136,26 +215,52 @@ namespace dbm {
                 case 'n': {
                     T result = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        result += train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0);
+                        result += ind_delta.get(row_inds[i], 0);
                     }
                     return result / T(n_rows);
                 }
                 case 'p': {
                     T y_sum = 0, exp_pred_sum = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        y_sum += train_y.get(row_inds[i], 0);
-                        exp_pred_sum += exp(prediction.get(row_inds[i], 0));
+                        y_sum += ind_delta.get(row_inds[i], 0) * std::exp(prediction.get(row_inds[i], 0));
+                        exp_pred_sum += std::exp(prediction.get(row_inds[i], 0));
                     }
-                    return log(y_sum / exp_pred_sum + T(0.000001));
+                    return std::log(y_sum / exp_pred_sum);
                 }
                 case 'b': {
-                    T numerator = 0, denominator = 0, p;
+                    auto prob = [](auto &&f) {
+                        auto temp = 1 / (1 + std::exp( - f));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
+                    };
+                    T numerator = 0,
+                            denominator = 0,
+                            p;
                     for (int i = 0; i < n_rows; ++i) {
-                        p = 1 / (1 + exp(-prediction.get(row_inds[i], 0)));
-                        numerator += train_y.get(row_inds[i], 0) - p;
+                        p = prob(prediction.get(row_inds[i], 0));
+                        numerator += ind_delta.get(row_inds[i], 0) * p * (1 - p);
                         denominator += p * (1 - p);
                     }
                     return numerator / denominator;
+                }
+                case 't': {
+                    T numerator = 0,
+                            denominator = 0;
+                    for (int i = 0; i < n_rows; ++i) {
+                        numerator += ind_delta.get(row_inds[i], 0) *
+                                std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p));
+                        denominator += std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p));
+                        if(std::isnan(numerator) ||
+                                std::isinf(numerator) ||
+                                std::isnan(denominator) ||
+                                std::isinf(denominator))
+                            int a = 0;
+                    }
+                    numerator += MIN_NUMERATOR_TWEEDIE;
+                    if(std::isinf(std::log(numerator / denominator)) ||
+                       std::isinf(std::log(numerator / denominator)))
+                        std::cout << std::log(numerator / denominator) << std::endl;
+                    return std::log(numerator / denominator);
                 }
                 default: {
                     throw std::invalid_argument("Specified distribution does not exist.");
@@ -194,8 +299,132 @@ namespace dbm {
                 }
                 break;
             }
+            case 't': {
+                for(int i = 0; i < lpp_height; ++i) {
+                    temp = std::exp(in_and_out.get(i, 0));
+                    if(std::isnan(temp) || std::isinf(temp))
+                        int a = 0;
+                    in_and_out.assign(i, 0, temp);
+                }
+                break;
+            }
             default: {
                 throw std::invalid_argument("Specified distribution does not exist.");
+            }
+        }
+
+    }
+
+    template <typename T>
+    void Loss_function<T>::calculate_ind_delta(const Matrix<T> &train_y, const Matrix<T> &prediction,
+                             Matrix<T> &ind_delta, const char &dist, const int *row_inds, int n_rows) {
+
+        if( row_inds == nullptr) {
+            int y_height = train_y.get_height();
+            #if _DEBUG_LOSS_FUNCTION
+                assert(y_height == prediction.get_height() && prediction.get_height() == ind_delta.get_height() && ind_delta.get_width() == 1);
+            #endif
+
+            switch (dist) {
+                case 'n': {
+                    for(int i = 0; i < y_height; ++i)
+                        ind_delta.assign(i, 0, train_y.get(i, 0) - prediction.get(i, 0));
+                    break;
+                }
+                case 'p': {
+                    T k;
+                    for(int i = 0; i < y_height; ++i) {
+                        k = train_y.get(i, 0) / std::exp(prediction.get(i, 0));
+                        ind_delta.assign(i, 0, k);
+                    }
+                    break;
+                }
+                case 'b': {
+                    auto prob = [](auto &&f) {
+                        return 1 / (1 + std::exp( - f));
+                    };
+                    auto delta = [&prob](auto &&y, auto &&f) {
+                        auto p = prob(f);
+                        return (y - p) / p / (1 - p);
+                    };
+                    auto result = [&delta](auto &&y, auto &&f) {
+                        auto little_delta = delta(y, f);
+                        return little_delta < MAX_IND_DELTA ?
+                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
+                    T temp;
+                    for(int i = 0; i < y_height; ++i) {
+                        temp = result(train_y.get(i, 0), prediction.get(i, 0));
+                        ind_delta.assign(i, 0, temp);
+                    }
+                    break;
+                }
+                case 't': {
+                    T d;
+                    for(int i = 0; i < y_height; ++i) {
+                        d = train_y.get(i, 0) / std::exp(prediction.get(i, 0));
+                        if(std::isnan(d) || std::isinf(d))
+                            int a = 0;
+                        ind_delta.assign(i, 0, d);
+                    }
+                    break;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
+            }
+        }
+        else {
+            #if _DEBUG_LOSS_FUNCTION
+                assert(n_rows > 0);
+            #endif
+            switch (dist) {
+                case 'n': {
+                    for(int i = 0; i < n_rows; ++i)
+                        ind_delta.assign(row_inds[i], 0, train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0));
+                    break;
+                }
+                case 'p': {
+                    T k;
+                    for(int i = 0; i < n_rows; ++i) {
+                        k = train_y.get(row_inds[i], 0) / std::exp(prediction.get(row_inds[i], 0));
+                        ind_delta.assign(row_inds[i], 0, k);
+                    }
+                    break;
+                }
+                case 'b': {
+                    auto prob = [](auto &&f) {
+                        return 1 / (1 + std::exp( - f));
+                    };
+                    auto delta = [&prob](auto &&y, auto &&f) {
+                        auto p = prob(f);
+                        return (y - p) / p / (1 - p);
+                    };
+                    auto result = [&delta](auto &&y, auto &&f) {
+                        auto little_delta = delta(y, f);
+                        return little_delta < MAX_IND_DELTA ?
+                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
+                    T temp;
+                    for(int i = 0; i < n_rows; ++i) {
+                        temp = result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0));
+                        ind_delta.assign(row_inds[i], 0, temp);
+                    }
+                    break;
+                }
+                case 't': {
+                    T d;
+                    for(int i = 0; i < n_rows; ++i) {
+                        d = train_y.get(row_inds[i], 0) / std::exp(prediction.get(row_inds[i], 0));
+                        if(std::isnan(d) || std::isinf(d))
+                            int a = 0;
+                        ind_delta.assign(row_inds[i], 0, d);
+                    }
+                    break;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
             }
         }
 

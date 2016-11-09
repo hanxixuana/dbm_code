@@ -26,7 +26,7 @@ namespace dbm {
         ~Mean_trainer();
 
         void train(Global_mean<T> *mean, const Matrix<T> &train_x,
-                   const Matrix<T> &train_y, const Matrix<T> &prediction,
+                   const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                    char loss_function_type = 'n',
                    const int *row_inds = nullptr, int n_rows = 0);
 
@@ -48,8 +48,8 @@ namespace dbm {
         Tree_trainer(const Params &params);
         ~Tree_trainer();
 
-        void train(Tree_node<T> *tree, const Matrix<T> &train_x,
-                   const Matrix<T> &train_y, const Matrix<T> &prediction,
+        void train(Tree_node<T> *tree, const Matrix<T> &train_x, const Matrix<T> &train_y,
+                   const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                    const int *monotonic_constraints, char loss_function_type = 'n',
                    const int *row_inds = nullptr, int n_rows = 0,
                    const int *col_inds = nullptr, int n_cols = 0);
