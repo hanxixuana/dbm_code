@@ -33,25 +33,68 @@ namespace dbm {
         std::getline(in, line);
 
         std::string words[100];
-        size_t prev = 0, next = 0;
-        int count = 0;
-        while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
-            if (next - prev != 0) {
-                words[count] = line.substr(prev, next - prev);
-                count += 1;
-            }
-            prev = next + 1;
-        }
-        if (prev < line.size()) {
-            words[count] = line.substr(prev);
-            count += 1;
-        }
+        int count = split_into_words(line, words);
 
         #if _DEBUG_TOOLS
             assert(count == 1);
         #endif
         mean = new Global_mean<T>;
         mean->mean = T(std::stod(words[0]));
+    }
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out) {
+        out << linear_regression->n_predictor << std::endl;
+        for(int i = 0; i < linear_regression->n_predictor; ++i)
+            out << linear_regression->col_inds[i] << ' ';
+        out << std::endl;
+        for(int i = 0; i < linear_regression->n_predictor; ++i)
+            out << linear_regression->coefs_no_intercept[i] << ' ';
+        out << std::endl;
+        out << linear_regression->intercept << std::endl;
+    }
+
+    template <typename T>
+    void load_linear_regression(std::ifstream &in, Linear_regression<T> *&linear_regression) {
+        std::string line;
+        std::string words[500];
+
+        std::getline(in, line);
+        int count = split_into_words(line, words);
+        #if _DEBUG_TOOLS
+            assert(count == 1);
+        #endif
+        linear_regression->n_predictor = std::stoi(words[0]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_TOOLS
+            assert(count == linear_regression->n_predictor);
+        #endif
+        for(int i = 0; i < count; ++i)
+            linear_regression->col_inds[i] = std::stoi(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_TOOLS
+            assert(count == linear_regression->n_predictor);
+        #endif
+        for(int i = 0; i < count; ++i)
+            linear_regression->coefs_no_intercept[i] = std::stoi(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_TOOLS
+            assert(count == 1);
+        #endif
+        linear_regression->intercept = std::stoi(words[0]);
     }
 
 }
@@ -89,20 +132,7 @@ namespace dbm {
         std::getline(in, line);
 
         std::string words[100];
-        size_t prev = 0, next = 0;
-        int count = 0;
-        while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
-            if (next - prev != 0) {
-                words[count] = line.substr(prev, next - prev);
-                count += 1;
-            }
-            prev = next + 1;
-        }
-
-        if (prev < line.size()) {
-            words[count] = line.substr(prev);
-            count += 1;
-        }
+        int count = split_into_words(line, words);
 
         if (!count || words[0] == "==")
             return false;
@@ -272,13 +302,35 @@ namespace dbm {
 
     Time_measurer::Time_measurer() {
         begin_time = std::clock();
+        std::cout << std::endl
+                  << "Timer at " << this
+                  << " ---> Start recording time..."
+                  << std::endl << std::endl;
     }
 
     Time_measurer::~Time_measurer() {
         end_time = std::clock();
-        std::cout << "Timer at " << this
+        std::cout << std::endl
+                  << "Timer at " << this
                   << " ---> " << "Elapsed Time: " << double(end_time - begin_time) / CLOCKS_PER_SEC
                   << " seconds" << std::endl << std::endl;
+    }
+
+    int split_into_words(const std::string &line, std::string *words) {
+        size_t prev = 0, next = 0;
+        int n_words = 0;
+        while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
+            if (next - prev != 0) {
+                words[n_words] = line.substr(prev, next - prev);
+                n_words += 1;
+            }
+            prev = next + 1;
+        }
+        if (prev < line.size()) {
+            words[n_words] = line.substr(prev);
+            n_words += 1;
+        }
+        return n_words;
     }
 
     template<typename T>
@@ -289,7 +341,7 @@ namespace dbm {
 
     template<typename T>
     inline void shuffle(T *values, int no_values) {
-        std::srand(std::time(NULL));
+        std::srand((unsigned int)std::time(NULL));
         std::random_shuffle(values, values + no_values);
     }
 
@@ -435,6 +487,14 @@ namespace dbm {
             else if (words[2 * i] == "freq_showing_loss_on_test")
                 params.freq_showing_loss_on_test = std::stoi(words[2 * i + 1]);
 
+            else if (words[2 * i] == "shrinkage")
+                params.shrinkage = std::stod(words[2 * i + 1]);
+
+            else if (words[2 * i] == "portion_for_trees")
+                params.portion_for_trees = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "portion_for_lr")
+                params.portion_for_lr = std::stod(words[2 * i + 1]);
+
                 // tweedie
             else if (words[2 * i] == "tweedie_p")
                 params.tweedie_p = std::stoi(words[2 * i + 1]);
@@ -468,6 +528,16 @@ namespace dbm {
     template void load_global_mean<float>(std::ifstream &in, Global_mean<float> *&mean);
 
     template void load_global_mean<double>(std::ifstream &in, Global_mean<double> *&mean);
+
+
+    template void save_linear_regression<double>(const Linear_regression<double> *linear_regression, std::ofstream &out);
+
+    template void save_linear_regression<float>(const Linear_regression<float> *linear_regression, std::ofstream &out);
+
+    template void load_linear_regression<double>(std::ifstream &in, Linear_regression<double> *&linear_regression);
+
+    template void load_linear_regression<float>(std::ifstream &in, Linear_regression<float> *&linear_regression);
+
 
     template void save_tree_node<double>(const Tree_node<double> *node, std::ofstream &out);
 

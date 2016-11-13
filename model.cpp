@@ -32,6 +32,7 @@ namespace dbm {
 
         tree_trainer = nullptr;
         mean_trainer = nullptr;
+        linear_regression_trainer = nullptr;
     }
 
     template<typename T>
@@ -47,12 +48,20 @@ namespace dbm {
 
         learners[0] = new Global_mean<T>;
 
+        std::srand((unsigned int)std::time(NULL));
+
+        double type_choose;
         for (int i = 1; i < no_learners; ++i) {
-            learners[i] = new Tree_node<T>(0);
+            type_choose = double(std::rand()) / RAND_MAX;
+            if(type_choose < params.portion_for_trees)
+                learners[i] = new Tree_node<T>(0);
+            else if(type_choose < (params.portion_for_trees + params.portion_for_lr))
+                learners[i] = new Linear_regression<T>(no_candidate_feature);
         }
 
         tree_trainer = new Tree_trainer<T>(params);
         mean_trainer = new Mean_trainer<T>(params);
+        linear_regression_trainer = new Linear_regression_trainer<T>(params);
     }
 
     template<typename T>
@@ -65,6 +74,7 @@ namespace dbm {
 
         delete tree_trainer;
         delete mean_trainer;
+        delete linear_regression_trainer;
 
         if(prediction_train_data != nullptr)
             delete prediction_train_data;
@@ -76,6 +86,8 @@ namespace dbm {
 
     template<typename T>
     void DBM<T>::train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints) {
+
+        dbm::Time_measurer timer;
 
         int n_samples = train_y.get_height(), n_features = train_x.get_width();
 
@@ -114,7 +126,13 @@ namespace dbm {
             delete prediction_train_data;
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
 
-        Matrix<T> ind_delta(n_samples, 1, 0);
+        /*
+         * ind_delta:
+         * col 0: individual delta
+         * col 1: numerator of individual delta
+         * col 2: denominator of individual delta
+         */
+        Matrix<T> ind_delta(n_samples, 3, 0);
 
         char type;
 
@@ -155,13 +173,21 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
 
                             {
                                 tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
                                 tree_info->print_to_file("trees.txt", i);
                             }
 
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -207,7 +233,15 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -254,13 +288,21 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
 
                             {
                                 tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
                                 tree_info->print_to_file("trees.txt", i);
                             }
 
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -306,7 +348,15 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -324,6 +374,8 @@ namespace dbm {
 
     template<typename T>
     void DBM<T>::train(const Data_set<T> &data_set, const int * input_monotonic_constaints) {
+
+        dbm::Time_measurer timer;
 
         Matrix<T> const &train_x = data_set.get_train_x();
         Matrix<T> const &train_y = data_set.get_train_y();
@@ -371,7 +423,14 @@ namespace dbm {
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_learners / params.freq_showing_loss_on_test];
 
-        Matrix<T> ind_delta(n_samples, 1, 0);
+        /*
+         * ind_delta:
+         * col 0: individual delta
+         * col 1: numerator of individual delta
+         * col 2: denominator of individual delta
+         */
+        Matrix<T> ind_delta(n_samples, 3, 0);
+
         Matrix<T> prediction_test_data(test_n_samples, 1, 0);
 
         char type;
@@ -413,12 +472,20 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
 
                             {
                                 tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
                                 tree_info->print_to_file("trees.txt", i);
                             }
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -427,7 +494,7 @@ namespace dbm {
                         }
                     }
 
-                    learners[i]->predict(test_x, prediction_test_data);
+                    learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 test_y, prediction_test_data, params.loss_function);
@@ -474,7 +541,15 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -483,7 +558,7 @@ namespace dbm {
                         }
                     }
 
-                    learners[i]->predict(test_x, prediction_test_data);
+                    learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 test_y, prediction_test_data, params.loss_function);
@@ -531,12 +606,20 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
 
                             {
                                 tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
                                 tree_info->print_to_file("trees.txt", i);
                             }
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -545,7 +628,7 @@ namespace dbm {
                         }
                     }
 
-                    learners[i]->predict(test_x, prediction_test_data);
+                    learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 test_y, prediction_test_data, params.loss_function);
@@ -591,7 +674,15 @@ namespace dbm {
                                                 row_inds, no_train_sample,
                                                 col_inds, no_candidate_feature);
                             tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            break;
+                        }
+                        case 'l': {
+                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
+                                                             train_x, ind_delta,
+                                                             row_inds, no_train_sample,
+                                                             col_inds, no_candidate_feature);
+                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
                             break;
                         }
                         default: {
@@ -600,7 +691,7 @@ namespace dbm {
                         }
                     }
 
-                    learners[i]->predict(test_x, prediction_test_data);
+                    learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 test_y, prediction_test_data, params.loss_function);
@@ -629,9 +720,16 @@ namespace dbm {
 
         for (int i = 0; i < data_height; ++i) predict_y[i][0] = 0;
 
-        for (int i = 0; i < no_learners; ++i) {
+        if (learners[0]->get_type() == 'm') {
+            learners[0]->predict(data_x, predict_y);
+        }
+        else {
+            learners[0]->predict(data_x, predict_y, params.shrinkage);
+        }
 
-            learners[i]->predict(data_x, predict_y);
+        for (int i = 1; i < no_learners; ++i) {
+
+            learners[i]->predict(data_x, predict_y, params.shrinkage);
 
         }
 
@@ -657,9 +755,10 @@ namespace dbm {
     }
 
     template <typename T>
-    void DBM<T>::set_loss_function(const char &type) {
+    void DBM<T>::set_loss_function_and_shrinkage(const char &type, const T &shrinkage) {
 
         params.loss_function = type;
+        params.shrinkage = shrinkage;
 
     }
 
@@ -674,6 +773,7 @@ namespace dbm {
             << dbm->no_candidate_feature << ' '
             << dbm->no_train_sample << ' '
             << dbm->params.loss_function << ' '
+            << dbm->params.shrinkage << ' '
             << std::endl;
         char type;
         for (int i = 0; i < dbm->no_learners; ++i) {
@@ -691,6 +791,13 @@ namespace dbm {
                     out << "== Tree " << std::to_string(i) << " ==" << std::endl;
                     dbm::save_tree_node(dynamic_cast<Tree_node<T> *>(dbm->learners[i]), out);
                     out << "== End of Tree " << std::to_string(i) << " ==" << std::endl;
+                    break;
+                }
+
+                case 'l': {
+                    out << "== LinReg " << std::to_string(i) << " ==" << std::endl;
+                    dbm::save_linear_regression(dynamic_cast<Linear_regression<T> *>(dbm->learners[i]), out);
+                    out << "== End of LinReg " << std::to_string(i) << " ==" << std::endl;
                     break;
                 }
 
@@ -712,26 +819,14 @@ namespace dbm {
         std::getline(in, line);
 
         std::string words[100];
-        size_t prev = 0, next = 0;
-        int count = 0;
-        while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
-            if (next - prev != 0) {
-                words[count] = line.substr(prev, next - prev);
-                count += 1;
-            }
-            prev = next + 1;
-        }
-
-        if (prev < line.size()) {
-            words[count] = line.substr(prev);
-            count += 1;
-        }
+        int count = split_into_words(line, words);
 
         dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]));
-        dbm->set_loss_function(words[3].front());
+        dbm->set_loss_function_and_shrinkage(words[3].front(), T(std::stod(words[4])));
 
         Tree_node<T> *temp_tree_ptr;
         Global_mean<T> *temp_mean_ptr;
+        Linear_regression<T> *temp_linear_regression_ptr;
 
         char type;
 
@@ -740,19 +835,7 @@ namespace dbm {
             line.clear();
             std::getline(in, line);
 
-            prev = 0, next = 0, count = 0;
-            while ((next = line.find_first_of(' ', prev)) != std::string::npos) {
-                if (next - prev != 0) {
-                    words[count].clear();
-                    words[count] = line.substr(prev, next - prev);
-                    count += 1;
-                }
-                prev = next + 1;
-            }
-            if (prev < line.size()) {
-                words[count] = line.substr(prev);
-                count += 1;
-            }
+            split_into_words(line, words);
 
             type = words[1].front();
             switch (type) {
@@ -772,6 +855,17 @@ namespace dbm {
                     temp_tree_ptr = nullptr;
                     load_tree_node(in, temp_tree_ptr);
                     dbm->learners[i] = temp_tree_ptr;
+
+                    // skip the end line
+                    std::getline(in, line);
+
+                    break;
+                }
+
+                case 'L': {
+                    temp_linear_regression_ptr = nullptr;
+                    load_linear_regression(in, temp_linear_regression_ptr);
+                    dbm->learners[i] = temp_linear_regression_ptr;
 
                     // skip the end line
                     std::getline(in, line);

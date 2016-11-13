@@ -21,6 +21,24 @@ namespace dbm {
     template<typename T>
     class Matrix;
 
+    template <typename T>
+    Matrix<T> transpose(const Matrix<T> &matrix);
+
+    template <typename T>
+    Matrix<T> plus(const Matrix<T> &left, const Matrix<T> &right);
+
+    template <typename T>
+    Matrix<T> substract(const Matrix<T> &left, const Matrix<T> &right);
+
+    template <typename T>
+    Matrix<T> inner_product(const Matrix<T> &left, const Matrix<T> &right);
+
+    template <typename T>
+    T determinant(const Matrix<T> &matrix);
+
+    template <typename T>
+    Matrix<T> inverse(const Matrix<T> &matrix);
+
     template<typename T>
     Matrix<T> vert_merge(const Matrix<T> &upper, const Matrix<T> &lower);
 
@@ -93,13 +111,13 @@ namespace dbm {
         //============
         // assignment
         //============
-#if _DEBUG_MATRIX
+        #if _DEBUG_MATRIX
 
-        void assign_row_label(int i, const int &label);
+            void assign_row_label(int i, const int &label);
 
-        void assign_col_label(int j, const int &label);
+            void assign_col_label(int j, const int &label);
 
-#endif
+        #endif
 
         void assign(int i, int j, const T &value);
 
@@ -120,11 +138,11 @@ namespace dbm {
 
         Matrix row(int row_index) const;
 
-        Matrix cols(int *col_indices, int n_cols) const;
+        Matrix cols(const int *col_indices, int n_cols) const;
 
-        Matrix rows(int *row_indices, int n_rows) const;
+        Matrix rows(const int *row_indices, int n_rows) const;
 
-        Matrix submatrix(int *row_indices, int n_rows, int *col_indices, int n_cols) const;
+        Matrix submatrix(const int *row_indices, int n_rows, const int *col_indices, int n_cols) const;
 
         //=============================================================
         // split into two Matrix<T> according to a col and a threshold
@@ -156,6 +174,21 @@ namespace dbm {
 
         void ul_average_col_for_rows(int col_index, const T &threshold, T *two_average,
                                      const int *row_inds = NULL, int n_rows = 0) const;
+
+        //================
+        // math operations
+        //================
+        friend Matrix transpose<>(const Matrix &matrix);
+
+        friend Matrix plus<>(const Matrix &left, const Matrix &right);
+
+        friend Matrix substract<>(const Matrix &left, const Matrix &right);
+
+        friend Matrix inner_product<>(const Matrix &left, const Matrix &right);
+
+        friend T determinant<>(const Matrix &matrix);
+
+        friend Matrix inverse<>(const Matrix &matrix);
 
         //===========================================================================================
         // vertical merge of two Matrix<T>, row labels are combined and column labels are from upper

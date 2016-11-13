@@ -37,7 +37,7 @@ namespace dbm {
     }
 
     template <typename T>
-    void Global_mean<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds, int n_rows) {
+    void Global_mean<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage, const int *row_inds, int n_rows) {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
@@ -46,7 +46,7 @@ namespace dbm {
             #endif
             T predicted_value;
             for (int i = 0; i < data_height; ++i) {
-                predicted_value = prediction.get(i, 0) + predict_for_row(data_x, i);
+                predicted_value = prediction.get(i, 0) + shrinkage * predict_for_row(data_x, i);
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
@@ -55,7 +55,59 @@ namespace dbm {
             #endif
             T predicted_value;
             for (int i = 0; i < n_rows; ++i) {
-                predicted_value = prediction.get(row_inds[i], 0) + predict_for_row(data_x, row_inds[i]);
+                predicted_value = prediction.get(row_inds[i], 0) + shrinkage * predict_for_row(data_x, row_inds[i]);
+                prediction.assign(row_inds[i], 0, predicted_value);
+            }
+        }
+
+    }
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    Linear_regression<T>::Linear_regression(int n_predictor) : n_predictor(n_predictor), Base_learner<T>('l') {
+        col_inds = new int[n_predictor];
+        coefs_no_intercept = new T[n_predictor];
+    }
+
+    template <typename T>
+    Linear_regression<T>::~Linear_regression() {
+        delete col_inds;
+        delete coefs_no_intercept;
+    };
+
+    template <typename T>
+    T Linear_regression<T>::predict_for_row(const Matrix<T> &data, int row_ind) {
+        T result = 0;
+        for(int i = 0; i < n_predictor; ++i) {
+            result += data.get(row_ind, col_inds[i]) * coefs_no_intercept[i];
+        }
+        result += intercept;
+        return result;
+    }
+
+    template <typename T>
+    void Linear_regression<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage, const int *row_inds, int n_rows) {
+
+        if (row_inds == NULL) {
+            int data_height = data_x.get_height();
+            #if _DEBUG_BASE_LEARNER
+                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < data_height; ++i) {
+                predicted_value = prediction.get(i, 0) + shrinkage * predict_for_row(data_x, i);
+                prediction.assign(i, 0, predicted_value);
+            }
+        } else {
+            #if _DEBUG_BASE_LEARNER
+                assert(n_rows > 0 && prediction.get_height() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < n_rows; ++i) {
+                predicted_value = prediction.get(row_inds[i], 0) + shrinkage * predict_for_row(data_x, row_inds[i]);
                 prediction.assign(row_inds[i], 0, predicted_value);
             }
         }
@@ -98,20 +150,21 @@ namespace dbm {
         if (last_node)
             return prediction;
         if (data_x.get(row_ind, column) > split_value) {
-#if _DEBUG_BASE_LEARNER
-            assert(larger != NULL);
-#endif
+            #if _DEBUG_BASE_LEARNER
+                assert(larger != NULL);
+            #endif
             return larger->predict_for_row(data_x, row_ind);
         } else {
-#if _DEBUG_BASE_LEARNER
-            assert(larger != NULL);
-#endif
+            #if _DEBUG_BASE_LEARNER
+                assert(larger != NULL);
+            #endif
             return smaller->predict_for_row(data_x, row_ind);
         }
     }
 
     template<typename T>
-    void Tree_node<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds, int n_rows) {
+    void Tree_node<T>::predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage,
+                               const int *row_inds, int n_rows) {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
@@ -120,7 +173,7 @@ namespace dbm {
             #endif
             T predicted_value;
             for (int i = 0; i < data_height; ++i) {
-                predicted_value = prediction.get(i, 0) + predict_for_row(data_x, i);
+                predicted_value = prediction.get(i, 0) + shrinkage * predict_for_row(data_x, i);
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
@@ -129,7 +182,7 @@ namespace dbm {
             #endif
             T predicted_value;
             for (int i = 0; i < n_rows; ++i) {
-                predicted_value = prediction.get(row_inds[i], 0) + predict_for_row(data_x, row_inds[i]);
+                predicted_value = prediction.get(row_inds[i], 0) + shrinkage * predict_for_row(data_x, row_inds[i]);
                 prediction.assign(row_inds[i], 0, predicted_value);
             }
         }

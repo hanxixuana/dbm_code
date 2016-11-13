@@ -29,12 +29,13 @@ namespace dbm {
     template<typename T>
     Matrix<T>::Matrix(int height, int width) : height(height), width(width) {
 
-        std::srand(std::time(NULL));
+        std::srand((unsigned int)std::time(NULL));
         data = new T *[height];
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
             for (int j = 0; j < width; ++j) {
-                data[i][j] = T(std::floor(std::rand() % 10000 / 100.0)) / 100.0;
+//                data[i][j] = T(std::floor(std::rand() % 10000 / 100.0)) / 100.0;
+                data[i][j] = T(std::rand()) / RAND_MAX * 2 - 1;
             }
         }
 
@@ -176,13 +177,13 @@ namespace dbm {
     template<typename T>
     void Matrix<T>::print() const {
 
-#if _DEBUG_MATRIX
-        std::cout << "s_f\t";
+        #if _DEBUG_MATRIX
+            std::cout << "s_f\t";
 
-        for (int i = 0; i < width; ++i)
-            std::cout << col_labels[i] << "\t";
-        std::cout << std::endl;
-#endif
+            for (int i = 0; i < width; ++i)
+                std::cout << col_labels[i] << "\t";
+            std::cout << std::endl;
+        #endif
 
         for (int i = 0; i < height; ++i) {
 #if _DEBUG_MATRIX
@@ -439,7 +440,7 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::cols(int *col_indices, int n_cols) const {
+    Matrix<T> Matrix<T>::cols(const int *col_indices, int n_cols) const {
         Matrix<T> result(height, n_cols, 0);
         for (int j = 0; j < n_cols; ++j) {
 #if _DEBUG_MATRIX
@@ -460,7 +461,7 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::rows(int *row_indices, int n_rows) const {
+    Matrix<T> Matrix<T>::rows(const int *row_indices, int n_rows) const {
         Matrix<T> result(n_rows, width, 0);
         for (int i = 0; i < n_rows; ++i) {
 #if _DEBUG_MATRIX
@@ -480,7 +481,8 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::submatrix(int *row_indices, int n_rows, int *col_indices, int n_cols) const {
+    Matrix<T> Matrix<T>::submatrix(const int *row_indices, int n_rows,
+                                   const int *col_indices, int n_cols) const {
         return rows(row_indices, n_rows).cols(col_indices, n_cols);
     }
 
@@ -708,6 +710,138 @@ namespace dbm {
 
 }
 
+// math operations
+namespace dbm {
+
+    template <typename T>
+    Matrix<T> transpose(const Matrix<T> &matrix) {
+        Matrix<T> result(matrix.width, matrix.height, 0);
+        for(int i = 0; i < matrix.height; ++i)
+            for(int j = 0; j < matrix.width; ++j)
+                result.data[j][i] = matrix.data[i][j];
+        return result;
+    }
+
+    template <typename T>
+    Matrix<T> plus(const Matrix<T> &left, const Matrix<T> &right) {
+        #if _DEBUG_MATRIX
+            assert(left.width == right.width && left.height == right.height);
+        #endif
+        Matrix<T> result(left.height, left.width, 0);
+        for(int i = 0; i < left.height; ++i)
+            for(int j = 0; j < left.width; ++j)
+                result.data[i][j] = left.data[i][j] + right.data[i][j];
+        return result;
+    }
+
+    template <typename T>
+    Matrix<T> substract(const Matrix<T> &left, const Matrix<T> &right) {
+        #if _DEBUG_MATRIX
+            assert(left.width == right.width && left.height == right.height);
+        #endif
+        Matrix<T> result(left.height, left.width, 0);
+        for(int i = 0; i < left.height; ++i)
+            for(int j = 0; j < left.width; ++j)
+                result.data[i][j] = left.data[i][j] - right.data[i][j];
+        return result;
+    }
+
+    template <typename T>
+    Matrix<T> inner_product(const Matrix<T> &left, const Matrix<T> &right) {
+        #if _DEBUG_MATRIX
+            assert(left.width == right.height);
+        #endif
+        Matrix<T> result(left.height, right.width, 0);
+        for(int i = 0; i < left.height; ++i)
+            for(int j = 0; j < right.width; ++j)
+                for(int k = 0; k < left.width; ++k)
+                    result.data[i][j] += left.data[i][k] * right.data[k][j];
+        return result;
+    }
+
+    template <typename T>
+    T determinant(const Matrix<T> &matrix) {
+        #if _DEBUG_MATRIX
+            assert(matrix.width == matrix.height);
+        #endif
+        if(matrix.width == 1)
+            return matrix.data[0][0];
+        else if(matrix.width == 2)
+            return matrix.data[0][0] * matrix.data[1][1] - matrix.data[1][0] * matrix.data[0][1];
+        else {
+            Matrix<T> temp = copy(matrix);
+            T ratio, result = 1;
+            int i = 0;
+            for(; i < temp.height - 1; ++i) {
+                for(int j = i + 1; j < temp.height; ++j) {
+                    ratio = temp.data[j][i] / temp.data[i][i];
+                    for(int k = i; k < temp.width; ++k)
+                        temp.data[j][k] = temp.data[j][k] - ratio * temp.data[i][k];
+                }
+                result *= temp.data[i][i];
+            }
+            return result * temp.data[i][i];
+        }
+    }
+
+    template <typename T>
+    Matrix<T> inverse(const Matrix<T> &matrix) {
+        #if _DEBUG_MATRIX
+            assert(matrix.width > 0 && matrix.width == matrix.height &&
+                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e10);
+        #endif
+        Matrix<T> result(matrix.height, matrix.width, 0);
+        if(matrix.width == 1) {
+            result.data[0][0] = 1 / matrix.data[0][0];
+            return result;
+        }
+        else if(matrix.width == 2) {
+            T denominator = determinant(matrix);
+            result.data[0][0] = matrix.data[1][1] / denominator;
+            result.data[0][1] = - matrix.data[0][1] / denominator;
+            result.data[1][0] = - matrix.data[1][0] / denominator;
+            result.data[1][1] = matrix.data[0][0] / denominator;
+            return result;
+        }
+        else {
+            Matrix<T> temp(matrix.height, matrix.width * 2, 0);
+            for(int i = 0; i < matrix.height; ++i) {
+                std::copy(matrix.data[i], matrix.data[i] + matrix.width, temp.data[i]);
+                temp.data[i][i + matrix.width] = 1;
+            }
+            T ratio, rescaling_coef;
+            int i = 0;
+            for(; i < temp.height - 1; ++i) {
+                for(int j = i + 1; j < temp.height; ++j) {
+                    ratio = temp.data[j][i] / temp.data[i][i];
+                    for(int k = i; k < matrix.width * 2; ++k)
+                        temp.data[j][k] = temp.data[j][k] - ratio * temp.data[i][k];
+                }
+                rescaling_coef = temp.data[i][i];
+                for(int k = i; k < matrix.width * 2; ++k)
+                    temp.data[i][k] /= rescaling_coef;
+            }
+
+            rescaling_coef = temp.data[i][i];
+            for(int k = i; k < matrix.width * 2; ++k)
+                temp.data[i][k] /= rescaling_coef;
+
+            for(i = temp.height - 1; i > 0; --i) {
+                for(int j = i - 1; j > -1; --j) {
+                    ratio = temp.data[j][i] / temp.data[i][i];
+                    for(int k = i; k < matrix.width * 2; ++k)
+                        temp.data[j][k] = temp.data[j][k] - ratio * temp.data[i][k];
+                }
+            }
+            for(i = 0; i < matrix.height; ++i) {
+                std::copy(temp.data[i] + matrix.width, temp.data[i] + 2 * matrix.width, result.data[i]);
+            }
+            return result;
+        }
+
+    }
+}
+
 // merge horizontally, merge horizontally and deep copy
 namespace dbm {
 
@@ -764,10 +898,10 @@ namespace dbm {
         for (int i = 0; i < target.height; ++i) {
             std::copy(target.data[i], target.data[i] + target.width, result.data[i]);
         }
-#if _DEBUG_MATRIX
-        std::copy(target.row_labels, target.row_labels + target.height, result.row_labels);
-        std::copy(target.col_labels, target.col_labels + target.width, result.col_labels);
-#endif
+        #if _DEBUG_MATRIX
+            std::copy(target.row_labels, target.row_labels + target.height, result.row_labels);
+            std::copy(target.col_labels, target.col_labels + target.width, result.col_labels);
+        #endif
         return result;
     }
 
@@ -792,6 +926,30 @@ namespace dbm {
 
 // explicit instantiation of templated friend functions
 namespace dbm {
+
+    template Matrix<double> transpose<double>(const Matrix<double> &matrix);
+
+    template Matrix<float> transpose<float>(const Matrix<float> &matrix);
+
+    template Matrix<double> plus<double>(const Matrix<double> &left, const Matrix<double> &right);
+
+    template Matrix<float> plus<float>(const Matrix<float> &left, const Matrix<float> &right);
+
+    template Matrix<double> substract<double>(const Matrix<double> &left, const Matrix<double> &right);
+
+    template Matrix<float> substract<float>(const Matrix<float> &left, const Matrix<float> &right);
+
+    template Matrix<double> inner_product<double>(const Matrix<double> &left, const Matrix<double> &right);
+
+    template Matrix<float> inner_product<float>(const Matrix<float> &left, const Matrix<float> &right);
+
+    template double determinant<double>(const Matrix<double> &matrix);
+
+    template float determinant<float>(const Matrix<float> &matrix);
+
+    template Matrix<double> inverse<double>(const Matrix<double> &matrix);
+
+    template Matrix<float> inverse<float>(const Matrix<float> &matrix);
 
     template Matrix<double> vert_merge<double>(const Matrix<double> &upper, const Matrix<double> &lower);
 

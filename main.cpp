@@ -7,10 +7,9 @@
 #include "base_learner_trainer.h"
 #include "model.h"
 
-
 using namespace std;
 
-void test_save_load_dbm();
+void train_test_save_load_dbm();
 
 void test_save_load_tree();
 
@@ -22,23 +21,21 @@ void build_a_tree();
 
 int main() {
 
-    prepare_data();
-    test_save_load_dbm();
+    srand((unsigned int)time(NULL));
+    cout << double(std::rand()) / RAND_MAX * 2 - 1 << endl;
 
     return 0;
 }
 
 void prepare_data() {
     string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name, 100000, 30, 't');
+    dbm::make_data<float>(file_name, 100000, 30, 'b');
 }
 
-void test_save_load_dbm() {
+void train_test_save_load_dbm() {
     int n_samples = 100000, n_features = 30, n_width = 31;
 
     dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
-    dbm::Matrix<float> prediction(n_samples, 1, 0);
-    dbm::Matrix<float> re_prediction(n_samples, 1, 0);
 
     int row_inds[n_samples], col_inds[n_features];
 
@@ -55,20 +52,20 @@ void test_save_load_dbm() {
                                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
     dbm::Data_set<float> data_set(train_x, train_y, 0.25);
-    dbm::Matrix<float> smaller_prediction(int(0.75 * n_samples), 1, 0);
+    dbm::Matrix<float> train_prediction(int(0.75 * n_samples), 1, 0);
+    dbm::Matrix<float> test_prediction(int(0.25 * n_samples), 1, 0);
+    dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_learners 500 no_candidate_feature 5 loss_function t "
-            "no_train_sample 50000 max_depth 5 no_candidate_split_point 5";
+    string param_string = "no_learners 20 no_candidate_feature 5 loss_function b "
+            "no_train_sample 10000 max_depth 5 no_candidate_split_point 5 "
+            "shrinkage 0.5";
     dbm::DBM<float> dbm(param_string);
 
-    {
-        dbm::Time_measurer *timer_1 = new dbm::Time_measurer();
-        dbm.train(data_set);
-    }
+    dbm.train(data_set);
 
-    dbm.predict(train_x, prediction);
-    dbm.predict(data_set.get_train_x(), smaller_prediction);
+    dbm.predict(data_set.get_train_x(), train_prediction);
+    dbm.predict(data_set.get_test_x(), test_prediction);
 
     {
         ofstream out("dbm.txt");
@@ -89,13 +86,14 @@ void test_save_load_dbm() {
         dbm::save_dbm(re_dbm, out);
     }
 
-    re_dbm->predict(train_x, re_prediction);
+    re_dbm->predict(data_set.get_test_x(), re_test_prediction);
 
-    dbm::Matrix<float> temp = dbm::hori_merge(smaller_prediction, *dbm.get_prediction_on_train_data());
-    temp.print_to_file("check.txt");
+    dbm::Matrix<float> temp = dbm::hori_merge(*dbm.get_prediction_on_train_data(), train_prediction);
+    dbm::Matrix<float> check = dbm::hori_merge(data_set.get_train_y(), temp);
+    check.print_to_file("check_train_and_pred.txt");
 
-    dbm::Matrix<float> combined = dbm::hori_merge(prediction, re_prediction);
-    dbm::Matrix<float> result = dbm::hori_merge(train_y, combined);
+    dbm::Matrix<float> combined = dbm::hori_merge(test_prediction, re_test_prediction);
+    dbm::Matrix<float> result = dbm::hori_merge(data_set.get_test_y(), combined);
     result.print_to_file("whole_result.txt");
 }
 

@@ -28,7 +28,7 @@ namespace dbm {
         char get_type() const { return learner_type; };
 
         virtual void
-        predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = NULL, int n_rows = 0) = 0;
+        predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = NULL, int n_rows = 0) = 0;
     };
 
 }
@@ -56,13 +56,54 @@ namespace dbm {
         Global_mean();
         ~Global_mean();
 
-        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = nullptr, int n_rows = 0);
+        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = nullptr, int n_rows = 0);
 
         friend void save_global_mean<>(const Global_mean<T> *mean, std::ofstream &out);
 
         friend void load_global_mean<>(std::ifstream &in, Global_mean<T> *&mean);
 
         friend class Mean_trainer<T>;
+
+    };
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    class Linear_regression;
+
+    template <typename T>
+    class Linear_regression_trainer;
+
+    template <typename T>
+    void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out);
+
+    template <typename T>
+    void load_linear_regression(std::ifstream &in, Linear_regression<T> *&linear_regression);
+
+    template <typename T>
+    class Linear_regression : public Base_learner<T> {
+    private:
+        int n_predictor;
+
+        int *col_inds;
+
+        T intercept;
+        T *coefs_no_intercept;
+
+        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+    public:
+        Linear_regression(int n_predictor);
+        ~Linear_regression();
+
+        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = nullptr, int n_rows = 0);
+
+        friend void save_linear_regression<>(const Linear_regression<T> *linear_regression, std::ofstream &out);
+
+        friend void load_linear_regression<>(std::ifstream &in, Linear_regression<T> *&linear_regression);
+
+        friend class Linear_regression_trainer<T>;
 
     };
 
@@ -116,7 +157,7 @@ namespace dbm {
 
         ~Tree_node();
 
-        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const int *row_inds = nullptr, int n_rows = 0);
+        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = nullptr, int n_rows = 0);
 
         friend void save_tree_node<>(const Tree_node<T> *node, std::ofstream &out);
 

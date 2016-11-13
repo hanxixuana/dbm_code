@@ -20,6 +20,7 @@ namespace dbm {
     template <typename T>
     class Mean_trainer {
     private:
+        bool display_training_progress;
         Loss_function<T> loss_function;
     public:
         Mean_trainer(const Params &params);
@@ -32,6 +33,20 @@ namespace dbm {
 
     };
 
+    // for linear regression
+    template <typename T>
+    class Linear_regression_trainer {
+    private:
+        bool display_training_progress;
+    public:
+        Linear_regression_trainer(const Params &params);
+        ~Linear_regression_trainer();
+
+        void train(Linear_regression<T> *linear_regression, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr, int n_rows = 0,
+                   const int *col_inds = nullptr, int n_cols = 0);
+
+    };
 
     // for trees
     template<typename T>

@@ -53,6 +53,7 @@ namespace dbm {
 
         Tree_trainer<T> *tree_trainer = nullptr;
         Mean_trainer<T> *mean_trainer = nullptr;
+        Linear_regression_trainer<T> *linear_regression_trainer = nullptr;
 
         Params params;
         Loss_function<T> loss_function;
@@ -81,7 +82,7 @@ namespace dbm {
         Matrix<T> *get_prediction_on_train_data() const;
         T *get_test_loss() const;
 
-        void set_loss_function(const char &type);
+        void set_loss_function_and_shrinkage(const char &type, const T &shrinkage);
 
         friend void save_dbm<>(const DBM *dbm, std::ofstream &out);
         friend void load_dbm<>(std::ifstream &in, DBM *&dbm);

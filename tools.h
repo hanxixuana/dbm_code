@@ -32,8 +32,14 @@ namespace dbm {
         bool record_every_tree = true;
         int freq_showing_loss_on_test = 10;
 
+        double shrinkage = 0.01;
+
+        // portions should be summed to 1
+        double portion_for_trees = 0.5;
+        double portion_for_lr = 0.5;
+
         // tweedie: p should in (1, 2)
-        double tweedie_p = 1.2;
+        double tweedie_p = 1.6;
 
         // CART
         int max_depth = 5;
@@ -63,6 +69,9 @@ namespace dbm {
 
         ~Time_measurer();
     };
+
+    // split a line into words
+    int split_into_words(const std::string &line, std::string *words);
 
 }
 
@@ -100,6 +109,17 @@ namespace dbm {
 
     template <typename T>
     void load_global_mean(std::ifstream &in, Global_mean<T> *&mean);
+
+}
+
+// for linear regression
+namespace dbm {
+
+    template <typename T>
+    void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out);
+
+    template <typename T>
+    void load_linear_regression(std::ifstream &in, Linear_regression<T> *&linear_regression);
 
 }
 

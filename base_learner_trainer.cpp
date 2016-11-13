@@ -11,23 +11,31 @@
 namespace dbm {
 
     template
-    class Tree_trainer<double>;
-
-    template
-    class Tree_trainer<float>;
-
-    template
     class Mean_trainer<double>;
 
     template
     class Mean_trainer<float>;
+
+    template
+    class Linear_regression_trainer<double>;
+
+    template
+    class Linear_regression_trainer<float>;
+
+    template
+    class Tree_trainer<double>;
+
+    template
+    class Tree_trainer<float>;
 
 }
 
 namespace dbm {
 
     template <typename T>
-    Mean_trainer<T>::Mean_trainer(const Params &params) :loss_function(Loss_function<T>(params)) {};
+    Mean_trainer<T>::Mean_trainer(const Params &params) :
+            loss_function(Loss_function<T>(params)),
+            display_training_progress(params.display_training_progress) {};
 
     template <typename T>
     Mean_trainer<T>::~Mean_trainer() {}
@@ -37,8 +45,10 @@ namespace dbm {
                                 const Matrix<T> &ind_delta, const Matrix<T> &prediction,
                                 char loss_function_type,
                                 const int *row_inds, int n_rows) {
-        std::cout << "Training Global Mean at " << mean
-                  << " ... " << std::endl;
+        if(display_training_progress)
+            std::cout << "Training Global Mean at " << mean
+                      << " number of samples: " << (n_rows != 0 ? std::to_string(n_rows) : "all")
+                      << " ... " << std::endl;
 
         if(row_inds == nullptr) {
             mean->mean = loss_function.estimate_mean(ind_delta, prediction, loss_function_type);
@@ -50,6 +60,75 @@ namespace dbm {
             mean->mean = loss_function.estimate_mean(ind_delta, prediction, loss_function_type, row_inds, n_rows);
         }
 
+    }
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    Linear_regression_trainer<T>::Linear_regression_trainer(const Params &params) :
+            display_training_progress(params.display_training_progress) {}
+
+    template <typename T>
+    Linear_regression_trainer<T>::~Linear_regression_trainer() {}
+
+    template <typename T>
+    void Linear_regression_trainer<T>::train(Linear_regression<T> *linear_regression, const Matrix<T> &train_x,
+                                             const Matrix<T> &ind_delta,
+                                             const int *row_inds, int n_rows,
+                                             const int *col_inds, int n_cols) {
+        if (display_training_progress)
+            std::cout << "Training Tree at " << linear_regression
+                      << " number of samples: " << n_rows
+                      << " number of predictors: " << n_cols
+                      << " ... " << std::endl;
+
+        if(row_inds == nullptr) {
+            int height = train_x.get_height();
+            Matrix<T> w(height, height, 0);
+            for(int i = 0; i < height; ++i)
+                w.assign(i, i, ind_delta.get(i, 2));
+            #if _DEBUG_BASE_LEARNER_TRAINER
+                assert(train_x.get_width() == linear_regression->n_predictor);
+            #endif
+            for(int j = 0; j < height; ++j)
+                linear_regression->col_inds[j] = col_inds[j];
+            Matrix<T> intercept(height, 1, 1);
+            Matrix<T> x = hori_merge(intercept, train_x);
+            int y_ind[] = {1}, n_y_ind = 1;
+            Matrix<T> coefs = inner_product(inverse(inner_product(inner_product(transpose(x), w), x)),
+                                            inner_product(transpose(x),
+                                                          ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind)));
+            #if _DEBUG_BASE_LEARNER_TRAINER
+                assert(coefs.get_width() == 1 && coefs.get_height() == train_x.get_width() + 1);
+            #endif
+            linear_regression->intercept = coefs.get(0, 0);
+            for(int j = 1; j < height + 1; ++j)
+                linear_regression->coefs_no_intercept[j] = coefs.get(j, 0);
+        }
+        else {
+            Matrix<T> w(n_rows, n_rows, 0);
+            for(int i = 0; i < n_rows; ++i)
+                w.assign(i, i, ind_delta.get(i, 2));
+            #if _DEBUG_BASE_LEARNER_TRAINER
+                assert(n_rows > 0 && n_cols == linear_regression->n_predictor);
+            #endif
+            for(int j = 0; j < n_cols; ++j)
+                linear_regression->col_inds[j] = col_inds[j];
+            Matrix<T> intercept(n_rows, 1, 1);
+            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds, n_rows, col_inds, n_cols));
+            int y_ind[] = {1}, n_y_ind = 1;
+            Matrix<T> coefs = inner_product(inverse(inner_product(inner_product(transpose(x), w), x)),
+                                            inner_product(transpose(x),
+                                                          ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind)));
+            #if _DEBUG_BASE_LEARNER_TRAINER
+                assert(coefs.get_width() == 1 && coefs.get_height() == n_rows + 1);
+            #endif
+            linear_regression->intercept = coefs.get(0, 0);
+            for(int j = 1; j < n_cols + 1; ++j)
+                linear_regression->coefs_no_intercept[j] = coefs.get(j, 0);
+        }
     }
 
 }
@@ -77,8 +156,9 @@ namespace dbm {
 
         if (tree->depth == 0 && display_training_progress)
             std::cout << "Training Tree at " << tree
-                      << " with max_depth: " << max_depth
-                      << " and no_candidate_split_point: " << no_candidate_split_point
+                      << " number of samples: " << n_rows
+                      << " max_depth: " << max_depth
+                      << " no_candidate_split_point: " << no_candidate_split_point
                       << " ... " << std::endl;
 
         tree->no_training_samples = n_rows;
