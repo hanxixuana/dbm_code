@@ -86,15 +86,16 @@ namespace dbm {
     class Linear_regression : public Base_learner<T> {
     private:
         int n_predictor;
+        char loss_type;
 
-        int *col_inds;
+        int *col_inds = nullptr;
 
         T intercept;
-        T *coefs_no_intercept;
+        T *coefs_no_intercept = nullptr;
 
         T predict_for_row(const Matrix<T> &data_x, int row_ind);
     public:
-        Linear_regression(int n_predictor);
+        Linear_regression(int n_predictor, char loss_type);
         ~Linear_regression();
 
         void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = nullptr, int n_rows = 0);

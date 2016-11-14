@@ -6,6 +6,8 @@
 
 #include <cassert>
 #include <limits>
+#include <cmath>
+#include <stdexcept>
 
 namespace dbm {
 
@@ -14,6 +16,12 @@ namespace dbm {
 
     template
     class Tree_node<double>;
+
+    template
+    class Linear_regression<double>;
+
+    template
+    class Linear_regression<float>;
 
     template
     class Global_mean<float>;
@@ -67,7 +75,8 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Linear_regression<T>::Linear_regression(int n_predictor) : n_predictor(n_predictor), Base_learner<T>('l') {
+    Linear_regression<T>::Linear_regression(int n_predictor, char loss_type) :
+            n_predictor(n_predictor), loss_type(loss_type), Base_learner<T>('l') {
         col_inds = new int[n_predictor];
         coefs_no_intercept = new T[n_predictor];
     }
@@ -85,7 +94,18 @@ namespace dbm {
             result += data.get(row_ind, col_inds[i]) * coefs_no_intercept[i];
         }
         result += intercept;
-        return result;
+        switch (loss_type) {
+            case 'n':
+                return result;
+            case 'p':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            case 'b':
+                return result;
+            case 't':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            default:
+                throw std::invalid_argument("Specified distribution does not exist.");
+        }
     }
 
     template <typename T>

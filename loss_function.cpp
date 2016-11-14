@@ -149,7 +149,7 @@ namespace dbm {
                                              const char &dist, const int *row_inds, int n_rows) const {
         int ind_delta_width = ind_delta.get_width(), ind_delta_height = ind_delta.get_height();
         #if _DEBUG_LOSS_FUNCTION
-            assert(ind_delta_width == 3);
+            assert(ind_delta_width == 2);
         #endif
         if (row_inds == nullptr) {
             switch (dist) {
@@ -163,30 +163,21 @@ namespace dbm {
                 case 'p': {
                     T y_sum = 0, exp_pred_sum = 0;
                     for (int i = 0; i < ind_delta_height; ++i) {
-                        y_sum += ind_delta.get(i, 0) * std::exp(prediction.get(i, 0));
-                        exp_pred_sum += std::exp(prediction.get(i, 0));
+                        y_sum += ind_delta.get(i, 0) * ind_delta.get(i, 1);
+                        exp_pred_sum += ind_delta.get(i, 1);
                     }
                     return std::log(y_sum / exp_pred_sum);
                 }
                 case 'b': {
-                    auto prob = [](auto &&f) {
-                        auto temp = 1 / (1 + std::exp( - f));
-                        return temp < MAX_PROB_BERNOULLI ?
-                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
-                    };
-                    T numerator = 0,
-                            denominator = 0,
-                            p;
+                    T numerator = 0, denominator = 0;
                     for (int i = 0; i < ind_delta_height; ++i) {
-                        p = prob(prediction.get(i, 0));
-                        numerator += ind_delta.get(i, 0) * p * (1 - p);
-                        denominator += p * (1 - p);
+                        numerator += ind_delta.get(i, 0) * ind_delta.get(i, 1);
+                        denominator += ind_delta.get(i, 1);
                     }
                     return numerator / denominator;
                 }
                 case 't': {
-                    T numerator = 0,
-                            denominator = 0;
+                    T numerator = 0, denominator = 0;
                     for (int i = 0; i < ind_delta_height; ++i) {
                         numerator += ind_delta.get(i, 0) * std::exp(prediction.get(i, 0) * (2 - T(params.tweedie_p)));
                         denominator += std::exp(prediction.get(i, 0) * (2 - params.tweedie_p));
@@ -210,30 +201,21 @@ namespace dbm {
                 case 'p': {
                     T y_sum = 0, exp_pred_sum = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        y_sum += ind_delta.get(row_inds[i], 0) * std::exp(prediction.get(row_inds[i], 0));
-                        exp_pred_sum += std::exp(prediction.get(row_inds[i], 0));
+                        y_sum += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
+                        exp_pred_sum += ind_delta.get(row_inds[i], 1);
                     }
                     return std::log(y_sum / exp_pred_sum);
                 }
                 case 'b': {
-                    auto prob = [](auto &&f) {
-                        auto temp = 1 / (1 + std::exp( - f));
-                        return temp < MAX_PROB_BERNOULLI ?
-                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
-                    };
-                    T numerator = 0,
-                            denominator = 0,
-                            p;
+                    T numerator = 0, denominator = 0;
                     for (int i = 0; i < n_rows; ++i) {
-                        p = prob(prediction.get(row_inds[i], 0));
-                        numerator += ind_delta.get(row_inds[i], 0) * p * (1 - p);
-                        denominator += p * (1 - p);
+                        numerator += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
+                        denominator += ind_delta.get(row_inds[i], 1);
                     }
                     return numerator / denominator;
                 }
                 case 't': {
-                    T numerator = 0,
-                            denominator = 0;
+                    T numerator = 0, denominator = 0;
                     for (int i = 0; i < n_rows; ++i) {
                         numerator += ind_delta.get(row_inds[i], 0) *
                                 std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p));
@@ -300,29 +282,33 @@ namespace dbm {
         if( row_inds == nullptr) {
             int y_height = train_y.get_height();
             #if _DEBUG_LOSS_FUNCTION
-                assert(y_height == prediction.get_height() && prediction.get_height() == ind_delta.get_height() && ind_delta.get_width() == 3);
+                assert(y_height == prediction.get_height() && prediction.get_height() == ind_delta.get_height() && ind_delta.get_width() == 2);
             #endif
 
             switch (dist) {
                 case 'n': {
                     for(int i = 0; i < y_height; ++i) {
                         ind_delta.assign(i, 0, train_y.get(i, 0) - prediction.get(i, 0));
-                        ind_delta.assign(i, 1, train_y.get(i, 0) - prediction.get(i, 0));
-                        ind_delta.assign(i, 2, 1);
+                        ind_delta.assign(i, 1, 1);
                     }
                     break;
                 }
                 case 'p': {
+                    auto result = [](auto &&y, auto &&pred) {
+                        auto temp = y / std::exp(pred);
+                        return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
                     for(int i = 0; i < y_height; ++i) {
-                        ind_delta.assign(i, 1, train_y.get(i, 0));
-                        ind_delta.assign(i, 2, std::exp(prediction.get(i, 0)));
-                        ind_delta.assign(i, 0, ind_delta.get(i, 1) / ind_delta.get(i, 2));
+                        ind_delta.assign(i, 0, result(train_y.get(i, 0), prediction.get(i, 0)));
+                        ind_delta.assign(i, 1, std::exp(prediction.get(i, 0)));
                     }
                     break;
                 }
                 case 'b': {
                     auto prob = [](auto &&f) {
-                        return 1 / (1 + std::exp( - f));
+                        auto temp = 1 / (1 + std::exp( - f));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
                     auto delta = [&prob](auto &&y, auto &&f) {
                         auto p = prob(f);
@@ -339,16 +325,19 @@ namespace dbm {
                     };
                     for(int i = 0; i < y_height; ++i) {
                         ind_delta.assign(i, 0, result(train_y.get(i, 0), prediction.get(i, 0)));
-                        ind_delta.assign(i, 2, denominator(prediction.get(i, 0)));
-                        ind_delta.assign(i, 1, ind_delta.get(i, 0) * ind_delta.get(i, 2));
+                        ind_delta.assign(i, 1, denominator(prediction.get(i, 0)));
                     }
                     break;
                 }
                 case 't': {
+                    auto result = [](auto &&y, auto &&pred) {
+                        auto temp = y / std::exp(pred);
+                        return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
                     for(int i = 0; i < y_height; ++i) {
-                        ind_delta.assign(i, 1, train_y.get(i, 0));
-                        ind_delta.assign(i, 2, std::exp(prediction.get(i, 0)));
-                        ind_delta.assign(i, 0, ind_delta.get(i, 1) / ind_delta.get(i, 2));
+
+                        ind_delta.assign(i, 0, result(train_y.get(i, 0), prediction.get(i, 0)));
+                        ind_delta.assign(i, 1, std::exp(prediction.get(i, 0) * (2 - params.tweedie_p)));
                     }
                     break;
                 }
@@ -365,22 +354,26 @@ namespace dbm {
                 case 'n': {
                     for(int i = 0; i < n_rows; ++i) {
                         ind_delta.assign(row_inds[i], 0, train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0));
-                        ind_delta.assign(row_inds[i], 1, train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0));
-                        ind_delta.assign(row_inds[i], 2, 1);
+                        ind_delta.assign(row_inds[i], 1, 1);
                     }
                     break;
                 }
                 case 'p': {
+                    auto result = [](auto &&y, auto &&pred) {
+                        auto temp = y / std::exp(pred);
+                        return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
                     for(int i = 0; i < n_rows; ++i) {
-                        ind_delta.assign(row_inds[i], 1, train_y.get(row_inds[i], 0));
-                        ind_delta.assign(row_inds[i], 2, std::exp(prediction.get(row_inds[i], 0)));
-                        ind_delta.assign(row_inds[i], 0, ind_delta.get(row_inds[i], 1) / ind_delta.get(row_inds[i], 2));
+                        ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
+                        ind_delta.assign(row_inds[i], 1, std::exp(prediction.get(row_inds[i], 0)));
                     }
                     break;
                 }
                 case 'b': {
                     auto prob = [](auto &&f) {
-                        return 1 / (1 + std::exp( - f));
+                        auto temp = 1 / (1 + std::exp( - f));
+                        return temp < MAX_PROB_BERNOULLI ?
+                               (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
                     auto delta = [&prob](auto &&y, auto &&f) {
                         auto p = prob(f);
@@ -397,16 +390,19 @@ namespace dbm {
                     };
                     for(int i = 0; i < n_rows; ++i) {
                         ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
-                        ind_delta.assign(row_inds[i], 2, denominator(prediction.get(row_inds[i], 0)));
-                        ind_delta.assign(row_inds[i], 1, ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 2));
+                        ind_delta.assign(row_inds[i], 1, denominator(prediction.get(row_inds[i], 0)));
                     }
                     break;
                 }
                 case 't': {
+                    auto result = [](auto &&y, auto &&pred) {
+                        auto temp = y / std::exp(pred);
+                        return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
+                    };
                     for(int i = 0; i < n_rows; ++i) {
-                        ind_delta.assign(row_inds[i], 1, train_y.get(row_inds[i], 0));
-                        ind_delta.assign(row_inds[i], 2, std::exp(prediction.get(row_inds[i], 0)));
-                        ind_delta.assign(row_inds[i], 0, ind_delta.get(row_inds[i], 1) / ind_delta.get(row_inds[i], 2));
+
+                        ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
+                        ind_delta.assign(row_inds[i], 1, std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p)));
                     }
                     break;
                 }

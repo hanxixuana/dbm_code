@@ -7,6 +7,7 @@
 #include <cassert>
 #include <limits>
 #include <iostream>
+#include <cmath>
 
 namespace dbm {
 
@@ -85,49 +86,70 @@ namespace dbm {
                       << " ... " << std::endl;
 
         if(row_inds == nullptr) {
-            int height = train_x.get_height();
-            Matrix<T> w(height, height, 0);
+            int height = train_x.get_height(), width = train_x.get_width();
+            Matrix<T> w(1, height, 0);
             for(int i = 0; i < height; ++i)
-                w.assign(i, i, ind_delta.get(i, 2));
+                w.assign(0, i, ind_delta.get(i, 1));
             #if _DEBUG_BASE_LEARNER_TRAINER
                 assert(train_x.get_width() == linear_regression->n_predictor);
             #endif
-            for(int j = 0; j < height; ++j)
-                linear_regression->col_inds[j] = col_inds[j];
+            for(int j = 0; j < width; ++j)
+                linear_regression->col_inds[j] = j;
+
             Matrix<T> intercept(height, 1, 1);
             Matrix<T> x = hori_merge(intercept, train_x);
-            int y_ind[] = {1}, n_y_ind = 1;
-            Matrix<T> coefs = inner_product(inverse(inner_product(inner_product(transpose(x), w), x)),
-                                            inner_product(transpose(x),
-                                                          ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind)));
+
+            Matrix<T> left_in_left = transpose(x);
+            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+            Matrix<T> left = inner_product(left_in_left, x);
+
+            Matrix<T> y = ind_delta.col(0);
+
+            Matrix<T> left_inversed = inverse(left);
+
+            Matrix<T> right = inner_product(left_in_left, y);
+
+            Matrix<T> coefs = inner_product(left_inversed, right);
+
             #if _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == train_x.get_width() + 1);
+                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
             #endif
             linear_regression->intercept = coefs.get(0, 0);
-            for(int j = 1; j < height + 1; ++j)
-                linear_regression->coefs_no_intercept[j] = coefs.get(j, 0);
+            for(int j = 1; j < width + 1; ++j)
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
         }
         else {
-            Matrix<T> w(n_rows, n_rows, 0);
+            Matrix<T> w(1, n_rows, 0);
             for(int i = 0; i < n_rows; ++i)
-                w.assign(i, i, ind_delta.get(i, 2));
+                w.assign(0, i, ind_delta.get(row_inds[i], 1));
             #if _DEBUG_BASE_LEARNER_TRAINER
                 assert(n_rows > 0 && n_cols == linear_regression->n_predictor);
             #endif
             for(int j = 0; j < n_cols; ++j)
                 linear_regression->col_inds[j] = col_inds[j];
+
             Matrix<T> intercept(n_rows, 1, 1);
             Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds, n_rows, col_inds, n_cols));
-            int y_ind[] = {1}, n_y_ind = 1;
-            Matrix<T> coefs = inner_product(inverse(inner_product(inner_product(transpose(x), w), x)),
-                                            inner_product(transpose(x),
-                                                          ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind)));
+
+            Matrix<T> left_in_left = transpose(x);
+            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+            Matrix<T> left = inner_product(left_in_left, x);
+
+            int y_ind[] = {0}, n_y_ind = 1;
+            Matrix<T> y = ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind);
+
+            Matrix<T> left_inversed = inverse(left);
+
+            Matrix<T> right = inner_product(left_in_left, y);
+
+            Matrix<T> coefs = inner_product(left_inversed, right);
+
             #if _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == n_rows + 1);
+                assert(coefs.get_width() == 1 && coefs.get_height() == n_cols + 1);
             #endif
             linear_regression->intercept = coefs.get(0, 0);
             for(int j = 1; j < n_cols + 1; ++j)
-                linear_regression->coefs_no_intercept[j] = coefs.get(j, 0);
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
         }
     }
 

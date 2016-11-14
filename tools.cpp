@@ -48,7 +48,7 @@ namespace dbm {
 
     template <typename T>
     void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out) {
-        out << linear_regression->n_predictor << std::endl;
+        out << linear_regression->n_predictor << ' ' << linear_regression->loss_type << std::endl;
         for(int i = 0; i < linear_regression->n_predictor; ++i)
             out << linear_regression->col_inds[i] << ' ';
         out << std::endl;
@@ -66,9 +66,9 @@ namespace dbm {
         std::getline(in, line);
         int count = split_into_words(line, words);
         #if _DEBUG_TOOLS
-            assert(count == 1);
+            assert(count == 2);
         #endif
-        linear_regression->n_predictor = std::stoi(words[0]);
+        linear_regression = new Linear_regression<T>(std::stoi(words[0]), words[1].front());
 
         line.clear();
         std::getline(in, line);
@@ -86,7 +86,7 @@ namespace dbm {
             assert(count == linear_regression->n_predictor);
         #endif
         for(int i = 0; i < count; ++i)
-            linear_regression->coefs_no_intercept[i] = std::stoi(words[i]);
+            linear_regression->coefs_no_intercept[i] = T(std::stod(words[i]));
 
         line.clear();
         std::getline(in, line);
@@ -94,7 +94,7 @@ namespace dbm {
         #if _DEBUG_TOOLS
             assert(count == 1);
         #endif
-        linear_regression->intercept = std::stoi(words[0]);
+        linear_regression->intercept = T(std::stod(words[0]));
     }
 
 }

@@ -26,10 +26,10 @@ namespace dbm {
     class Loss_function {
     private:
 
-
+        Params params;
 
     public:
-        Params params;
+
 
         Loss_function(const Params &params);
 

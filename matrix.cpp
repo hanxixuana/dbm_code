@@ -788,7 +788,7 @@ namespace dbm {
     Matrix<T> inverse(const Matrix<T> &matrix) {
         #if _DEBUG_MATRIX
             assert(matrix.width > 0 && matrix.width == matrix.height &&
-                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e10);
+                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e5);
         #endif
         Matrix<T> result(matrix.height, matrix.width, 0);
         if(matrix.width == 1) {
@@ -839,6 +839,16 @@ namespace dbm {
             return result;
         }
 
+    }
+
+    template <typename T>
+    void Matrix<T>::inplace_elewise_prod_mat_with_row_vec(const Matrix<T> &row) {
+        #if _DEBUG_MATRIX
+            assert(width == row.width && row.height == 1);
+        #endif
+        for(int i = 0; i < height; ++i)
+            for(int j = 0; j < width; ++j)
+                data[i][j] *= row.data[0][j];
     }
 }
 

@@ -190,6 +190,9 @@ namespace dbm {
 
         friend Matrix inverse<>(const Matrix &matrix);
 
+        // in-place
+        void inplace_elewise_prod_mat_with_row_vec(const Matrix &row);
+
         //===========================================================================================
         // vertical merge of two Matrix<T>, row labels are combined and column labels are from upper
         //===========================================================================================
