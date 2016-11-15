@@ -79,11 +79,6 @@ namespace dbm {
                                              const Matrix<T> &ind_delta,
                                              const int *row_inds, int n_rows,
                                              const int *col_inds, int n_cols) {
-        if (display_training_progress)
-            std::cout << "Training Tree at " << linear_regression
-                      << " number of samples: " << n_rows
-                      << " number of predictors: " << n_cols
-                      << " ... " << std::endl;
 
         if(row_inds == nullptr) {
             int height = train_x.get_height(), width = train_x.get_width();
@@ -175,13 +170,6 @@ namespace dbm {
         /*
          * default case has not been implemented
         */
-
-        if (tree->depth == 0 && display_training_progress)
-            std::cout << "Training Tree at " << tree
-                      << " number of samples: " << n_rows
-                      << " max_depth: " << max_depth
-                      << " no_candidate_split_point: " << no_candidate_split_point
-                      << " ... " << std::endl;
 
         tree->no_training_samples = n_rows;
 

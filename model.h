@@ -44,7 +44,8 @@ namespace dbm {
     template<typename T>
     class DBM : public Regressor<T> {
     private:
-        int no_learners;
+        int no_bunches_of_learners;
+        int no_cores;
 
         int no_candidate_feature;
         int no_train_sample;
@@ -58,15 +59,13 @@ namespace dbm {
         Params params;
         Loss_function<T> loss_function;
 
-        Tree_info<T> *tree_info = nullptr;
-
         Matrix<T> *prediction_train_data = nullptr;
 
         T *test_loss_record = nullptr;
 
     public:
 
-        DBM(int no_learners, int no_candidate_feature, int no_train_sample);
+        DBM(int no_bunches_of_learners, int no_cores, int no_candidate_feature, int no_train_sample);
 
         DBM(const std::string &param_string);
 

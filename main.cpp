@@ -59,7 +59,7 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_learners 300 no_candidate_feature 5 loss_function t "
+    string param_string = "no_bunches_of_learners 2000 no_cores 6 no_candidate_feature 5 loss_function t "
             "no_train_sample 50000 max_depth 5 no_candidate_split_point 5 "
             "shrinkage 0.1 portion_for_trees 0.5 portion_for_lr 1";
     dbm::DBM<float> dbm(param_string);
@@ -126,7 +126,7 @@ void train_a_dbm() {
     int mon_const[n_features] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-    string param_string = "no_learners 670 no_candidate_feature 5 "
+    string param_string = "no_bunches_of_learners 670 no_candidate_feature 5 "
             "no_train_sample 10000 max_depth 5 no_candidate_split_point 5";
     dbm::DBM<float> dbm(param_string);
 

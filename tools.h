@@ -22,9 +22,11 @@ namespace dbm {
     struct Params {
 
         // DBM
-        int no_learners = 100;
+        int no_bunches_of_learners = 100;
         int no_candidate_feature = 5;
         int no_train_sample = 5000;
+
+        int no_cores = 0;
 
         char loss_function = 'n';
 
@@ -87,7 +89,7 @@ namespace dbm {
 
     // shuffle an array
     template<typename T>
-    void shuffle(T *values, int no_values);
+    void shuffle(T *values, int no_values, unsigned int seed = (unsigned int)(std::time(NULL)));
 
     template<typename T>
     void make_data(const std::string &file_name, int n_samples = 100000, int n_features = 30, char data_type = 'n',

@@ -29,7 +29,7 @@ namespace dbm {
     template<typename T>
     Matrix<T>::Matrix(int height, int width) : height(height), width(width) {
 
-        std::srand((unsigned int)std::time(NULL));
+        std::srand((unsigned int)(std::time(NULL)));
         data = new T *[height];
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];

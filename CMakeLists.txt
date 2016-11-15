@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(dbm_code)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fopenmp")
 
 set(directory
         "${CMAKE_HOME_DIRECTORY}/output"

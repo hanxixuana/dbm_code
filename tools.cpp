@@ -340,8 +340,8 @@ namespace dbm {
     }
 
     template<typename T>
-    inline void shuffle(T *values, int no_values) {
-        std::srand((unsigned int)std::time(NULL));
+    inline void shuffle(T *values, int no_values, unsigned int seed) {
+        std::srand(seed);
         std::random_shuffle(values, values + no_values);
     }
 
@@ -470,12 +470,14 @@ namespace dbm {
         for (int i = 0; i < count / 2; ++i) {
 
             // DBM
-            if (words[2 * i] == "no_learners")
-                params.no_learners = std::stoi(words[2 * i + 1]);
+            if (words[2 * i] == "no_bunches_of_learners")
+                params.no_bunches_of_learners = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "no_candidate_feature")
                 params.no_candidate_feature = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "no_train_sample")
                 params.no_train_sample = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "no_cores")
+                params.no_cores = std::stoi(words[2 * i + 1]);
 
             else if (words[2 * i] == "loss_function")
                 params.loss_function = words[2 * i + 1].front();
@@ -555,11 +557,11 @@ namespace dbm {
 
     template int middles<double>(double *uniqes, int no_uniques);
 
-    template void shuffle<int>(int *values, int no_values);
+    template void shuffle<int>(int *values, int no_values, unsigned int seed);
 
-    template void shuffle<float>(float *values, int no_values);
+    template void shuffle<float>(float *values, int no_values, unsigned int seed);
 
-    template void shuffle<double>(double *values, int no_values);
+    template void shuffle<double>(double *values, int no_values, unsigned int seed);
 
     template void print_tree_info<double>(const dbm::Tree_node<double> *tree);
 

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <omp.h>
 
 namespace dbm {
 
@@ -20,13 +21,14 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    DBM<T>::DBM(int no_learners, int no_candidate_feature, int no_train_sample):
-            no_learners(no_learners), no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample),
+    DBM<T>::DBM(int no_bunches_of_learners, int no_cores, int no_candidate_feature, int no_train_sample):
+            no_bunches_of_learners(no_bunches_of_learners), no_cores(no_cores),
+            no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample),
             loss_function(Loss_function<T>(params)) {
 
-        learners = new Base_learner<T> *[no_learners];
+        learners = new Base_learner<T> *[(no_bunches_of_learners - 1) * no_cores + 1];
 
-        for (int i = 0; i < no_learners; ++i) {
+        for (int i = 0; i < (no_bunches_of_learners - 1) * no_cores + 1; ++i) {
             learners[i] = nullptr;
         }
 
@@ -37,26 +39,33 @@ namespace dbm {
 
     template<typename T>
     DBM<T>::DBM(const std::string &param_string) : loss_function(Loss_function<T>(params)) {
+        std::srand((unsigned int)std::time(NULL));
 
         params = set_params(param_string);
 
-        no_learners = params.no_learners;
+        no_cores = params.no_cores;
+        no_bunches_of_learners = params.no_bunches_of_learners;
         no_candidate_feature = params.no_candidate_feature;
         no_train_sample = params.no_train_sample;
 
-        learners = new Base_learner<T> *[no_learners];
+        learners = new Base_learner<T> *[(no_bunches_of_learners - 1) * no_cores + 1];
 
         learners[0] = new Global_mean<T>;
 
-        std::srand((unsigned int)std::time(NULL));
+        if(no_cores == 0 || no_cores > omp_get_max_threads())
+            no_cores = omp_get_max_threads();
+        else if(no_cores < 0)
+            throw std::invalid_argument("Specified no_cores is negative.");
 
         double type_choose;
-        for (int i = 1; i < no_learners; ++i) {
+        for (int i = 1; i < no_bunches_of_learners; ++i) {
             type_choose = double(std::rand()) / RAND_MAX;
             if(type_choose < params.portion_for_trees)
-                learners[i] = new Tree_node<T>(0);
+                for(int j = 0; j < no_cores; ++j)
+                    learners[no_cores * (i - 1) + j + 1] = new Tree_node<T>(0);
             else if(type_choose < (params.portion_for_trees + params.portion_for_lr))
-                learners[i] = new Linear_regression<T>(no_candidate_feature, params.loss_function);
+                for(int j = 0; j < no_cores; ++j)
+                    learners[no_cores * (i - 1) + j + 1] = new Linear_regression<T>(no_candidate_feature, params.loss_function);
         }
 
         tree_trainer = new Tree_trainer<T>(params);
@@ -67,7 +76,7 @@ namespace dbm {
     template<typename T>
     DBM<T>::~DBM() {
 
-        for (int i = 0; i < no_learners; ++i) {
+        for (int i = 0; i < (no_bunches_of_learners - 1) * no_cores + 1; ++i) {
             delete learners[i];
         }
         delete[] learners;
@@ -86,6 +95,9 @@ namespace dbm {
 
     template<typename T>
     void DBM<T>::train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints) {
+        /*
+         * This function is not tested.
+         */
 
         dbm::Time_measurer timer;
 
@@ -134,238 +146,371 @@ namespace dbm {
          */
         Matrix<T> ind_delta(n_samples, 3, 0);
 
+        omp_set_num_threads(no_cores);
+
         char type;
 
+        unsigned int seeds[(no_bunches_of_learners - 1) * no_cores];
+        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+            seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+
         if (params.display_training_progress) {
-            if (params.record_every_tree)
-                for (int i = 0; i < no_learners; ++i) {
+            if (params.record_every_tree) {
+                std::cout << "Learner " << "(" << learners[0]->get_type() << ") " << " No. " << 0 << " -> ";
 
-                    std::cout << "Learner " << "(" << learners[i]->get_type() << ") " << " No. " << i << " -> ";
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
 
                     loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+                                                      ind_delta, params.loss_function);
 
-                    type = learners[i]->get_type();
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                            }
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-
+                            #pragma omp parallel default(shared)
                             {
-                                tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                                tree_info->print_to_file("trees.txt", i);
-                            }
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Tree at %p "
+                                                    "number of samples: %d "
+                                                    "max_depth: %d "
+                                                    "no_candidate_split_point: %d...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, params.max_depth, params.no_candidate_split_point);
 
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    {
+                                        Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
+                                                               (learners[learner_id]));
+                                        tree_info.print_to_file("trees.txt", learner_id);
+                                    }
+                                }
+                            }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            break;
-                        }
-                        default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
-                            throw std::invalid_argument("Specified learner does not exist.");
-                        }
-                    }
-
-                }
-            else
-                for (int i = 0; i < no_learners; ++i) {
-
-                    std::cout << "Learner " << "(" << learners[i]->get_type() << ") " << " No. " << i << " -> ";
-
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
-
-                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
-
-                    type = learners[i]->get_type();
-                    switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                            };
-                            break;
-                        }
-                        case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            break;
-                        }
-                        case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            break;
-                        }
-                        default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
-                            throw std::invalid_argument("Specified learner does not exist.");
-                        }
-                    }
-
-                }
-        } else {
-            if (params.record_every_tree)
-                for (int i = 0; i < no_learners; ++i) {
-
-                    std::cout << '.';
-
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
-
-                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
-
-                    type = learners[i]->get_type();
-                    switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                            };
-                            break;
-                        }
-                        case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-
+                            #pragma omp parallel default(shared)
                             {
-                                tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                                tree_info->print_to_file("trees.txt", i);
-                            }
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Linear Regression at %p "
+                                                    "number of samples: %d "
+                                                    "number of predictors: %d ...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, no_candidate_feature);
 
-                            break;
-                        }
-                        case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
-
                 }
-            else
-                for (int i = 0; i < no_learners; ++i) {
+            }
+            else {
+                std::cout << "Learner " << "(" << learners[0]->get_type() << ") " << " No. " << 0 << " -> ";
 
-                    std::cout << '.';
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
 
                     loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+                                                      ind_delta, params.loss_function);
 
-                    type = learners[i]->get_type();
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                            };
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Tree at %p "
+                                                    "number of samples: %d "
+                                                    "max_depth: %d "
+                                                    "no_candidate_split_point: %d...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, params.max_depth, params.no_candidate_split_point);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Linear Regression at %p "
+                                                    "number of samples: %d "
+                                                    "number of predictors: %d ...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, no_candidate_feature);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
-
                 }
+            }
+        }
+        else {
+            if (params.record_every_tree) {
+                std::cout << ".";
+
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
+
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function);
+
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
+                    switch (type) {
+                        case 't': {
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    {
+                                        Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
+                                                               (learners[learner_id]));
+                                        tree_info.print_to_file("trees.txt", learner_id);
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                        case 'l': {
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type << std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
+                }
+            }
+            else {
+                std::cout << ".";
+
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
+
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function);
+
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
+                    switch (type) {
+                        case 't': {
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
+                        case 'l': {
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
+                        default: {
+                            std::cout << "Wrong learner type: " << type << std::endl;
+                            throw std::invalid_argument("Specified learner does not exist.");
+                        }
+                    }
+                }
+            }
         }
 
         std::cout << std::endl;
@@ -421,285 +566,451 @@ namespace dbm {
             delete prediction_train_data;
 
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
-        test_loss_record = new T[no_learners / params.freq_showing_loss_on_test];
+        test_loss_record = new T[no_bunches_of_learners / params.freq_showing_loss_on_test];
 
         /*
          * ind_delta:
          * col 0: individual delta
-         * col 1: numerator of individual delta
-         * col 2: denominator of individual delta
+         * col 1: denominator of individual delta
          */
         Matrix<T> ind_delta(n_samples, 2, 0);
 
         Matrix<T> prediction_test_data(test_n_samples, 1, 0);
 
+        omp_set_num_threads(no_cores);
+
+        unsigned int seeds[(no_bunches_of_learners - 1) * no_cores];
+        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+            seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+
         char type;
-
         if (params.display_training_progress) {
-            if (params.record_every_tree)
-                for (int i = 0; i < no_learners; ++i) {
+            if (params.record_every_tree) {
 
-                    std::cout << "Learner " << "(" << learners[i]->get_type() << ") " << " No. " << i << " -> ";
+                std::cout << "Learner " << "(" << learners[0]->get_type() << ") " << " No. " << 0 << " -> ";
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+                learners[0]->predict(test_x, prediction_test_data);
+
+                test_loss_record[0] = loss_function.loss(test_y, prediction_test_data, params.loss_function);
+                std::cout << std::endl
+                          << '(' << 0 << ')'
+                          << " Loss on test set: "
+                          << test_loss_record[0]
+                          << std::endl << std::endl;
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
 
                     loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                      ind_delta, params.loss_function, row_inds, no_train_sample);
+                                                      ind_delta, params.loss_function);
 
-                    type = learners[i]->get_type();
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                                learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-                            }
-                            else {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                                learners[i]->predict(test_x, prediction_test_data);
-                            };
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-
+                            #pragma omp parallel default(shared)
                             {
-                                tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                                tree_info->print_to_file("trees.txt", i);
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                    std::printf("Learner (%c) No. %d -> "
+                                                        "Training Tree at %p "
+                                                        "number of samples: %d "
+                                                        "max_depth: %d "
+                                                        "no_candidate_split_point: %d...\n",
+                                                type, learner_id, learners[learner_id],
+                                                no_train_sample, params.max_depth, params.no_candidate_split_point);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                     params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                     params.shrinkage);
+                                    #pragma omp critical
+                                    {
+                                        Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
+                                                                     (learners[learner_id]));
+                                        tree_info.print_to_file("trees.txt", learner_id);
+                                    }
+                                }
                             }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                    std::printf("Learner (%c) No. %d -> "
+                                                        "Training Linear Regression at %p "
+                                                        "number of samples: %d "
+                                                        "number of predictors: %d ...\n",
+                                                type, learner_id, learners[learner_id],
+                                                no_train_sample, no_candidate_feature);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                     params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                     params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
 
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
-                                test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] =
+                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
                         std::cout << std::endl
-                                  << '(' << i / 10 << ')'
+                                  << '(' << i / params.freq_showing_loss_on_test << ')'
                                   << " Loss on test set: "
-                                  << test_loss_record[i / 10]
+                                  << test_loss_record[i / params.freq_showing_loss_on_test]
                                   << std::endl << std::endl;
                     }
 
                 }
-            else
-                for (int i = 0; i < no_learners; ++i) {
 
-                    std::cout << "Learner " << "(" << learners[i]->get_type() << ") " << " No. " << i << " -> ";
+            }
+            else {
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+                std::cout << "Learner " << "(" << learners[0]->get_type() << ") " << " No. " << 0 << " -> ";
 
-                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+                learners[0]->predict(test_x, prediction_test_data);
 
-                    type = learners[i]->get_type();
+                test_loss_record[0] = loss_function.loss(test_y, prediction_test_data, params.loss_function);
+                std::cout << std::endl
+                          << '(' << 0 << ')'
+                          << " Loss on test set: "
+                          << test_loss_record[0]
+                          << std::endl << std::endl;
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
+
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function);
+
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                                learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                                learners[i]->predict(test_x, prediction_test_data);
-                            };
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                    std::printf("Learner (%c) No. %d -> "
+                                                        "Training Tree at %p "
+                                                        "number of samples: %d "
+                                                        "max_depth: %d "
+                                                        "no_candidate_split_point: %d...\n",
+                                                type, learner_id, learners[learner_id],
+                                                no_train_sample, params.max_depth, params.no_candidate_split_point);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                                    std::printf("Learner (%c) No. %d -> "
+                                                        "Training Linear Regression at %p "
+                                                        "number of samples: %d "
+                                                        "number of predictors: %d ...\n",
+                                                type, learner_id, learners[learner_id],
+                                                no_train_sample, no_candidate_feature);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
 
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
-                                test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] =
+                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
                         std::cout << std::endl
-                                  << '(' << i / 10 << ')'
+                                  << '(' << i / params.freq_showing_loss_on_test << ')'
                                   << " Loss on test set: "
-                                  << test_loss_record[i / 10]
+                                  << test_loss_record[i / params.freq_showing_loss_on_test]
                                   << std::endl << std::endl;
                     }
-
                 }
+            }
         } else {
-            if (params.record_every_tree)
-                for (int i = 0; i < no_learners; ++i) {
+            if (params.record_every_tree) {
 
-                    std::cout << '.';
+                std::printf(".");;
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+                learners[0]->predict(test_x, prediction_test_data);
 
-                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+                test_loss_record[0] = loss_function.loss(test_y, prediction_test_data, params.loss_function);
 
-                    type = learners[i]->get_type();
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
+
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function);
+
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                                learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                                learners[i]->predict(test_x, prediction_test_data);
-                            };
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-
+                            #pragma omp parallel default(shared)
                             {
-                                tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                                tree_info->print_to_file("trees.txt", i);
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    {
+                                        Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
+                                                               (learners[learner_id]));
+                                        tree_info.print_to_file("trees.txt", learner_id);
+                                    }
+                                }
                             }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
 
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
-                                test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] =
+                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
                     }
 
-                    tree_info = new Tree_info<T>(dynamic_cast<Tree_node<T> *>(learners[i]));
-                    tree_info->print_to_file("trees.txt", i);
-                    delete tree_info;
-
                 }
-            else
-                for (int i = 0; i < no_learners; ++i) {
 
-                    std::cout << '.';
+            }
+            else {
 
-                    shuffle(row_inds, n_samples);
-                    shuffle(col_inds, n_features);
+                std::printf(".");;
 
-                    loss_function.calculate_ind_delta(train_y, *prediction_train_data, ind_delta, params.loss_function, row_inds, no_train_sample);
+                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                  ind_delta, params.loss_function);
+                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
+                                    train_x, ind_delta, *prediction_train_data, params.loss_function);
+                learners[0]->predict(train_x, *prediction_train_data);
+                learners[0]->predict(test_x, prediction_test_data);
 
-                    type = learners[i]->get_type();
+                test_loss_record[0] = loss_function.loss(
+                        test_y, prediction_test_data, params.loss_function);
+
+                for (int i = 1; i < no_bunches_of_learners; ++i) {
+
+                    loss_function.calculate_ind_delta(train_y, *prediction_train_data,
+                                                      ind_delta, params.loss_function);
+
+                    type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
-                        case 'm': {
-                            if (i > 0) {
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data,
-                                                    params.loss_function, row_inds, no_train_sample);
-                                learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                                learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
-                            }
-                            else if (i == 0) {
-                                loss_function.calculate_ind_delta(train_y, *prediction_train_data,
-                                                                  ind_delta, params.loss_function);
-                                mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[i]),
-                                                    train_x, ind_delta, *prediction_train_data);
-                                learners[i]->predict(train_x, *prediction_train_data);
-                                learners[i]->predict(test_x, prediction_test_data);
-                            };
-                            break;
-                        }
                         case 't': {
-                            tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[i]),
-                                                train_x, train_y, ind_delta, *prediction_train_data,
-                                                monotonic_constraints, params.loss_function,
-                                                row_inds, no_train_sample,
-                                                col_inds, no_candidate_feature);
-                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[i]));
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
+                                                    train_x, train_y, ind_delta, *prediction_train_data,
+                                                    monotonic_constraints, params.loss_function,
+                                                    thread_row_inds, no_train_sample,
+                                                    thread_col_inds, no_candidate_feature);
+                                tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         case 'l': {
-                            linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>(learners[i]),
-                                                             train_x, ind_delta,
-                                                             row_inds, no_train_sample,
-                                                             col_inds, no_candidate_feature);
-                            learners[i]->predict(train_x, *prediction_train_data, params.shrinkage);
-                            learners[i]->predict(test_x, prediction_test_data, params.shrinkage);
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
+                                                                 (learners[learner_id]),
+                                                                 train_x, ind_delta,
+                                                                 thread_row_inds, no_train_sample,
+                                                                 thread_col_inds, no_candidate_feature);
+                                #pragma omp barrier
+                                {
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #pragma omp critical
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
                             break;
                         }
                         default: {
-                            std::cout << "Wrong learner type: " << type <<  std::endl;
+                            std::cout << "Wrong learner type: " << type << std::endl;
                             throw std::invalid_argument("Specified learner does not exist.");
                         }
                     }
@@ -707,15 +1018,22 @@ namespace dbm {
                     if (!(i % params.freq_showing_loss_on_test)) {
                         test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
                                 test_y, prediction_test_data, params.loss_function);
+                        std::cout << std::endl
+                                  << '(' << i / params.freq_showing_loss_on_test << ')'
+                                  << " Loss on test set: "
+                                  << test_loss_record[i / params.freq_showing_loss_on_test]
+                                  << std::endl << std::endl;
                     }
 
                 }
+
+            }
         }
 
         loss_function.mean_function(*prediction_train_data, params.loss_function);
 
         std::cout << std::endl << "Losses on Test Set: " << std::endl;
-        for (int i = 0; i < no_learners / 10; ++i)
+        for (int i = 0; i < no_bunches_of_learners / params.freq_showing_loss_on_test; ++i)
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
 
@@ -730,7 +1048,8 @@ namespace dbm {
             assert(data_height == predict_y.get_height() && predict_y.get_width() == 1);
         #endif
 
-        for (int i = 0; i < data_height; ++i) predict_y[i][0] = 0;
+        for (int i = 0; i < data_height; ++i)
+            predict_y[i][0] = 0;
 
         if (learners[0]->get_type() == 'm') {
             learners[0]->predict(data_x, predict_y);
@@ -739,7 +1058,7 @@ namespace dbm {
             learners[0]->predict(data_x, predict_y, params.shrinkage);
         }
 
-        for (int i = 1; i < no_learners; ++i) {
+        for (int i = 1; i < (no_bunches_of_learners - 1) * no_cores + 1; ++i) {
 
             learners[i]->predict(data_x, predict_y, params.shrinkage);
 
@@ -781,14 +1100,15 @@ namespace dbm {
     template<typename T>
     void save_dbm(const DBM<T> *dbm, std::ofstream &out) {
 
-        out << dbm->no_learners << ' '
+        out << dbm->no_bunches_of_learners << ' '
+            << dbm->no_cores << ' '
             << dbm->no_candidate_feature << ' '
             << dbm->no_train_sample << ' '
             << dbm->params.loss_function << ' '
             << dbm->params.shrinkage << ' '
             << std::endl;
         char type;
-        for (int i = 0; i < dbm->no_learners; ++i) {
+        for (int i = 0; i < (dbm->no_bunches_of_learners - 1) * dbm->no_cores + 1; ++i) {
             type = dbm->learners[i]->get_type();
             switch (type) {
 
@@ -833,8 +1153,12 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]));
-        dbm->set_loss_function_and_shrinkage(words[3].front(), T(std::stod(words[4])));
+        #if _DEBUG_MODEL
+            assert(count == 6);
+        #endif
+
+        dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]), std::stoi(words[3]));
+        dbm->set_loss_function_and_shrinkage(words[4].front(), T(std::stod(words[5])));
 
         Tree_node<T> *temp_tree_ptr;
         Global_mean<T> *temp_mean_ptr;
@@ -842,7 +1166,7 @@ namespace dbm {
 
         char type;
 
-        for (int i = 0; i < dbm->no_learners; ++i) {
+        for (int i = 0; i < (dbm->no_bunches_of_learners - 1) * dbm->no_cores + 1; ++i) {
 
             line.clear();
             std::getline(in, line);
