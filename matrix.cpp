@@ -120,6 +120,11 @@ namespace dbm {
             col_number += 1;
             prev = next + 1;
         }
+        if (prev < line.size()) {
+            temp_storage = line.substr(prev);
+            col_labels[col_number] = std::atoi(temp_storage.c_str());
+            col_number += 1;
+        }
 #if _DEBUG_MATRIX
         assert(col_number == width);
 #endif
@@ -139,6 +144,12 @@ namespace dbm {
 #endif
             while ((next = line.find_first_of(delimiter, prev)) != std::string::npos) {
                 temp_storage = line.substr(prev, next - prev);
+                data[line_number - 1][col_number - 1] = std::atof(temp_storage.c_str());
+                col_number += 1;
+                prev = next + 1;
+            }
+            if (prev < line.size()) {
+                temp_storage = line.substr(prev);
                 data[line_number - 1][col_number - 1] = std::atof(temp_storage.c_str());
                 col_number += 1;
                 prev = next + 1;
@@ -202,20 +213,20 @@ namespace dbm {
 
 #if _DEBUG_MATRIX
         file << "s_f\t";
-
-        for (int i = 0; i < width; ++i)
+        int i = 0;
+        for (; i < width - 1; ++i)
             file << col_labels[i] << "\t";
-        file << std::endl;
+        file << col_labels[i] << std::endl;
 #endif
 
-        for (int i = 0; i < height; ++i) {
+        for (i = 0; i < height; ++i) {
 #if _DEBUG_MATRIX
             file << row_labels[i] << "\t";
 #endif
-
-            for (int j = 0; j < width; ++j)
+            int j = 0;
+            for (; j < width - 1; ++j)
                 file << std::fixed << std::setprecision(2) << data[i][j] << "\t";
-            file << std::endl;
+            file << std::fixed << std::setprecision(2) << data[i][j] << std::endl;
         }
 
         file.close();
