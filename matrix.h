@@ -102,6 +102,11 @@ namespace dbm {
         int unique_vals_col(int j, T *values,
                             const int *row_inds = NULL, int n_rows = 0) const;
 
+        //======
+        // clear
+        //======
+        void clear();
+
         //==============
         // shuffle rows
         //==============

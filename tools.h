@@ -11,7 +11,6 @@
 
 #include <string>
 #include <ctime>
-#include "base_learner.h"
 
 /*
  * tools for parameters
@@ -37,11 +36,19 @@ namespace dbm {
         double shrinkage = 0.01;
 
         // portions should be summed to 1
-        double portion_for_trees = 0.5;
-        double portion_for_lr = 0.5;
+        double portion_for_trees = 0.4;
+        double portion_for_lr = 0.4;
+        double portion_for_nn = 0.3;
 
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
+
+        // neural networks
+        int n_hidden_neuron = 5;
+        double step_size = 0.01;
+        double validate_portion = 0.25;
+        int batch_size = 10;
+        int max_iteration = 1000;
 
         // CART
         int max_depth = 5;
@@ -73,7 +80,7 @@ namespace dbm {
     };
 
     // split a line into words
-    int split_into_words(const std::string &line, std::string *words);
+    int split_into_words(const std::string &line, std::string *words, const char sep = ' ');
 
 }
 
@@ -97,75 +104,6 @@ namespace dbm {
                    const int *sig_quad_inds = NULL, const T *coef_sig_quad = NULL, int n_sig_quad_feats = 0);
 
 }
-
-
-/*
- * tools for base learners
- */
-
-// for global means
-namespace dbm {
-
-    template <typename T>
-    void save_global_mean(const Global_mean<T> *mean, std::ofstream &out);
-
-    template <typename T>
-    void load_global_mean(std::ifstream &in, Global_mean<T> *&mean);
-
-}
-
-// for linear regression
-namespace dbm {
-
-    template <typename T>
-    void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out);
-
-    template <typename T>
-    void load_linear_regression(std::ifstream &in, Linear_regression<T> *&linear_regression);
-
-}
-
-// for trees
-namespace dbm {
-
-    template <typename T>
-    void save_tree_node(const Tree_node<T> *node, std::ofstream &out);
-
-    template <typename T>
-    void load_tree_node(std::ifstream &in, Tree_node<T> *&node);
-
-    template <typename T>
-    void delete_tree(Tree_node<T> *tree);
-
-    // display tree information
-    template<typename T>
-    void print_tree_info(const dbm::Tree_node<T> *tree);
-
-    template<typename T>
-    class Tree_info {
-    private:
-        std::string **tree_nodes;
-        int depth = 0;
-        int height = 0;
-
-        void get_depth(const dbm::Tree_node<T> *tree);
-
-        void fill(const dbm::Tree_node<T> *tree, int h);
-
-    public:
-        Tree_info(const dbm::Tree_node<T> *tree);
-
-        ~Tree_info();
-
-        void print() const;
-
-        void print_to_file(const std::string &file_name, const int & number) const;
-    };
-
-}
-
-
-
 
 #endif //DBM_CODE_TOOLS_H
 

@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <iostream>
+
 #ifdef __OMP__
 #include <omp.h>
 #endif
@@ -54,14 +55,23 @@ namespace dbm {
 
         learners[0] = new Global_mean<T>;
 
-#ifdef __OMP__
-        if(no_cores == 0 || no_cores > omp_get_max_threads())
+        #ifdef __OMP__
+        if(no_cores == 0 || no_cores > omp_get_max_threads()) {
+            std::cout << std::endl
+                      << "================================="
+                      << std::endl
+                      << "no_cores: " << no_cores
+                      << " is ignored, using " << omp_get_max_threads() << " !"
+                      << std::endl
+                      << "================================="
+                      << std::endl;
             no_cores = omp_get_max_threads();
+        }
         else if(no_cores < 0)
             throw std::invalid_argument("Specified no_cores is negative.");
-#else
+        #else
         no_cores = 1;
-#endif
+        #endif
 
         double type_choose;
         for (int i = 1; i < no_bunches_of_learners; ++i) {
@@ -134,7 +144,7 @@ namespace dbm {
             }
         }
 
-        int row_inds[n_samples], col_inds[n_features];
+        int *row_inds = new int[n_samples], *col_inds = new int[n_features];
         for (int i = 0; i < n_features; ++i)
             col_inds[i] = i;
         for (int i = 0; i < n_samples; ++i)
@@ -152,13 +162,13 @@ namespace dbm {
          */
         Matrix<T> ind_delta(n_samples, 3, 0);
 
-#ifdef __OMP__
+        #ifdef __OMP__
         omp_set_num_threads(no_cores);
-#endif
+        #endif
 
         char type;
 
-        unsigned int seeds[(no_bunches_of_learners - 1) * no_cores];
+        unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
         for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
             seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
 
@@ -181,16 +191,16 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = i;
-#endif                                
+                            #endif
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Tree at %p "
                                                     "number of samples: %d "
@@ -211,18 +221,18 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif                                    
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     {
                                         Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
                                                                (learners[learner_id]));
@@ -233,16 +243,16 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif
+                            #endif
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Linear Regression at %p "
                                                     "number of samples: %d "
@@ -261,13 +271,13 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -299,16 +309,16 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif                                
+                            #endif
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Tree at %p "
                                                     "number of samples: %d "
@@ -329,13 +339,13 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -343,16 +353,16 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif                                
+                            #endif
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Linear Regression at %p "
                                                     "number of samples: %d "
@@ -371,13 +381,13 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif                                
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif                                    
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -411,15 +421,15 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif                                
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -434,18 +444,18 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif                                
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif                                    
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif                                    
+                                #endif
                                     {
                                         Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
                                                                (learners[learner_id]));
@@ -456,15 +466,15 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -478,13 +488,13 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                            #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                            #endif
                                 {
-#ifdef __OMP__
+                            #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                            #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -516,15 +526,15 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -539,13 +549,13 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -553,15 +563,15 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -575,13 +585,13 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
@@ -598,6 +608,8 @@ namespace dbm {
         }
 
         std::cout << std::endl;
+        delete row_inds, col_inds, seeds;
+        row_inds = nullptr, col_inds = nullptr, seeds = nullptr;
 
     }
 
@@ -639,7 +651,7 @@ namespace dbm {
             }
         }
 
-        int row_inds[n_samples], col_inds[n_features];
+        int *row_inds = new int[n_samples], *col_inds = new int[n_features];
 
         for (int i = 0; i < n_features; ++i)
             col_inds[i] = i;
@@ -661,11 +673,11 @@ namespace dbm {
 
         Matrix<T> prediction_test_data(test_n_samples, 1, 0);
 
-#ifdef __OMP__
+        #ifdef __OMP__
         omp_set_num_threads(no_cores);
-#endif
+        #endif
 
-        unsigned int seeds[(no_bunches_of_learners - 1) * no_cores];
+        unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
         for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
             seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
 
@@ -697,16 +709,16 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
                                 int thread_id = 0, learner_id = 1;
-#endif
+                            #endif
                                     std::printf("Learner (%c) No. %d -> "
                                                         "Training Tree at %p "
                                                         "number of samples: %d "
@@ -727,23 +739,23 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                      params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                      params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     {
                                         Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
                                                                      (learners[learner_id]));
@@ -754,16 +766,16 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-                                #pragma omp critical
-#else
+                            #pragma omp critical
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                     std::printf("Learner (%c) No. %d -> "
                                                         "Training Linear Regression at %p "
                                                         "number of samples: %d "
@@ -782,18 +794,18 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                      params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                      params.shrinkage);
                                 }
@@ -845,16 +857,16 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                     std::printf("Learner (%c) No. %d -> "
                                                         "Training Tree at %p "
                                                         "number of samples: %d "
@@ -875,18 +887,18 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
@@ -894,16 +906,16 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
                                 #pragma omp critical
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                     std::printf("Learner (%c) No. %d -> "
                                                         "Training Linear Regression at %p "
                                                         "number of samples: %d "
@@ -922,18 +934,18 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
@@ -979,15 +991,15 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -1002,23 +1014,23 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     {
                                         Tree_info<T> tree_info(dynamic_cast<Tree_node<T> *>
                                                                (learners[learner_id]));
@@ -1029,15 +1041,15 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -1051,18 +1063,18 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
@@ -1105,15 +1117,15 @@ namespace dbm {
                     type = learners[(i - 1) * no_cores + 1]->get_type();
                     switch (type) {
                         case 't': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -1128,18 +1140,18 @@ namespace dbm {
                                                     thread_row_inds, no_train_sample,
                                                     thread_col_inds, no_candidate_feature);
                                 tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
@@ -1147,15 +1159,15 @@ namespace dbm {
                             break;
                         }
                         case 'l': {
-#ifdef __OMP__
+                            #ifdef __OMP__
                             #pragma omp parallel default(shared)
                             {
                                 int thread_id = omp_get_thread_num(),
                                         learner_id = no_cores * (i - 1) + thread_id + 1;
-#else
+                            #else
                             {
-                                int thread_id = 0, learner_id = 1;
-#endif
+                                int thread_id = 0, learner_id = i;
+                            #endif
                                 std::printf(".");
 
                                 int thread_row_inds[n_samples], thread_col_inds[n_features];
@@ -1169,18 +1181,18 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
-#ifdef __OMP__
+                                #ifdef __OMP__
                                 #pragma omp barrier
-#endif
+                                #endif
                                 {
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
-#ifdef __OMP__
+                                    #ifdef __OMP__
                                     #pragma omp critical
-#endif
+                                    #endif
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
@@ -1194,8 +1206,8 @@ namespace dbm {
                     }
 
                     if (!(i % params.freq_showing_loss_on_test)) {
-                        test_loss_record[i / params.freq_showing_loss_on_test] = loss_function.loss(
-                                test_y, prediction_test_data, params.loss_function);
+                        test_loss_record[i / params.freq_showing_loss_on_test] =
+                                loss_function.loss(test_y, prediction_test_data, params.loss_function);
                         std::cout << std::endl
                                   << '(' << i / params.freq_showing_loss_on_test << ')'
                                   << " Loss on test set: "
@@ -1214,6 +1226,9 @@ namespace dbm {
         for (int i = 0; i < no_bunches_of_learners / params.freq_showing_loss_on_test; ++i)
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
+
+        delete row_inds, col_inds, seeds;
+        row_inds = nullptr, col_inds = nullptr, seeds = nullptr;
 
     }
 
@@ -1311,6 +1326,13 @@ namespace dbm {
                     break;
                 }
 
+                case 'n': {
+                    out << "== NN " << std::to_string(i) << " ==" << std::endl;
+                    dbm::save_neural_network(dynamic_cast<Neural_network<T> *>(dbm->learners[i]), out);
+                    out << "== End of NN " << std::to_string(i) << " ==" << std::endl;
+                    break;
+                }
+
                 default: {
                     std::cout << "Wrong learner type: " << type <<  std::endl;
                     throw std::invalid_argument("Specified learner does not exist.");
@@ -1341,6 +1363,7 @@ namespace dbm {
         Tree_node<T> *temp_tree_ptr;
         Global_mean<T> *temp_mean_ptr;
         Linear_regression<T> *temp_linear_regression_ptr;
+        Neural_network<T> *temp_neural_network_ptr;
 
         char type;
 
@@ -1380,6 +1403,17 @@ namespace dbm {
                     temp_linear_regression_ptr = nullptr;
                     load_linear_regression(in, temp_linear_regression_ptr);
                     dbm->learners[i] = temp_linear_regression_ptr;
+
+                    // skip the end line
+                    std::getline(in, line);
+
+                    break;
+                }
+
+                case 'N': {
+                    temp_neural_network_ptr = nullptr;
+                    load_neural_network(in, temp_neural_network_ptr);
+                    dbm->learners[i] = temp_neural_network_ptr;
 
                     // skip the end line
                     std::getline(in, line);

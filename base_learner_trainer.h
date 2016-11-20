@@ -33,6 +33,39 @@ namespace dbm {
 
     };
 
+    // for neural networks
+    template <typename T>
+    class Neural_network_trainer {
+    private:
+        bool display_training_progress;
+        int batch_size;
+        int max_iteration;
+        T step_size;
+        double validate_portion;
+        T shrinkage;
+
+        // n_hidden_neuron * (n_predictor + 1)
+        Matrix<T> *input_delta;
+        // 1 * (n_hidden_neuron + 1)
+        Matrix<T> *hidden_delta;
+
+        T *sample_weight_in_batch;
+
+        Loss_function<T> loss_function;
+
+        T activation_derivative(const T &input);
+        void backward(Neural_network<T> *neural_network, T ind_delta, T weight);
+
+    public:
+        Neural_network_trainer(const Params &params);
+        ~Neural_network_trainer();
+
+        void train(Neural_network<T> *neural_network, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr, int n_rows = 0,
+                   const int *col_inds = nullptr, int n_cols = 0);
+
+    };
+
     // for linear regression
     template <typename T>
     class Linear_regression_trainer {

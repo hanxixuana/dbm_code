@@ -9,8 +9,6 @@
 #include <stdexcept>
 #include <limits>
 
-#include <iostream>
-
 namespace dbm {
 
     template

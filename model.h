@@ -13,6 +13,7 @@
 #include "data_set.h"
 #include "base_learner.h"
 #include "base_learner_trainer.h"
+#include "tools.h"
 
 #include <string>
 #include <fstream>
