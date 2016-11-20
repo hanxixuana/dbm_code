@@ -33,12 +33,12 @@ namespace dbm {
         bool record_every_tree = true;
         int freq_showing_loss_on_test = 10;
 
-        double shrinkage = 0.01;
+        double shrinkage = 0.1;
 
         // portions should be summed to 1
-        double portion_for_trees = 0.4;
+        double portion_for_trees = 0.5;
         double portion_for_lr = 0.4;
-        double portion_for_nn = 0.3;
+        double portion_for_nn = 0.1;
 
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
@@ -47,8 +47,9 @@ namespace dbm {
         int n_hidden_neuron = 5;
         double step_size = 0.01;
         double validate_portion = 0.25;
-        int batch_size = 10;
-        int max_iteration = 1000;
+        int batch_size = 100;
+        int max_iteration = 50;
+        int n_rise_of_loss_on_validate = 5;
 
         // CART
         int max_depth = 5;

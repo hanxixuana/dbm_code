@@ -121,17 +121,23 @@ namespace dbm {
     }
 
     template <typename T>
-    T Neural_network<T>::activation(const T &input) {
+    inline T Neural_network<T>::activation(const T &input) {
         return 1 / (1 + std::exp( - input));
     }
 
     template <typename T>
     void Neural_network<T>::forward() {
-        for(int i = 0; i < n_hidden_neuron; ++i)
-            hidden_output->assign(i, 0, activation(inner_product(input_weight->row(i), *input_output).get(0, 0)));
+        T ip = 0;
+        for(int i = 0; i < n_hidden_neuron; ++i) {
+            for(int j = 0; j < n_predictor + 1; ++j)
+                ip += input_weight->get(i, j) * input_output->get(j, 0);
+            hidden_output->assign(i, 0, activation(ip));
+        }
         hidden_output->assign(n_hidden_neuron, 0, 1);
 
-        output_output = activation(inner_product(*hidden_weight, *hidden_output).get(0, 0));
+        output_output = 0;
+        for(int j = 0; j < n_hidden_neuron + 1; ++j)
+            output_output += hidden_weight->get(0, j) * hidden_output->get(j, 0);
     }
 
     template <typename T>
@@ -337,8 +343,11 @@ namespace dbm {
 
 
 
-/*
+/* ========================
+ *
  * Tools for base learners
+ *
+ * ========================
  */
 
 // for global means

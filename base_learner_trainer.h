@@ -43,13 +43,12 @@ namespace dbm {
         T step_size;
         double validate_portion;
         T shrinkage;
+        int n_rise_of_loss_on_validate;
 
         // n_hidden_neuron * (n_predictor + 1)
         Matrix<T> *input_delta;
         // 1 * (n_hidden_neuron + 1)
         Matrix<T> *hidden_delta;
-
-        T *sample_weight_in_batch;
 
         Loss_function<T> loss_function;
 
