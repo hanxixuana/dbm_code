@@ -39,17 +39,21 @@ namespace dbm {
         double portion_for_trees = 0.5;
         double portion_for_lr = 0.4;
         double portion_for_nn = 0.1;
+        double portion_for_s = 0.1;
 
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
+
+        // splines
+        int no_knot = 5;
 
         // neural networks
         int n_hidden_neuron = 5;
         double step_size = 0.01;
         double validate_portion = 0.25;
         int batch_size = 100;
-        int max_iteration = 50;
-        int n_rise_of_loss_on_validate = 5;
+        int max_iteration = 100;
+        int n_rise_of_loss_on_validate = 20;
 
         // CART
         int max_depth = 5;
@@ -90,6 +94,11 @@ namespace dbm {
  */
 
 namespace dbm {
+
+    // return n-dimensional array of the form:
+    // [start, start + (end - start) / (n - 1), start + 2 * (end - start) / (n - 1), ..., end]
+    template <typename T>
+    void range(const T &start, const T &end, const int & number, T *result, const T &scaling = 1);
 
     // find middle values in sorted uniques
     template<typename T>

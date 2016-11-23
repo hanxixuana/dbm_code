@@ -38,6 +38,7 @@ namespace dbm {
         tree_trainer = nullptr;
         mean_trainer = nullptr;
         linear_regression_trainer = nullptr;
+        neural_network_trainer = nullptr;
     }
 
     template<typename T>
@@ -79,11 +80,19 @@ namespace dbm {
             if(type_choose < params.portion_for_trees)
                 for(int j = 0; j < no_cores; ++j)
                     learners[no_cores * (i - 1) + j + 1] = new Tree_node<T>(0);
+
             else if(type_choose < (params.portion_for_trees + params.portion_for_lr))
                 for(int j = 0; j < no_cores; ++j)
                     learners[no_cores * (i - 1) + j + 1] = new Linear_regression<T>(no_candidate_feature,
                                                                                     params.loss_function);
-            else if(type_choose < (params.portion_for_trees + params.portion_for_lr + params.portion_for_nn))
+
+            else if(type_choose < (params.portion_for_trees + params.portion_for_lr + params.portion_for_s))
+                for(int j = 0; j < no_cores; ++j)
+                    learners[no_cores * (i - 1) + j + 1] = new Splines<T>(no_candidate_feature,
+                                                                          params.loss_function);
+
+            else if(type_choose < (params.portion_for_trees + params.portion_for_lr +
+                                    params.portion_for_s + params.portion_for_nn))
                 for(int j = 0; j < no_cores; ++j)
                     learners[no_cores * (i - 1) + j + 1] = new Neural_network<T>(no_candidate_feature,
                                                                                  params.n_hidden_neuron,
@@ -94,6 +103,7 @@ namespace dbm {
         mean_trainer = new Mean_trainer<T>(params);
         linear_regression_trainer = new Linear_regression_trainer<T>(params);
         neural_network_trainer = new Neural_network_trainer<T>(params);
+        splines_trainer = new Splines_trainer<T>(params);
     }
 
     template<typename T>
@@ -108,6 +118,7 @@ namespace dbm {
         delete mean_trainer;
         delete linear_regression_trainer;
         delete neural_network_trainer;
+        delete splines_trainer;
 
         if(prediction_train_data != nullptr)
             delete prediction_train_data;
@@ -820,6 +831,54 @@ namespace dbm {
                             }
                             break;
                         }
+                        case 's': {
+                            #ifdef __OMP__
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                            #else
+                                {
+                                int thread_id = 0, learner_id = i;
+                            #endif
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Splines at %p "
+                                                    "number of samples: %d "
+                                                    "number of predictors: %d "
+                                                    "number of knots: %d ...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, no_candidate_feature, params.no_knot);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                splines_trainer->train(dynamic_cast<Splines<T> *>
+                                                       (learners[learner_id]),
+                                                       train_x, ind_delta,
+                                                       thread_row_inds, no_train_sample,
+                                                       thread_col_inds, no_candidate_feature);
+                                #ifdef __OMP__
+                                #pragma omp barrier
+                                #endif
+                                {
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
                         case 'n': {
                             #ifdef __OMP__
                             #pragma omp parallel default(shared)
@@ -990,6 +1049,54 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
+                                #ifdef __OMP__
+                                #pragma omp barrier
+                                #endif
+                                {
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
+                        case 's': {
+                            #ifdef __OMP__
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                            #else
+                                {
+                                int thread_id = 0, learner_id = i;
+                            #endif
+                                std::printf("Learner (%c) No. %d -> "
+                                                    "Training Splines at %p "
+                                                    "number of samples: %d "
+                                                    "number of predictors: %d "
+                                                    "number of knots: %d ...\n",
+                                            type, learner_id, learners[learner_id],
+                                            no_train_sample, no_candidate_feature, params.no_knot);
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                splines_trainer->train(dynamic_cast<Splines<T> *>
+                                                       (learners[learner_id]),
+                                                       train_x, ind_delta,
+                                                       thread_row_inds, no_train_sample,
+                                                       thread_col_inds, no_candidate_feature);
                                 #ifdef __OMP__
                                 #pragma omp barrier
                                 #endif
@@ -1185,6 +1292,48 @@ namespace dbm {
                             }
                             break;
                         }
+                        case 's': {
+                            #ifdef __OMP__
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                            #else
+                                {
+                                int thread_id = 0, learner_id = i;
+                            #endif
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                splines_trainer->train(dynamic_cast<Splines<T> *>
+                                                       (learners[learner_id]),
+                                                       train_x, ind_delta,
+                                                       thread_row_inds, no_train_sample,
+                                                       thread_col_inds, no_candidate_feature);
+                                #ifdef __OMP__
+                                #pragma omp barrier
+                                #endif
+                                {
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
                         case 'n': {
                             #ifdef __OMP__
                             #pragma omp parallel default(shared)
@@ -1327,6 +1476,48 @@ namespace dbm {
                                                                  train_x, ind_delta,
                                                                  thread_row_inds, no_train_sample,
                                                                  thread_col_inds, no_candidate_feature);
+                                #ifdef __OMP__
+                                #pragma omp barrier
+                                #endif
+                                {
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(train_x, *prediction_train_data,
+                                                                  params.shrinkage);
+                                    #ifdef __OMP__
+                                    #pragma omp critical
+                                    #endif
+                                    learners[learner_id]->predict(test_x, prediction_test_data,
+                                                                  params.shrinkage);
+                                }
+                            }
+                            break;
+                        }
+                        case 's': {
+                            #ifdef __OMP__
+                            #pragma omp parallel default(shared)
+                            {
+                                int thread_id = omp_get_thread_num(),
+                                        learner_id = no_cores * (i - 1) + thread_id + 1;
+                                #pragma omp critical
+                            #else
+                                {
+                                int thread_id = 0, learner_id = i;
+                            #endif
+                                std::printf(".");
+
+                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                std::copy(row_inds, row_inds + n_samples, thread_row_inds);
+                                std::copy(col_inds, col_inds + n_features, thread_col_inds);
+                                shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
+                                shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
+
+                                splines_trainer->train(dynamic_cast<Splines<T> *>
+                                                       (learners[learner_id]),
+                                                       train_x, ind_delta,
+                                                       thread_row_inds, no_train_sample,
+                                                       thread_col_inds, no_candidate_feature);
                                 #ifdef __OMP__
                                 #pragma omp barrier
                                 #endif
@@ -1514,6 +1705,14 @@ namespace dbm {
                     break;
                 }
 
+                case 's': {
+                    out << "== Splines " << std::to_string(i) << " ==" << std::endl;
+                    dbm::save_splines(dynamic_cast<Splines<T> *>(dbm->learners[i]), out);
+                    out << "== End of Splines " << std::to_string(i) << " ==" << std::endl;
+                    break;
+                }
+
+
                 case 'n': {
                     out << "== NN " << std::to_string(i) << " ==" << std::endl;
                     dbm::save_neural_network(dynamic_cast<Neural_network<T> *>(dbm->learners[i]), out);
@@ -1552,6 +1751,7 @@ namespace dbm {
         Global_mean<T> *temp_mean_ptr;
         Linear_regression<T> *temp_linear_regression_ptr;
         Neural_network<T> *temp_neural_network_ptr;
+        Splines<T> *temp_splines_ptr;
 
         char type;
 
@@ -1591,6 +1791,17 @@ namespace dbm {
                     temp_linear_regression_ptr = nullptr;
                     load_linear_regression(in, temp_linear_regression_ptr);
                     dbm->learners[i] = temp_linear_regression_ptr;
+
+                    // skip the end line
+                    std::getline(in, line);
+
+                    break;
+                }
+
+                case 'S': {
+                    temp_splines_ptr = nullptr;
+                    load_splines(in, temp_splines_ptr);
+                    dbm->learners[i] = temp_splines_ptr;
 
                     // skip the end line
                     std::getline(in, line);

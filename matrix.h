@@ -60,15 +60,17 @@ namespace dbm {
         int height;
         int width;
 
-        T **data;
-        int *col_labels;
-        int *row_labels;
+        T **data = nullptr;
+        int *col_labels = nullptr;
+        int *row_labels = nullptr;
 
     public:
 
         //=======================================
         // constructors, destructor and IO tools
         //=======================================
+        Matrix();
+
         Matrix(int height, int width);
 
         Matrix(int height, int width, const T &value);

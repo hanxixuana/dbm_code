@@ -12,6 +12,7 @@
 #include "matrix.h"
 
 #include <string>
+#include <functional>
 
 namespace dbm {
 
@@ -20,10 +21,12 @@ namespace dbm {
     protected:
         char learner_type;
 
-        virtual T predict_for_row(const Matrix<T> &data_x, int row_ind) = 0;
+        virtual T predict_for_row(const Matrix<T> &data_x,
+                                  int row_ind) = 0;
 
     public:
         Base_learner(const char &type) : learner_type(type) {};
+        virtual ~Base_learner() {};
 
         char get_type() const { return learner_type; };
 
@@ -46,16 +49,19 @@ namespace dbm {
     class Mean_trainer;
 
     template <typename T>
-    void save_global_mean(const Global_mean<T> *mean, std::ofstream &out);
+    void save_global_mean(const Global_mean<T> *mean,
+                          std::ofstream &out);
 
     template <typename T>
-    void load_global_mean(std::ifstream &in, Global_mean<T> *&mean);
+    void load_global_mean(std::ifstream &in,
+                          Global_mean<T> *&mean);
 
     template <typename T>
     class Global_mean : public Base_learner<T> {
     private:
         T mean = 0;
-        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
     public:
         Global_mean();
         ~Global_mean();
@@ -66,9 +72,11 @@ namespace dbm {
                      const int *row_inds = nullptr,
                      int n_rows = 0);
 
-        friend void save_global_mean<>(const Global_mean<T> *mean, std::ofstream &out);
+        friend void save_global_mean<>(const Global_mean<T> *mean,
+                                       std::ofstream &out);
 
-        friend void load_global_mean<>(std::ifstream &in, Global_mean<T> *&mean);
+        friend void load_global_mean<>(std::ifstream &in,
+                                       Global_mean<T> *&mean);
 
         friend class Mean_trainer<T>;
 
@@ -76,6 +84,59 @@ namespace dbm {
 
 }
 
+namespace dbm {
+
+    template <typename T>
+    class Splines;
+
+    template <typename T>
+    class Splines_trainer;
+
+    template <typename T>
+    void save_splines(const Splines<T> *splines,
+                      std::ofstream &out);
+
+    template <typename T>
+    void load_splines(std::ifstream &in,
+                      Splines<T> *&splines);
+
+    template <typename T>
+    class Splines : public Base_learner<T> {
+    private:
+        static const int n_predictor = 2;
+        int n_knot;
+        char loss_type;
+
+        int col_inds[n_predictor];
+
+        std::function<T(T&&, T&&)> *spline_array = nullptr;
+        T *coefs = nullptr;
+
+        int n_splines;
+
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
+    public:
+        Splines(int n_knot, char loss_type);
+        ~Splines();
+
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &prediction,
+                     const T shrinkage = 1,
+                     const int *row_inds = nullptr,
+                     int n_rows = 0);
+
+        friend void save_splines<>(const Splines<T> *splines,
+                                   std::ofstream &out);
+
+        friend void load_splines<>(std::ifstream &in,
+                                   Splines<T> *&splines);
+
+        friend class Splines_trainer<T>;
+
+    };
+
+}
 
 namespace dbm {
 
@@ -86,10 +147,12 @@ namespace dbm {
     class Neural_network_trainer;
 
     template <typename T>
-    void save_neural_network(const Neural_network<T> *neural_network, std::ofstream &out);
+    void save_neural_network(const Neural_network<T> *neural_network,
+                             std::ofstream &out);
 
     template <typename T>
-    void load_neural_network(std::ifstream &in, Neural_network<T> *&neural_network);
+    void load_neural_network(std::ifstream &in,
+                             Neural_network<T> *&neural_network);
 
     template <typename T>
     class Neural_network : public Base_learner<T> {
@@ -116,10 +179,13 @@ namespace dbm {
         T activation(const T &input);
         void forward();
 
-        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
 
     public:
-        Neural_network(int n_predictor, int n_hidden_neuron, char loss_type);
+        Neural_network(int n_predictor,
+                       int n_hidden_neuron,
+                       char loss_type);
         ~Neural_network();
 
         void predict(const Matrix<T> &data_x,
@@ -128,9 +194,11 @@ namespace dbm {
                      const int *row_inds = nullptr,
                      int n_rows = 0);
 
-        friend void save_neural_network<>(const Neural_network<T> *neural_network, std::ofstream &out);
+        friend void save_neural_network<>(const Neural_network<T> *neural_network,
+                                          std::ofstream &out);
 
-        friend void load_neural_network<>(std::ifstream &in, Neural_network<T> *&neural_network);
+        friend void load_neural_network<>(std::ifstream &in,
+                                          Neural_network<T> *&neural_network);
 
         friend class Neural_network_trainer<T>;
 
@@ -147,10 +215,12 @@ namespace dbm {
     class Linear_regression_trainer;
 
     template <typename T>
-    void save_linear_regression(const Linear_regression<T> *linear_regression, std::ofstream &out);
+    void save_linear_regression(const Linear_regression<T> *linear_regression,
+                                std::ofstream &out);
 
     template <typename T>
-    void load_linear_regression(std::ifstream &in, Linear_regression<T> *&linear_regression);
+    void load_linear_regression(std::ifstream &in,
+                                Linear_regression<T> *&linear_regression);
 
     template <typename T>
     class Linear_regression : public Base_learner<T> {
@@ -163,9 +233,11 @@ namespace dbm {
         T intercept;
         T *coefs_no_intercept = nullptr;
 
-        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
     public:
-        Linear_regression(int n_predictor, char loss_type);
+        Linear_regression(int n_predictor,
+                          char loss_type);
         ~Linear_regression();
 
         void predict(const Matrix<T> &data_x,
@@ -174,9 +246,11 @@ namespace dbm {
                      const int *row_inds = nullptr,
                      int n_rows = 0);
 
-        friend void save_linear_regression<>(const Linear_regression<T> *linear_regression, std::ofstream &out);
+        friend void save_linear_regression<>(const Linear_regression<T> *linear_regression,
+                                             std::ofstream &out);
 
-        friend void load_linear_regression<>(std::ifstream &in, Linear_regression<T> *&linear_regression);
+        friend void load_linear_regression<>(std::ifstream &in,
+                                             Linear_regression<T> *&linear_regression);
 
         friend class Linear_regression_trainer<T>;
 
@@ -194,9 +268,11 @@ namespace dbm {
     class Tree_info;
 
     template<typename T>
-    void save_tree_node(const Tree_node<T> *node, std::ofstream &out);
+    void save_tree_node(const Tree_node<T> *node,
+                        std::ofstream &out);
     template<typename T>
-    void load_tree_node(std::ifstream &in, Tree_node<T> *&tree);
+    void load_tree_node(std::ifstream &in,
+                        Tree_node<T> *&tree);
 
     template<typename T>
     void delete_tree(Tree_node<T> *tree);
@@ -221,22 +297,34 @@ namespace dbm {
 
         int no_training_samples;
 
-        T predict_for_row(const Matrix<T> &data_x, int row_ind);
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
 
     public:
 
         Tree_node(int depth);
 
-        Tree_node(int depth, int column, bool last_node, T split_value,
-                  T loss, T prediction, int no_tr_samples);
+        Tree_node(int depth,
+                  int column,
+                  bool last_node,
+                  T split_value,
+                  T loss,
+                  T prediction,
+                  int no_tr_samples);
 
         ~Tree_node();
 
-        void predict(const Matrix<T> &data_x, Matrix<T> &prediction, const T shrinkage = 1, const int *row_inds = nullptr, int n_rows = 0);
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &prediction,
+                     const T shrinkage = 1,
+                     const int *row_inds = nullptr,
+                     int n_rows = 0);
 
-        friend void save_tree_node<>(const Tree_node<T> *node, std::ofstream &out);
+        friend void save_tree_node<>(const Tree_node<T> *node,
+                                     std::ofstream &out);
 
-        friend void load_tree_node<>(std::ifstream &in, Tree_node<T> *&tree);
+        friend void load_tree_node<>(std::ifstream &in,
+                                     Tree_node<T> *&tree);
 
         friend void delete_tree<>(Tree_node<T> *tree);
 

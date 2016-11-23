@@ -8,7 +8,6 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <cmath>
 
 namespace dbm {
 
@@ -51,6 +50,18 @@ namespace dbm {
             n_words += 1;
         }
         return n_words;
+    }
+
+    template <typename T>
+    void range(const T &start, const T &end, const int & number, T *result, const T &scaling) {
+        #if _DEBUG_TOOLS
+            assert(end > start);
+        #endif
+        T length = (end - start) / (number - 1);
+        result[0] = start * scaling;
+        for(int i = 1; i < number - 1; ++i)
+            result[i] = (start + i * length) * scaling;
+        result[number - 1] = end * scaling;
     }
 
     template<typename T>
@@ -226,12 +237,18 @@ namespace dbm {
                 params.portion_for_lr = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "portion_for_nn")
                 params.portion_for_nn = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "portion_for_s")
+                params.portion_for_s = std::stod(words[2 * i + 1]);
 
-                // tweedie
+            // tweedie
             else if (words[2 * i] == "tweedie_p")
-                params.tweedie_p = std::stoi(words[2 * i + 1]);
+                params.tweedie_p = std::stod(words[2 * i + 1]);
 
-                // neural networks
+            // splines
+            else if (words[2 * i] == "no_knot")
+                params.no_knot = std::stoi(words[2 * i + 1]);
+
+            // neural networks
             else if (words[2 * i] == "n_hidden_neuron")
                 params.n_hidden_neuron = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "step_size")
@@ -243,13 +260,13 @@ namespace dbm {
             else if (words[2 * i] == "max_iteration")
                 params.max_iteration = std::stoi(words[2 * i + 1]);
 
-                // CART
+            // CART
             else if (words[2 * i] == "max_depth")
                 params.max_depth = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "no_candidate_split_point")
                 params.no_candidate_split_point = std::stoi(words[2 * i + 1]);
 
-                // throw an exception
+            // throw an exception
             else {
                 throw std::invalid_argument("Specified parameter does not exist.");
             }
@@ -264,6 +281,10 @@ namespace dbm {
 
 // explicit instantiation of templated functions
 namespace dbm {
+
+    template void range(const double &start, const double &end, const int & number, double *result, const double &scaling);
+
+    template void range(const float &start, const float &end, const int & number, float *result, const float &scaling);
 
     template int middles<float>(float *uniqes, int no_uniques);
 

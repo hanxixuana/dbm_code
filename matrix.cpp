@@ -26,6 +26,9 @@ namespace dbm {
 // constructors, destructor and IO tools
 namespace dbm {
 
+    template <typename T>
+    Matrix<T>::Matrix() : height(0), width(0) {}
+
     template<typename T>
     Matrix<T>::Matrix(int height, int width) :
             height(height), width(width) {

@@ -65,6 +65,26 @@ namespace dbm {
 
     };
 
+    // for splines
+    template <typename T>
+    class Splines_trainer {
+    private:
+        bool display_training_progress;
+
+        int n_pairs;
+
+        int **predictor_pairs_array;
+
+    public:
+        Splines_trainer(const Params &params);
+        ~Splines_trainer();
+
+        void train(Splines<T> *splines, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr, int n_rows = 0,
+                   const int *col_inds = nullptr, int n_cols = 0);
+
+    };
+
     // for linear regression
     template <typename T>
     class Linear_regression_trainer {

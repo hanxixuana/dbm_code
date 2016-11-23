@@ -8,7 +8,6 @@
 #include <cassert>
 #include <limits>
 #include <cmath>
-#include <stdexcept>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -39,6 +38,12 @@ namespace dbm {
     template
     class Neural_network<double>;
 
+    template
+    class Splines<double>;
+
+    template
+    class Splines<float>;
+
 }
 
 namespace dbm {
@@ -60,7 +65,8 @@ namespace dbm {
     Global_mean<T>::~Global_mean() {};
 
     template <typename T>
-    T Global_mean<T>::predict_for_row(const Matrix<T> &data, int row_ind) {
+    T Global_mean<T>::predict_for_row(const Matrix<T> &data,
+                                      int row_ind) {
         return mean;
     }
 
@@ -99,9 +105,13 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Neural_network<T>::Neural_network(int n_predictor, int n_hidden_neuron, char loss_type) :
-            n_predictor(n_predictor), n_hidden_neuron(n_hidden_neuron),
-            loss_type(loss_type), Base_learner<T>('n') {
+    Neural_network<T>::Neural_network(int n_predictor,
+                                      int n_hidden_neuron,
+                                      char loss_type) :
+            n_predictor(n_predictor),
+            n_hidden_neuron(n_hidden_neuron),
+            loss_type(loss_type),
+            Base_learner<T>('n') {
 
         col_inds = new int[n_predictor];
 
@@ -141,7 +151,8 @@ namespace dbm {
     }
 
     template <typename T>
-    T Neural_network<T>::predict_for_row(const Matrix<T> &data, int row_ind) {
+    T Neural_network<T>::predict_for_row(const Matrix<T> &data,
+                                         int row_ind) {
         for(int i = 0; i < n_predictor; ++i)
             input_output->assign(i, 0, data.get(row_ind, col_inds[i]));
         input_output->assign(n_predictor, 0, 1);
@@ -192,11 +203,90 @@ namespace dbm {
 
 }
 
+
 namespace dbm {
 
     template <typename T>
-    Linear_regression<T>::Linear_regression(int n_predictor, char loss_type) :
-            n_predictor(n_predictor), loss_type(loss_type), Base_learner<T>('l') {
+    Splines<T>::Splines(int n_knot,
+                        char loss_type) :
+            n_knot(n_knot),
+            loss_type(loss_type),
+            Base_learner<T>('s') {
+
+        n_splines = 4 * n_knot;
+
+        spline_array = new std::function<T(T&&, T&&)>[n_splines];
+        coefs = new T[n_splines];
+
+    }
+
+    template <typename T>
+    Splines<T>::~Splines() {
+        delete coefs;
+        coefs = nullptr;
+    };
+
+    template <typename T>
+    T Splines<T>::predict_for_row(const Matrix<T> &data,
+                                  int row_ind) {
+        T result = 0;
+        for(int i = 0; i < n_splines; ++i) {
+            result += spline_array[i](data.get(row_ind, col_inds[0]), data.get(row_ind, col_inds[1])) * coefs[i];
+        }
+        switch (loss_type) {
+            case 'n':
+                return result;
+            case 'p':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            case 'b':
+                return result;
+            case 't':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            default:
+                throw std::invalid_argument("Specified distribution does not exist.");
+        }
+    }
+
+    template <typename T>
+    void Splines<T>::predict(const Matrix<T> &data_x,
+                             Matrix<T> &prediction,
+                             const T shrinkage,
+                             const int *row_inds,
+                             int n_rows) {
+
+        if (row_inds == NULL) {
+            int data_height = data_x.get_height();
+            #if _DEBUG_BASE_LEARNER
+                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < data_height; ++i) {
+                predicted_value = prediction.get(i, 0) + shrinkage * predict_for_row(data_x, i);
+                prediction.assign(i, 0, predicted_value);
+            }
+        } else {
+            #if _DEBUG_BASE_LEARNER
+                assert(n_rows > 0 && prediction.get_height() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < n_rows; ++i) {
+                predicted_value = prediction.get(row_inds[i], 0) + shrinkage * predict_for_row(data_x, row_inds[i]);
+                prediction.assign(row_inds[i], 0, predicted_value);
+            }
+        }
+
+    }
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    Linear_regression<T>::Linear_regression(int n_predictor,
+                                            char loss_type) :
+            n_predictor(n_predictor),
+            loss_type(loss_type),
+            Base_learner<T>('l') {
         col_inds = new int[n_predictor];
         coefs_no_intercept = new T[n_predictor];
     }
@@ -209,7 +299,8 @@ namespace dbm {
     };
 
     template <typename T>
-    T Linear_regression<T>::predict_for_row(const Matrix<T> &data, int row_ind) {
+    T Linear_regression<T>::predict_for_row(const Matrix<T> &data,
+                                            int row_ind) {
         T result = 0;
         for(int i = 0; i < n_predictor; ++i) {
             result += data.get(row_ind, col_inds[i]) * coefs_no_intercept[i];
@@ -264,18 +355,36 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    Tree_node<T>::Tree_node(int depth) : larger(nullptr), smaller(nullptr), column(-1),
-                                         split_value(0), loss(std::numeric_limits<T>::max()),
-                                         depth(depth), last_node(false), prediction(0),
-                                         no_training_samples(0), Base_learner<T>('t') {}
+    Tree_node<T>::Tree_node(int depth) :
+            larger(nullptr),
+            smaller(nullptr),
+            column(-1),
+            split_value(0),
+            loss(std::numeric_limits<T>::max()),
+            depth(depth),
+            last_node(false),
+            prediction(0),
+            no_training_samples(0),
+            Base_learner<T>('t') {}
 
     template<typename T>
-    Tree_node<T>::Tree_node(int depth, int column, bool last_node,
-                            T split_value, T loss, T prediction,
-                            int no_tr_samples) : larger(nullptr), smaller(nullptr), column(column),
-                                                 split_value(split_value), loss(loss),
-                                                 depth(depth), last_node(last_node), prediction(prediction),
-                                                 no_training_samples(no_tr_samples), Base_learner<T>('t') {}
+    Tree_node<T>::Tree_node(int depth,
+                            int column,
+                            bool last_node,
+                            T split_value,
+                            T loss,
+                            T prediction,
+                            int no_tr_samples) :
+            larger(nullptr),
+            smaller(nullptr),
+            column(column),
+            split_value(split_value),
+            loss(loss),
+            depth(depth),
+            last_node(last_node),
+            prediction(prediction),
+            no_training_samples(no_tr_samples),
+            Base_learner<T>('t') {}
 
     template<typename T>
     Tree_node<T>::~Tree_node() {
@@ -291,7 +400,8 @@ namespace dbm {
     }
 
     template<typename T>
-    T Tree_node<T>::predict_for_row(const Matrix<T> &data_x, int row_ind) {
+    T Tree_node<T>::predict_for_row(const Matrix<T> &data_x,
+                                    int row_ind) {
         if (last_node)
             return prediction;
         if (data_x.get(row_ind, column) > split_value) {
@@ -447,6 +557,95 @@ namespace dbm {
 
     }
     
+}
+
+// for splines
+namespace dbm {
+
+    template <typename T>
+    void save_splines(const Splines<T> *splines,
+                               std::ofstream &out) {
+
+        out << splines->n_knot << ' '
+            << splines->loss_type << std::endl;
+
+        for(int i = 0; i < splines->n_predictor; ++i)
+            out << splines->col_inds[i] << ' ';
+        out << std::endl;
+
+        for(int i = 0; i < splines->n_splines; ++i)
+            out << splines->coefs[i] << ' ';
+        out << std::endl;
+
+        for(int i = 0; i < splines->n_splines; ++i) {
+            if(i % 4 == 0) {
+                if(splines->spline_array[i](0, 0) > 0)
+                    out << splines->spline_array[i](0, 0) << ' ';
+                else
+                    out << -splines->spline_array[i + 1](0, 0) << ' ';
+            }
+            if(i % 4 == 2)
+                if(splines->spline_array[i](0, 0) > 0)
+                    out << splines->spline_array[i](0, 0) << ' ';
+                else
+                    out << -splines->spline_array[i + 1](0, 0) << ' ';
+        }
+        out << std::endl;
+
+    }
+
+    template <typename T>
+    void load_splines(std::ifstream &in,
+                               Splines<T> *&splines) {
+
+        std::string line;
+        std::string words[500];
+
+        std::getline(in, line);
+        int count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == 2);
+        #endif
+        splines = new Splines<T>(std::stoi(words[0]), words[1].front());
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_predictor);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->col_inds[i] = std::stoi(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_splines);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->coefs[i] = T(std::stod(words[i]));
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_splines / 2);
+        #endif
+        T knot;
+        for(int i = 0; i < count; ++i) {
+            knot = T(std::stod(words[i]));
+            splines->spline_array[2 * i] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - x); };
+            splines->spline_array[2 * i + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), x - knot); };
+
+            i += 1;
+            knot = T(std::stod(words[i]));
+            splines->spline_array[2 * i] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - y); };
+            splines->spline_array[2 * i + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), y - knot); };
+        }
+
+    }
+
 }
 
 // for linear regression
@@ -721,6 +920,8 @@ namespace dbm {
 
 }
 
+// explicit instantiation
+
 namespace dbm {
 
     template void save_global_mean<double>(const Global_mean<double> *mean, std::ofstream &out);
@@ -739,6 +940,15 @@ namespace dbm {
     template void load_neural_network<double>(std::ifstream &in, Neural_network<double> *&neural_network);
 
     template void load_neural_network<float>(std::ifstream &in, Neural_network<float> *&neural_network);
+
+
+    template void save_splines<double>(const Splines<double> *splines, std::ofstream &out);
+
+    template void save_splines<float>(const Splines<float> *splines, std::ofstream &out);
+
+    template void load_splines<double>(std::ifstream &in, Splines<double> *&splines);
+
+    template void load_splines<float>(std::ifstream &in, Splines<float> *&splines);
 
 
     template void save_linear_regression<double>(const Linear_regression<double> *linear_regression, std::ofstream &out);
