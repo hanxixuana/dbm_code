@@ -123,7 +123,7 @@ void train_test_save_load_s() {
 
     // ========================================================
 
-    dbm::Params params = dbm::set_params("no_knot 5 loss_function n");
+    dbm::Params params = dbm::set_params("no_knot 5 loss_function b");
 
     dbm::Splines<float> *splines = new dbm::Splines<float>(params.n_hidden_neuron, params.loss_function);
     dbm::Splines_trainer<float> trainer(params);
@@ -134,7 +134,7 @@ void train_test_save_load_s() {
 
     {
         dbm::Time_measurer time_measurer;
-        trainer.train(splines, train_x, ind_delta, row_inds, n_samples, col_inds, 5);
+        trainer.train(splines, train_x, ind_delta, row_inds, n_samples, col_inds, params.no_candidate_feature);
     }
 
     splines->predict(train_x, prediction);
@@ -158,7 +158,9 @@ void train_test_save_load_s() {
 
     dbm::Matrix<float> re_prediction(n_samples, 1, 0);
     re_splines->predict(train_x, re_prediction);
+
     loss_function.mean_function(re_prediction, params.loss_function);
+
     dbm::Matrix<float> re_result = dbm::hori_merge(result, re_prediction);
     re_result.print_to_file("result.txt");
 

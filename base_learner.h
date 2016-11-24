@@ -104,15 +104,28 @@ namespace dbm {
     class Splines : public Base_learner<T> {
     private:
         static const int n_predictor = 2;
+
         int n_knot;
         char loss_type;
 
         int col_inds[n_predictor];
 
-        std::function<T(T&&, T&&)> *spline_array = nullptr;
-        T *coefs = nullptr;
+        T x_left_hinge(T &x, T &y, T &knot);
+        T x_right_hinge(T &x, T &y, T &knot);
+        T *x_knots;
+        T *x_left_coefs;
+        T *x_right_coefs;
 
-        int n_splines;
+        T y_left_hinge(T &x, T &y, T &knot);
+        T y_right_hinge(T &x, T &y, T &knot);
+        T *y_knots;
+        T *y_left_coefs;
+        T *y_right_coefs;
+
+//        std::function<T(T&&, T&&)> *spline_array = nullptr;
+//        T *coefs = nullptr;
+
+//        int n_splines;
 
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);

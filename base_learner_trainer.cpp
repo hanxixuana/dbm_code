@@ -309,19 +309,29 @@ namespace dbm {
             display_training_progress(params.display_training_progress) {
 
         n_pairs = params.no_candidate_feature * (params.no_candidate_feature - 1) / 2;
-        predictor_pairs_array = new int *[n_pairs];
+
+        predictor_pairs_inds = new int *[n_pairs];
         for(int i = 0; i < n_pairs; ++i) {
-            predictor_pairs_array[i] = new int[2];
+            predictor_pairs_inds[i] = new int[2];
         }
+
+        for(int i = 0, count = 0; i < params.no_candidate_feature - 1; ++i)
+            for(int j = i + 1; j < params.no_candidate_feature; ++j) {
+                predictor_pairs_inds[count][0] = i;
+                predictor_pairs_inds[count][1] = j;
+                count += 1;
+            }
+
     }
 
     template <typename T>
     Splines_trainer<T>::~Splines_trainer() {
 
         for(int i = 0; i < n_pairs; ++i) {
-            delete predictor_pairs_array[i];
+            delete predictor_pairs_inds[i];
         }
-        delete[] predictor_pairs_array;
+        delete[] predictor_pairs_inds;
+
     }
 
     template <typename T>
@@ -345,59 +355,54 @@ namespace dbm {
                 assert(n_rows > 0 && n_cols >= splines->n_predictor);
             #endif
 
-            for(int i = 0, count = 0; i < n_cols - 1; ++i)
-                for(int j = i + 1; j < n_cols; ++j) {
-                    predictor_pairs_array[count][0] = col_inds[i];
-                    predictor_pairs_array[count][1] = col_inds[j];
-                    count += 1;
-                }
+            T scaling = 0.7;
+            T **knots, min, max;
+            knots = new T*[n_cols];
+            for(int i = 0; i < n_cols; ++i) {
+                knots[i] = new T[splines->n_knot];
+                min = train_x.get_col_min(col_inds[i], row_inds, n_rows);
+                max = train_x.get_col_max(col_inds[i], row_inds, n_rows);
+                range(min, max, splines->n_knot, knots[i], scaling);
+            }
 
-            T mse, lowest_mse = std::numeric_limits<T>::max(),
-                    first_min, first_max, second_min, second_max,
-                    knot, scaling = 0.7;
-            T first_knots[splines->n_knot], second_knots[splines->n_knot];
+            T mse, lowest_mse = std::numeric_limits<T>::max();
+            T knot;
 
             int lowest_mse_pair_ind = 0;
-            T lowest_mse_first_knots[splines->n_knot], lowest_mse_second_knots[splines->n_knot];
 
-            Matrix<T> lowest_mse_coefs(splines->n_splines, 1, 0);
-            Matrix<T> design_matrix(n_rows, splines->n_splines, 0);
-            Matrix<T> left_in_left(splines->n_splines, n_rows, 0);
-            Matrix<T> eye(splines->n_splines, splines->n_splines, 0);
-            for(int i = 0; i < splines->n_splines; ++i)
+            T x, y, prediction;
+
+            int n_splines = splines->n_knot * 4;
+
+            Matrix<T> lowest_mse_coefs(n_splines, 1, 0);
+            Matrix<T> design_matrix(n_rows, n_splines, 0);
+            Matrix<T> left_in_left(n_splines, n_rows, 0);
+            Matrix<T> eye(n_splines, n_splines, 0);
+
+            for(int i = 0; i < n_splines; ++i)
                 eye.assign(i, i, 0.00001);
+
             for(int i = 0; i < n_pairs / 3; ++i) {
 
-                splines->col_inds[0] = predictor_pairs_array[i][0];
-                splines->col_inds[1] = predictor_pairs_array[i][1];
-
-                first_min = train_x.get_col_min(splines->col_inds[0], row_inds, n_rows);
-                first_max = train_x.get_col_max(splines->col_inds[0], row_inds, n_rows);
-                second_min = train_x.get_col_min(splines->col_inds[1], row_inds, n_rows);
-                second_max = train_x.get_col_max(splines->col_inds[1], row_inds, n_rows);
-
-                range(first_min, first_max, splines->n_knot, first_knots, scaling);
-                range(second_min, second_max, splines->n_knot, second_knots, scaling);
-
-                for(int j = 0; j < splines->n_knot; ++j) {
-
-                    knot = first_knots[j];
-                    splines->spline_array[4 * j] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - x); };
-                    splines->spline_array[4 * j + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), x - knot); };
-
-                    knot = second_knots[j];
-                    splines->spline_array[4 * j + 2] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - y); };
-                    splines->spline_array[4 * j + 3] = [knot](T &&x, T &&y)->T {return std::max(T(0), y - knot); };
-
-                }
+                splines->col_inds[0] = col_inds[ predictor_pairs_inds[i][0] ];
+                splines->col_inds[1] = col_inds[ predictor_pairs_inds[i][1] ];
 
                 design_matrix.clear();
                 for(int j = 0; j < n_rows; ++j) {
-                    for(int k = 0; k < splines->n_splines; ++k) {
-                        design_matrix.assign(j, k,
-                                             splines->spline_array[k](train_x.get(row_inds[j], splines->col_inds[0]),
-                                                                      train_x.get(row_inds[j], splines->col_inds[1]))
-                        );
+
+                    x = train_x.get(row_inds[j], splines->col_inds[0]);
+                    y = train_x.get(row_inds[j], splines->col_inds[1]);
+
+                    for(int k = 0; k < splines->n_knot; ++k) {
+
+                        knot = knots[ predictor_pairs_inds[i][0] ][k];
+                        design_matrix.assign(j, 4 * k, splines->x_left_hinge(x, y, knot) );
+                        design_matrix.assign(j, 4 * k + 1, splines->x_right_hinge(x, y, knot) );
+
+                        knot = knots[ predictor_pairs_inds[i][1] ][k];
+                        design_matrix.assign(j, 4 * k + 2, splines->y_left_hinge(x, y, knot) );
+                        design_matrix.assign(j, 4 * k + 3, splines->y_right_hinge(x, y, knot) );
+
                     }
                 }
 
@@ -407,18 +412,33 @@ namespace dbm {
                 Matrix<T> left_inversed = inverse(plus(left, eye));
 
                 int y_ind[] = {0}, n_y_ind = 1;
-                Matrix<T> y = ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind);
-                Matrix<T> right = inner_product(left_in_left, y);
+                Matrix<T> Y = ind_delta.submatrix(row_inds, n_rows, y_ind, n_y_ind);
+                Matrix<T> right = inner_product(left_in_left, Y);
 
                 Matrix<T> coefs = inner_product(left_inversed, right);
 
-                for(int j = 0; j < splines->n_splines; ++j)
-                    splines->coefs[j] = coefs.get(j, 0);
 
+                // check this part, should I use predict_for_row?
                 mse = 0;
                 for(int j = 0; j < n_rows; ++j) {
-                    mse += std::pow(ind_delta.get(row_inds[j], 0) -
-                                            splines->predict_for_row(train_x, row_inds[j]), 2.0);
+
+                    prediction = 0;
+
+                    x = train_x.get(row_inds[j], splines->col_inds[0]);
+                    y = train_x.get(row_inds[j], splines->col_inds[1]);
+
+                    for(int k = 0; k < splines->n_knot; ++k) {
+
+                        knot = knots[ predictor_pairs_inds[i][0] ][k];
+                        prediction += splines->x_left_hinge(x, y, knot) * coefs.get(4 * k, 0);
+                        prediction += splines->x_right_hinge(x, y, knot) * coefs.get(4 * k + 1, 0);
+
+                        knot = knots[ predictor_pairs_inds[i][1] ][k];
+                        prediction += splines->y_left_hinge(x, y, knot) * coefs.get(4 * k + 2, 0);
+                        prediction += splines->y_right_hinge(x, y, knot) * coefs.get(4 * k + 3, 0);
+
+                    }
+                    mse += std::pow(ind_delta.get(row_inds[j], 0) - prediction, 2.0);
                 }
 
                 mse /= n_rows;
@@ -427,36 +447,35 @@ namespace dbm {
                     lowest_mse = mse;
                     lowest_mse_pair_ind = i;
                     copy(coefs, lowest_mse_coefs);
-                    for(int j = 0; j < splines->n_knot; ++j) {
-                        lowest_mse_first_knots[j] = first_knots[j];
-                        lowest_mse_second_knots[j] = second_knots[j];
-                    }
                 }
 
             }
 
-            splines->col_inds[0] = predictor_pairs_array[lowest_mse_pair_ind][0];
-            splines->col_inds[1] = predictor_pairs_array[lowest_mse_pair_ind][1];
+            splines->col_inds[0] = col_inds[ predictor_pairs_inds[lowest_mse_pair_ind][0] ];
+            splines->col_inds[1] = col_inds[ predictor_pairs_inds[lowest_mse_pair_ind][1] ];
 
             for(int j = 0; j < splines->n_knot; ++j) {
 
-                knot = lowest_mse_first_knots[j];
-                splines->spline_array[4 * j] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - x); };
-                splines->spline_array[4 * j + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), x - knot); };
+                splines->x_knots[j] = knots[ predictor_pairs_inds[lowest_mse_pair_ind][0] ][j];
 
-                knot = lowest_mse_second_knots[j];
-                splines->spline_array[4 * j + 2] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - y); };
-                splines->spline_array[4 * j + 3] = [knot](T &&x, T &&y)->T {return std::max(T(0), y - knot); };
+                splines->y_knots[j] = knots[ predictor_pairs_inds[lowest_mse_pair_ind][1] ][j];
 
             }
 
-            T test[splines->n_splines];
-            for(int i = 0; i < splines->n_splines; ++i)
-                test[i] = splines->spline_array[i](0, 0);
+            for(int j = 0; j < splines->n_knot; ++j) {
 
-            for(int j = 0; j < splines->n_splines; ++j)
-                splines->coefs[j] = lowest_mse_coefs.get(j, 0);
+                splines->x_left_coefs[j] = lowest_mse_coefs.get(4 * j, 0);
+                splines->x_right_coefs[j] = lowest_mse_coefs.get(4 * j + 1, 0);
 
+                splines->y_left_coefs[j] = lowest_mse_coefs.get(4 * j + 2, 0);
+                splines->y_right_coefs[j] = lowest_mse_coefs.get(4 * j + 3, 0);
+
+            }
+
+
+            for(int i = 0; i < n_cols; ++i)
+                delete[] knots[i];
+            delete[] knots;
         }
     }
 

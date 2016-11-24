@@ -125,7 +125,8 @@ namespace dbm {
 
     template <typename T>
     Neural_network<T>::~Neural_network<T>() {
-        delete input_weight, hidden_weight, input_output, hidden_output, col_inds;
+        delete input_weight, hidden_weight, input_output, hidden_output;
+        delete[] col_inds;
         input_weight = nullptr, hidden_weight = nullptr;
         input_output = nullptr, hidden_output = nullptr, col_inds = nullptr;
     }
@@ -207,31 +208,62 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
+    inline T Splines<T>::x_left_hinge(T &x, T &y, T &knot) {
+        return std::max(T(0), knot - x);
+    }
+
+    template <typename T>
+    inline T Splines<T>::x_right_hinge(T &x, T &y, T &knot) {
+        return std::max(T(0), x - knot);
+    }
+
+    template <typename T>
+    inline T Splines<T>::y_left_hinge(T &x, T &y, T &knot) {
+        return std::max(T(0), knot - y);
+    }
+
+    template <typename T>
+    inline T Splines<T>::y_right_hinge(T &x, T &y, T &knot) {
+        return std::max(T(0), y - knot);
+    }
+
+    template <typename T>
     Splines<T>::Splines(int n_knot,
                         char loss_type) :
             n_knot(n_knot),
             loss_type(loss_type),
             Base_learner<T>('s') {
 
-        n_splines = 4 * n_knot;
+        x_knots = new T[n_knot];
 
-        spline_array = new std::function<T(T&&, T&&)>[n_splines];
-        coefs = new T[n_splines];
+        x_left_coefs = new T[n_knot];
+        x_right_coefs = new T[n_knot];
+
+        y_knots = new T[n_knot];
+
+        y_left_coefs = new T[n_knot];
+        y_right_coefs = new T[n_knot];
 
     }
 
     template <typename T>
     Splines<T>::~Splines() {
-        delete coefs;
-        coefs = nullptr;
+        delete[] x_knots, x_left_coefs, x_right_coefs,
+                y_knots, y_left_coefs, y_right_coefs;
+        x_knots = nullptr, x_left_coefs = nullptr, x_right_coefs = nullptr,
+                y_knots = nullptr, y_left_coefs = nullptr, y_right_coefs = nullptr;
     };
 
     template <typename T>
     T Splines<T>::predict_for_row(const Matrix<T> &data,
                                   int row_ind) {
         T result = 0;
-        for(int i = 0; i < n_splines; ++i) {
-            result += spline_array[i](data.get(row_ind, col_inds[0]), data.get(row_ind, col_inds[1])) * coefs[i];
+        T x = data.get(row_ind, col_inds[0]), y = data.get(row_ind, col_inds[1]);
+        for(int i = 0; i < n_knot; ++i) {
+            result += x_left_hinge(x, y, x_knots[i]) * x_left_coefs[i];
+            result += x_right_hinge(x, y, x_knots[i]) * x_right_coefs[i];
+            result += y_left_hinge(x, y, y_knots[i]) * y_left_coefs[i];
+            result += y_right_hinge(x, y, y_knots[i]) * y_right_coefs[i];
         }
         switch (loss_type) {
             case 'n':
@@ -293,8 +325,7 @@ namespace dbm {
 
     template <typename T>
     Linear_regression<T>::~Linear_regression() {
-        delete col_inds;
-        delete coefs_no_intercept;
+        delete[] col_inds, coefs_no_intercept;
         col_inds = nullptr, coefs_no_intercept = nullptr;
     };
 
@@ -564,7 +595,7 @@ namespace dbm {
 
     template <typename T>
     void save_splines(const Splines<T> *splines,
-                               std::ofstream &out) {
+                      std::ofstream &out) {
 
         out << splines->n_knot << ' '
             << splines->loss_type << std::endl;
@@ -573,30 +604,31 @@ namespace dbm {
             out << splines->col_inds[i] << ' ';
         out << std::endl;
 
-        for(int i = 0; i < splines->n_splines; ++i)
-            out << splines->coefs[i] << ' ';
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->x_knots[i] << ' ';
+        out << std::endl;
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->x_left_coefs[i] << ' ';
+        out << std::endl;
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->x_right_coefs[i] << ' ';
         out << std::endl;
 
-        for(int i = 0; i < splines->n_splines; ++i) {
-            if(i % 4 == 0) {
-                if(splines->spline_array[i](0, 0) > 0)
-                    out << splines->spline_array[i](0, 0) << ' ';
-                else
-                    out << -splines->spline_array[i + 1](0, 0) << ' ';
-            }
-            if(i % 4 == 2)
-                if(splines->spline_array[i](0, 0) > 0)
-                    out << splines->spline_array[i](0, 0) << ' ';
-                else
-                    out << -splines->spline_array[i + 1](0, 0) << ' ';
-        }
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->y_knots[i] << ' ';
+        out << std::endl;
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->y_left_coefs[i] << ' ';
+        out << std::endl;
+        for(int i = 0; i < splines->n_knot; ++i)
+            out << splines->y_right_coefs[i] << ' ';
         out << std::endl;
 
     }
 
     template <typename T>
     void load_splines(std::ifstream &in,
-                               Splines<T> *&splines) {
+                      Splines<T> *&splines) {
 
         std::string line;
         std::string words[500];
@@ -621,28 +653,55 @@ namespace dbm {
         std::getline(in, line);
         count = split_into_words(line, words);
         #if _DEBUG_BASE_LEARNER
-            assert(count == splines->n_splines);
+            assert(count == splines->n_knot);
         #endif
         for(int i = 0; i < count; ++i)
-            splines->coefs[i] = T(std::stod(words[i]));
+            splines->x_knots[i] = T(std::stod(words[i]));
 
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
         #if _DEBUG_BASE_LEARNER
-            assert(count == splines->n_splines / 2);
+            assert(count == splines->n_knot);
         #endif
-        T knot;
-        for(int i = 0; i < count; ++i) {
-            knot = T(std::stod(words[i]));
-            splines->spline_array[2 * i] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - x); };
-            splines->spline_array[2 * i + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), x - knot); };
+        for(int i = 0; i < count; ++i)
+            splines->x_left_coefs[i] = T(std::stod(words[i]));
 
-            i += 1;
-            knot = T(std::stod(words[i]));
-            splines->spline_array[2 * i] = [knot](T &&x, T &&y)->T {return std::max(T(0), knot - y); };
-            splines->spline_array[2 * i + 1] = [knot](T &&x, T &&y)->T {return std::max(T(0), y - knot); };
-        }
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_knot);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->x_right_coefs[i] = T(std::stod(words[i]));
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_knot);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->y_knots[i] = T(std::stod(words[i]));
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_knot);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->y_left_coefs[i] = T(std::stod(words[i]));
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #if _DEBUG_BASE_LEARNER
+            assert(count == splines->n_knot);
+        #endif
+        for(int i = 0; i < count; ++i)
+            splines->y_right_coefs[i] = T(std::stod(words[i]));
 
     }
 
@@ -854,8 +913,8 @@ namespace dbm {
                   << " c:" << tree->column
                   << " v:" << tree->split_value;
         tree_nodes[h][tree->depth] = temporary.str();
-        int next_higher = h - std::max(1, int(height / std::pow(2, tree->depth + 2))),
-                next_lower = h + int(height / std::pow(2, tree->depth + 2));
+        int next_higher = h - std::max(1, int(height / std::pow(2.0, tree->depth + 2))),
+                next_lower = h + int(height / std::pow(2.0, tree->depth + 2));
         fill(tree->larger, next_higher);
         fill(tree->smaller, next_lower);
     }
@@ -865,7 +924,7 @@ namespace dbm {
 
         get_depth(tree);
 
-        height = std::pow(2, depth);
+        height = int(std::pow(2.0, depth));
 
         tree_nodes = new std::string *[height];
         for (int i = 0; i < height; ++i) {

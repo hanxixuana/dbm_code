@@ -73,7 +73,7 @@ namespace dbm {
 
         int n_pairs;
 
-        int **predictor_pairs_array;
+        int **predictor_pairs_inds;
 
     public:
         Splines_trainer(const Params &params);
