@@ -91,10 +91,10 @@ namespace dbm {
         int get_height() const { return height; }
 
         T get_col_max(int col_index,
-                      const int *row_inds = NULL, int n_rows = 0) const;
+                      const int *row_inds = NULL, int no_rows = 0) const;
 
         T get_col_min(int col_index,
-                      const int *row_inds = NULL, int n_rows = 0) const;
+                      const int *row_inds = NULL, int no_rows = 0) const;
 
         //===============
         // unique values
@@ -102,7 +102,7 @@ namespace dbm {
         // returns the number of unique values
         // sort and put unique values in the beginning of values
         int unique_vals_col(int j, T *values,
-                            const int *row_inds = NULL, int n_rows = 0) const;
+                            const int *row_inds = NULL, int no_rows = 0) const;
 
         //======
         // clear
@@ -145,30 +145,30 @@ namespace dbm {
 
         Matrix row(int row_index) const;
 
-        Matrix cols(const int *col_indices, int n_cols) const;
+        Matrix cols(const int *col_indices, int no_cols) const;
 
-        Matrix rows(const int *row_indices, int n_rows) const;
+        Matrix rows(const int *row_indices, int no_rows) const;
 
-        Matrix submatrix(const int *row_indices, int n_rows, const int *col_indices, int n_cols) const;
+        Matrix submatrix(const int *row_indices, int no_rows, const int *col_indices, int no_cols) const;
 
         //=============================================================
         // split into two Matrix<T> according to a col and a threshold
         //=============================================================
         int n_larger_in_col(int col_index, const T &threshold,
-                            const int *row_inds = NULL, int n_rows = 0) const;
+                            const int *row_inds = NULL, int no_rows = 0) const;
 
         int n_smaller_or_eq_in_col(int col_index, const T &threshold,
-                                   const int *row_inds = NULL, int n_rows = 0) const;
+                                   const int *row_inds = NULL, int no_rows = 0) const;
 
         int inds_larger_in_col(int col_index, const T &threshold, int *indices,
-                               const int *row_inds = NULL, int n_rows = 0) const;
+                               const int *row_inds = NULL, int no_rows = 0) const;
 
         int inds_smaller_or_eq_in_col(int col_index, const T &threshold, int *indices,
-                                      const int *row_inds = NULL, int n_rows = 0) const;
+                                      const int *row_inds = NULL, int no_rows = 0) const;
 
         void inds_split(int col_inds, const T &threshold, int *larger_inds,
                         int *smaller_inds, int *n_two_inds,
-                        const int *row_inds = NULL, int n_rows = 0) const;
+                        const int *row_inds = NULL, int no_rows = 0) const;
 
         Matrix vert_split_l(int col_index, const T &threshold) const;
 
@@ -177,10 +177,10 @@ namespace dbm {
         //===================================
         // average in a col for certain rows
         //===================================
-        T average_col_for_rows(int col_index, const int *row_inds = NULL, int n_rows = 0) const;
+        T average_col_for_rows(int col_index, const int *row_inds = NULL, int no_rows = 0) const;
 
         void ul_average_col_for_rows(int col_index, const T &threshold, T *two_average,
-                                     const int *row_inds = NULL, int n_rows = 0) const;
+                                     const int *row_inds = NULL, int no_rows = 0) const;
 
         //================
         // math operations

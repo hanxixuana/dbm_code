@@ -20,16 +20,22 @@ namespace dbm {
     template <typename T>
     class Mean_trainer {
     private:
+
         bool display_training_progress;
+
         Loss_function<T> loss_function;
+
     public:
         Mean_trainer(const Params &params);
         ~Mean_trainer();
 
-        void train(Global_mean<T> *mean, const Matrix<T> &train_x,
-                   const Matrix<T> &ind_delta, const Matrix<T> &prediction,
+        void train(Global_mean<T> *mean,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   const Matrix<T> &prediction,
                    char loss_function_type = 'n',
-                   const int *row_inds = nullptr, int n_rows = 0);
+                   const int *row_inds = nullptr,
+                   int no_rows = 0);
 
     };
 
@@ -37,31 +43,34 @@ namespace dbm {
     template <typename T>
     class Neural_network_trainer {
     private:
-        bool display_training_progress;
+
         int batch_size;
-        int max_iteration;
+        int nn_max_iteration;
         T step_size;
         double validate_portion;
         T shrinkage;
-        int n_rise_of_loss_on_validate;
-
-        // n_hidden_neuron * (n_predictor + 1)
-        Matrix<T> *input_delta;
-        // 1 * (n_hidden_neuron + 1)
-        Matrix<T> *hidden_delta;
+        int no_rise_of_loss_on_validate;
 
         Loss_function<T> loss_function;
 
         T activation_derivative(const T &input);
-        void backward(Neural_network<T> *neural_network, T ind_delta, T weight);
+        void backward(Neural_network<T> *neural_network,
+                      Matrix<T> *hidden_delta,
+                      Matrix<T> *input_delta,
+                      T ind_delta,
+                      T weight);
 
     public:
         Neural_network_trainer(const Params &params);
         ~Neural_network_trainer();
 
-        void train(Neural_network<T> *neural_network, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr, int n_rows = 0,
-                   const int *col_inds = nullptr, int n_cols = 0);
+        void train(Neural_network<T> *neural_network,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
 
     };
 
@@ -69,9 +78,8 @@ namespace dbm {
     template <typename T>
     class Splines_trainer {
     private:
-        bool display_training_progress;
 
-        int n_pairs;
+        int no_pairs;
 
         int **predictor_pairs_inds;
 
@@ -79,9 +87,40 @@ namespace dbm {
         Splines_trainer(const Params &params);
         ~Splines_trainer();
 
-        void train(Splines<T> *splines, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr, int n_rows = 0,
-                   const int *col_inds = nullptr, int n_cols = 0);
+        void train(Splines<T> *splines,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
+
+    };
+
+    // for k-means
+    template <typename T>
+    class Kmeans_trainer {
+    private:
+
+        int no_centroids;
+        int no_predictors;
+        int kmeans_max_iteration;
+        T kmeans_tolerance;
+
+        Loss_function<T> loss_function;
+
+    public:
+        Kmeans_trainer(const Params &params);
+        ~Kmeans_trainer();
+
+        void train(Kmeans<T> *kmeans,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   char loss_function_type = 'n',
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
 
     };
 
@@ -89,14 +128,18 @@ namespace dbm {
     template <typename T>
     class Linear_regression_trainer {
     private:
-        bool display_training_progress;
+
     public:
         Linear_regression_trainer(const Params &params);
         ~Linear_regression_trainer();
 
-        void train(Linear_regression<T> *linear_regression, const Matrix<T> &train_x, const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr, int n_rows = 0,
-                   const int *col_inds = nullptr, int n_cols = 0);
+        void train(Linear_regression<T> *linear_regression,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
 
     };
 
@@ -107,7 +150,6 @@ namespace dbm {
     private:
         int max_depth;
         int no_candidate_split_point;
-        bool display_training_progress;
 
         Loss_function<T> loss_function;
 
@@ -115,11 +157,17 @@ namespace dbm {
         Tree_trainer(const Params &params);
         ~Tree_trainer();
 
-        void train(Tree_node<T> *tree, const Matrix<T> &train_x, const Matrix<T> &train_y,
-                   const Matrix<T> &ind_delta, const Matrix<T> &prediction,
-                   const int *monotonic_constraints, char loss_function_type = 'n',
-                   const int *row_inds = nullptr, int n_rows = 0,
-                   const int *col_inds = nullptr, int n_cols = 0);
+        void train(Tree_node<T> *tree,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &train_y,
+                   const Matrix<T> &ind_delta,
+                   const Matrix<T> &prediction,
+                   const int *monotonic_constraints,
+                   char loss_function_type = 'n',
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
 
         void prune(Tree_node<T> *tree);
     };

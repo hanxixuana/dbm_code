@@ -58,6 +58,7 @@ namespace dbm {
         Linear_regression_trainer<T> *linear_regression_trainer = nullptr;
         Neural_network_trainer<T> *neural_network_trainer = nullptr;
         Splines_trainer<T> *splines_trainer = nullptr;
+        Kmeans_trainer<T> *kmeans_trainer = nullptr;
 
         Params params;
         Loss_function<T> loss_function;

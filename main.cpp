@@ -14,6 +14,8 @@ void train_test_save_load_nn();
 
 void train_test_save_load_s();
 
+void train_test_save_load_k();
+
 void test_save_load_tree();
 
 void test_save_load_lr();
@@ -35,7 +37,7 @@ int main() {
 
 void prepare_data() {
     string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name, 100000, 30, 'b');
+    dbm::make_data<float>(file_name, 100000, 30, 'n');
 }
 
 void train_test_save_load_dbm() {
@@ -63,8 +65,10 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_bunches_of_learners 2000 no_cores 5 loss_function b no_train_sample 50000 shrinkage 0.25 "
-            "portion_for_trees 0 portion_for_lr 0 portion_for_s 1 portion_for_nn 0";
+    string param_string = "no_bunches_of_learners 51 no_cores 5 loss_function n "
+            "no_train_sample 10000 no_candidate_feature 5 no_centroids 10 "
+            "portion_for_trees 0 portion_for_lr 0 portion_for_s 0 "
+            "portion_for_k 1 portion_for_nn 0";
     dbm::DBM<float> dbm(param_string);
 
     dbm.train(data_set);
@@ -102,6 +106,75 @@ void train_test_save_load_dbm() {
     result.print_to_file("whole_result.txt");
 }
 
+void train_test_save_load_k() {
+    int n_samples = 10000, n_features = 30, n_width = 31;
+
+    dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
+    dbm::Matrix<float> prediction(n_samples, 1, 0);
+    dbm::Matrix<float> ind_delta(n_samples, 2, 0);
+
+    int row_inds[n_samples], col_inds[n_features];
+
+    for (int i = 0; i < n_features; ++i)
+        col_inds[i] = i;
+    for (int i = 0; i < n_samples; ++i)
+        row_inds[i] = i;
+
+    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
+    dbm::Matrix<float> train_y = train_data.col(n_features);
+
+    // ========================================================
+
+    dbm::Params params = dbm::set_params("no_train_sample 10000 no_candidate_feature 2 no_centroids 10 "
+                                                 "loss_function n kmeans_tolerance 1e-5");
+
+    dbm::Kmeans<float> *kmeans = new dbm::Kmeans<float>(params.no_candidate_feature,
+                                                         params.no_centroids,
+                                                         params.loss_function);
+    dbm::Kmeans_trainer<float> trainer(params);
+
+    dbm::Loss_function<float> loss_function(params);
+    loss_function.calculate_ind_delta(train_y, prediction,
+                                      ind_delta, params.loss_function, row_inds, params.no_train_sample);
+
+    {
+        dbm::Time_measurer time_measurer;
+        dbm::shuffle(col_inds, n_features);
+        trainer.train(kmeans, train_x, ind_delta, params.loss_function,
+                      row_inds, params.no_train_sample, col_inds, params.no_candidate_feature);
+    }
+
+    kmeans->predict(train_x, prediction);
+
+    loss_function.mean_function(prediction, params.loss_function);
+    dbm::Matrix<float> result = dbm::hori_merge(train_data, prediction);
+
+    {
+        ofstream out("save.txt");
+        dbm::save_kmeans(kmeans, out);
+    }
+
+
+    dbm::Kmeans<float> *re_kmeans = nullptr;
+    {
+        ifstream in("save.txt");
+        dbm::load_kmeans(in, re_kmeans);
+        ofstream out("re_save.txt");
+        dbm::save_kmeans(re_kmeans, out);
+    }
+
+    dbm::Matrix<float> re_prediction(n_samples, 1, 0);
+    re_kmeans->predict(train_x, re_prediction);
+
+    loss_function.mean_function(re_prediction, params.loss_function);
+
+    dbm::Matrix<float> re_result = dbm::hori_merge(result, re_prediction);
+    re_result.print_to_file("result.txt");
+
+    delete re_kmeans, kmeans;
+    re_kmeans = nullptr, kmeans = nullptr;
+}
+
 void train_test_save_load_s() {
     int n_samples = 100000, n_features = 30, n_width = 31;
 
@@ -116,16 +189,16 @@ void train_test_save_load_s() {
     for (int i = 0; i < n_samples; ++i)
         row_inds[i] = i;
 
-    dbm::shuffle(col_inds, n_features);
-
     dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
     dbm::Matrix<float> train_y = train_data.col(n_features);
+
+    dbm::shuffle(col_inds, n_features);
 
     // ========================================================
 
     dbm::Params params = dbm::set_params("no_knot 5 loss_function b");
 
-    dbm::Splines<float> *splines = new dbm::Splines<float>(params.n_hidden_neuron, params.loss_function);
+    dbm::Splines<float> *splines = new dbm::Splines<float>(params.no_hidden_neurons, params.loss_function);
     dbm::Splines_trainer<float> trainer(params);
 
     dbm::Loss_function<float> loss_function(params);
@@ -187,10 +260,10 @@ void train_test_save_load_nn() {
 
     // ========================================================
 
-    dbm::Params params = dbm::set_params("no_candidate_feature 5 n_hidden_neuron 5 loss_function b");
+    dbm::Params params = dbm::set_params("no_candidate_feature 5 no_hidden_neurons 5 loss_function b");
 
     dbm::Neural_network<float> *nn = new dbm::Neural_network<float>(params.no_candidate_feature,
-                                                                    params.n_hidden_neuron,
+                                                                    params.no_hidden_neurons,
                                                                     params.loss_function);
     dbm::Neural_network_trainer<float> trainer(params);
 

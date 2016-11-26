@@ -22,12 +22,18 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Loss_function<T>::Loss_function(const Params &params) : params(params) {};
+    Loss_function<T>::Loss_function(const Params &params) :
+            params(params) {};
 
     template<typename T>
-    inline T Loss_function<T>::loss(const Matrix<T> &train_y, const Matrix<T> &prediction, const char &dist,
-                                    const T beta, const int *row_inds, int n_rows) const {
+    inline T Loss_function<T>::loss(const Matrix<T> &train_y,
+                                    const Matrix<T> &prediction,
+                                    const char &dist,
+                                    const T beta,
+                                    const int *row_inds,
+                                    int no_rows) const {
         int train_y_width = train_y.get_width(), train_y_height = train_y.get_height();
+
         #if _DEBUG_LOSS_FUNCTION
             assert(train_y_width == 1);
         #endif
@@ -92,15 +98,15 @@ namespace dbm {
             switch (dist) {
                 case 'n': {
                     T result = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         result += std::pow(train_y.get(row_inds[i], 0) -
                                            prediction.get(row_inds[i], 0) - beta, 2.0);
                     }
-                    return result / T(n_rows);
+                    return result / T(no_rows);
                 }
                 case 'p': {
                     T result = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         result += std::exp(prediction.get(row_inds[i], 0) + beta) -
                                   train_y.get(row_inds[i], 0) * (prediction.get(row_inds[i], 0) + beta);
                     }
@@ -117,14 +123,14 @@ namespace dbm {
                         return - y * std::log(p) - (1 - y) * std::log(1 - p);
                     };
                     T result = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         result += nll(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0), beta);
                     }
                     return result;
                 }
                 case 't': {
                     T result = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         result += std::pow(std::exp(prediction.get(row_inds[i], 0) + beta),
                                            2 - T(params.tweedie_p)) /
                                   (2 - params.tweedie_p) -
@@ -143,12 +149,17 @@ namespace dbm {
 
 
     template<typename T>
-    inline T Loss_function<T>::estimate_mean(const Matrix<T> &ind_delta, const Matrix<T> &prediction,
-                                             const char &dist, const int *row_inds, int n_rows) const {
+    inline T Loss_function<T>::estimate_mean(const Matrix<T> &ind_delta,
+                                             const char &dist,
+                                             const int *row_inds,
+                                             int no_rows) const {
+
         int ind_delta_width = ind_delta.get_width(), ind_delta_height = ind_delta.get_height();
+
         #if _DEBUG_LOSS_FUNCTION
             assert(ind_delta_width == 2);
         #endif
+
         if (row_inds == nullptr) {
             switch (dist) {
                 case 'n': {
@@ -177,8 +188,8 @@ namespace dbm {
                 case 't': {
                     T numerator = 0, denominator = 0;
                     for (int i = 0; i < ind_delta_height; ++i) {
-                        numerator += ind_delta.get(i, 0) * std::exp(prediction.get(i, 0) * (2 - T(params.tweedie_p)));
-                        denominator += std::exp(prediction.get(i, 0) * (2 - params.tweedie_p));
+                        numerator += ind_delta.get(i, 0) * ind_delta.get(i, 1);
+                        denominator += ind_delta.get(i, 1);
                     }
                     numerator += MIN_NUMERATOR_TWEEDIE;
                     return std::log(numerator / denominator);
@@ -191,14 +202,14 @@ namespace dbm {
             switch (dist) {
                 case 'n': {
                     T result = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         result += ind_delta.get(row_inds[i], 0);
                     }
-                    return result / T(n_rows);
+                    return result / T(no_rows);
                 }
                 case 'p': {
                     T y_sum = 0, exp_pred_sum = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         y_sum += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
                         exp_pred_sum += ind_delta.get(row_inds[i], 1);
                     }
@@ -206,7 +217,7 @@ namespace dbm {
                 }
                 case 'b': {
                     T numerator = 0, denominator = 0;
-                    for (int i = 0; i < n_rows; ++i) {
+                    for (int i = 0; i < no_rows; ++i) {
                         numerator += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
                         denominator += ind_delta.get(row_inds[i], 1);
                     }
@@ -214,10 +225,9 @@ namespace dbm {
                 }
                 case 't': {
                     T numerator = 0, denominator = 0;
-                    for (int i = 0; i < n_rows; ++i) {
-                        numerator += ind_delta.get(row_inds[i], 0) *
-                                std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p));
-                        denominator += std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p));
+                    for (int i = 0; i < no_rows; ++i) {
+                        numerator += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
+                        denominator += ind_delta.get(row_inds[i], 1);
                     }
                     numerator += MIN_NUMERATOR_TWEEDIE;
                     return std::log(numerator / denominator);
@@ -231,10 +241,12 @@ namespace dbm {
     }
 
     template <typename T>
-    void Loss_function<T>::mean_function(Matrix<T> &in_and_out, char &dist) {
+    void Loss_function<T>::mean_function(Matrix<T> &in_and_out,
+                                         char &dist) {
 
         int lpp_height = in_and_out.get_height(),
                 lpp_width = in_and_out.get_width();
+
         #if _DEBUG_LOSS_FUNCTION
             assert(lpp_width == 1);
         #endif
@@ -274,13 +286,21 @@ namespace dbm {
     }
 
     template <typename T>
-    void Loss_function<T>::calculate_ind_delta(const Matrix<T> &train_y, const Matrix<T> &prediction,
-                             Matrix<T> &ind_delta, const char &dist, const int *row_inds, int n_rows) {
+    void Loss_function<T>::calculate_ind_delta(const Matrix<T> &train_y,
+                                               const Matrix<T> &prediction,
+                                               Matrix<T> &ind_delta,
+                                               const char &dist,
+                                               const int *row_inds,
+                                               int no_rows) {
 
         if( row_inds == nullptr) {
+
             int y_height = train_y.get_height();
+
             #if _DEBUG_LOSS_FUNCTION
-                assert(y_height == prediction.get_height() && prediction.get_height() == ind_delta.get_height() && ind_delta.get_width() == 2);
+                assert(y_height == prediction.get_height() &&
+                               prediction.get_height() == ind_delta.get_height() &&
+                               ind_delta.get_width() == 2);
             #endif
 
             switch (dist) {
@@ -346,11 +366,11 @@ namespace dbm {
         }
         else {
             #if _DEBUG_LOSS_FUNCTION
-                assert(n_rows > 0);
+                assert(no_rows > 0);
             #endif
             switch (dist) {
                 case 'n': {
-                    for(int i = 0; i < n_rows; ++i) {
+                    for(int i = 0; i < no_rows; ++i) {
                         ind_delta.assign(row_inds[i], 0, train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0));
                         ind_delta.assign(row_inds[i], 1, 1);
                     }
@@ -361,7 +381,7 @@ namespace dbm {
                         auto temp = y / std::exp(pred);
                         return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
                     };
-                    for(int i = 0; i < n_rows; ++i) {
+                    for(int i = 0; i < no_rows; ++i) {
                         ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
                         ind_delta.assign(row_inds[i], 1, std::exp(prediction.get(row_inds[i], 0)));
                     }
@@ -386,7 +406,7 @@ namespace dbm {
                         auto p = prob(f);
                         return p * (1 - p);
                     };
-                    for(int i = 0; i < n_rows; ++i) {
+                    for(int i = 0; i < no_rows; ++i) {
                         ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
                         ind_delta.assign(row_inds[i], 1, denominator(prediction.get(row_inds[i], 0)));
                     }
@@ -397,7 +417,7 @@ namespace dbm {
                         auto temp = y / std::exp(pred);
                         return temp < MAX_IND_DELTA ? (temp > MIN_IND_DELTA ? temp : MIN_IND_DELTA) : MAX_IND_DELTA;
                     };
-                    for(int i = 0; i < n_rows; ++i) {
+                    for(int i = 0; i < no_rows; ++i) {
 
                         ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
                         ind_delta.assign(row_inds[i], 1, std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p)));

@@ -241,7 +241,7 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    T Matrix<T>::get_col_max(int col_index, const int *row_inds, int n_rows) const {
+    T Matrix<T>::get_col_max(int col_index, const int *row_inds, int no_rows) const {
         if (row_inds == NULL) {
             T result = std::numeric_limits<T>::min();
             for (int i = 0; i < height; ++i) {
@@ -251,10 +251,10 @@ namespace dbm {
             return result;
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             T result = std::numeric_limits<T>::min();
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] >= result)
                     result = data[row_inds[i]][col_index];
             }
@@ -263,7 +263,7 @@ namespace dbm {
     }
 
     template<typename T>
-    T Matrix<T>::get_col_min(int col_index, const int *row_inds, int n_rows) const {
+    T Matrix<T>::get_col_min(int col_index, const int *row_inds, int no_rows) const {
         if (row_inds == NULL) {
             T result = std::numeric_limits<T>::max();
             for (int i = 0; i < height; ++i) {
@@ -273,10 +273,10 @@ namespace dbm {
             return result;
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             T result = std::numeric_limits<T>::max();
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] <= result)
                     result = data[row_inds[i]][col_index];
             }
@@ -295,7 +295,7 @@ namespace dbm {
     inline int Matrix<T>::unique_vals_col(int col_index,
                                           T *values,
                                           const int *row_inds,
-                                          int n_rows) const {
+                                          int no_rows) const {
         // usage:
         //    double uniques[b.get_height()];
         //    int end = b.unique_vals_col(1, uniques);
@@ -313,12 +313,12 @@ namespace dbm {
             return (int) std::distance(values, end);
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows != 0);
+            assert(no_rows != 0);
             #endif
-            for (int i = 0; i < n_rows; ++i)
+            for (int i = 0; i < no_rows; ++i)
                 values[i] = data[row_inds[i]][col_index];
-            std::sort(values, values + n_rows);
-            T *end = std::unique(values, values + n_rows);
+            std::sort(values, values + no_rows);
+            T *end = std::unique(values, values + no_rows);
             return (int) std::distance(values, end);
         }
     }
@@ -464,9 +464,9 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::cols(const int *col_indices, int n_cols) const {
-        Matrix<T> result(height, n_cols, 0);
-        for (int j = 0; j < n_cols; ++j) {
+    Matrix<T> Matrix<T>::cols(const int *col_indices, int no_cols) const {
+        Matrix<T> result(height, no_cols, 0);
+        for (int j = 0; j < no_cols; ++j) {
             #if _DEBUG_MATRIX
             assert(col_indices[j] < width);
             #endif
@@ -485,9 +485,9 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::rows(const int *row_indices, int n_rows) const {
-        Matrix<T> result(n_rows, width, 0);
-        for (int i = 0; i < n_rows; ++i) {
+    Matrix<T> Matrix<T>::rows(const int *row_indices, int no_rows) const {
+        Matrix<T> result(no_rows, width, 0);
+        for (int i = 0; i < no_rows; ++i) {
             #if _DEBUG_MATRIX
             assert(row_indices[i] < height);
             #endif
@@ -505,9 +505,9 @@ namespace dbm {
     }
 
     template<typename T>
-    Matrix<T> Matrix<T>::submatrix(const int *row_indices, int n_rows,
-                                   const int *col_indices, int n_cols) const {
-        return rows(row_indices, n_rows).cols(col_indices, n_cols);
+    Matrix<T> Matrix<T>::submatrix(const int *row_indices, int no_rows,
+                                   const int *col_indices, int no_cols) const {
+        return rows(row_indices, no_rows).cols(col_indices, no_cols);
     }
 
 }
@@ -519,7 +519,7 @@ namespace dbm {
     int Matrix<T>::n_larger_in_col(int col_index,
                                    const T &threshold,
                                    const int *row_inds,
-                                   int n_rows) const {
+                                   int no_rows) const {
         #if _DEBUG_MATRIX
         assert(col_index < width);
         #endif
@@ -530,10 +530,10 @@ namespace dbm {
             return result;
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             int result = 0;
-            for (int i = 0; i < n_rows; ++i)
+            for (int i = 0; i < no_rows; ++i)
                 result += data[row_inds[i]][col_index] > threshold;
             return result;
         }
@@ -543,14 +543,14 @@ namespace dbm {
     int Matrix<T>::n_smaller_or_eq_in_col(int col_index,
                                           const T &threshold,
                                           const int *row_inds,
-                                          int n_rows) const {
+                                          int no_rows) const {
         if (row_inds == NULL) {
             return height - n_larger_in_col(col_index, threshold);
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
-            return n_rows - n_larger_in_col(col_index, threshold, row_inds, n_rows);
+            return no_rows - n_larger_in_col(col_index, threshold, row_inds, no_rows);
         }
     }
 
@@ -559,7 +559,7 @@ namespace dbm {
                                       const T &threshold,
                                       int *indices,
                                       const int *row_inds,
-                                      int n_rows) const {
+                                      int no_rows) const {
         if (row_inds == NULL) {
             int k = 0;
             for (int i = 0; i < height; ++i) {
@@ -574,17 +574,17 @@ namespace dbm {
             return k;
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             int k = 0;
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] > threshold) {
                     indices[k] = row_inds[i];
                     k += 1;
                 }
             }
             #if _DEBUG_MATRIX
-            assert(k == n_larger_in_col(col_index, threshold, row_inds, n_rows));
+            assert(k == n_larger_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             return k;
         }
@@ -595,7 +595,7 @@ namespace dbm {
                                              const T &threshold,
                                              int *indices,
                                              const int *row_inds,
-                                             int n_rows) const {
+                                             int no_rows) const {
         if (row_inds == NULL) {
             int k = 0;
             for (int i = 0; i < height; ++i) {
@@ -610,17 +610,17 @@ namespace dbm {
             return k;
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             int k = 0;
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] <= threshold) {
                     indices[k] = row_inds[i];
                     k += 1;
                 }
             }
             #if _DEBUG_MATRIX
-            assert(k == n_smaller_or_eq_in_col(col_index, threshold, row_inds, n_rows));
+            assert(k == n_smaller_or_eq_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             return k;
         }
@@ -651,7 +651,7 @@ namespace dbm {
     template<typename T>
     inline void Matrix<T>::inds_split(int col_index, const T &threshold, int *larger_inds,
                                       int *smaller_inds, int *n_two_inds,
-                                      const int *row_inds, int n_rows) const {
+                                      const int *row_inds, int no_rows) const {
 
         if (row_inds == NULL) {
             int k = 0, j = 0;
@@ -672,10 +672,10 @@ namespace dbm {
 
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             int k = 0, j = 0;
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] > threshold) {
                     larger_inds[k] = row_inds[i];
                     k += 1;
@@ -685,7 +685,7 @@ namespace dbm {
                 }
             }
             #if _DEBUG_MATRIX
-            assert(k == n_larger_in_col(col_index, threshold, row_inds, n_rows));
+            assert(k == n_larger_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             n_two_inds[0] = k;
             n_two_inds[1] = j;
@@ -699,7 +699,7 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    T Matrix<T>::average_col_for_rows(int col_index, const int *row_inds, int n_rows) const {
+    T Matrix<T>::average_col_for_rows(int col_index, const int *row_inds, int no_rows) const {
         if (row_inds == NULL) {
             T result = 0;
             for (int i = 0; i < height; ++i) {
@@ -708,13 +708,13 @@ namespace dbm {
             return result / T(height);
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
             T result = 0;
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 result += data[row_inds[i]][col_index];
             }
-            return result / T(n_rows);
+            return result / T(no_rows);
         }
     }
 
@@ -723,7 +723,7 @@ namespace dbm {
                                             const T &threshold,
                                             T *two_average,
                                             const int *row_inds,
-                                            int n_rows) const {
+                                            int no_rows) const {
         two_average[0] = 0, two_average[1] = 0;
         if (row_inds == NULL) {
             for (int i = 0; i < height; ++i) {
@@ -735,15 +735,15 @@ namespace dbm {
             two_average[0] /= T(height), two_average[1] /= T(height);
         } else {
             #if _DEBUG_MATRIX
-            assert(n_rows > 0);
+            assert(no_rows > 0);
             #endif
-            for (int i = 0; i < n_rows; ++i) {
+            for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] > threshold)
                     two_average[0] += data[row_inds[i]][col_index];
                 else
                     two_average[1] += data[row_inds[i]][col_index];
             }
-            two_average[0] /= T(n_rows), two_average[1] /= T(n_rows);
+            two_average[0] /= T(no_rows), two_average[1] /= T(no_rows);
         }
     }
 

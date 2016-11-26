@@ -35,7 +35,7 @@ namespace dbm {
                 Matrix<T> &prediction,
                 const T shrinkage = 1,
                 const int *row_inds = NULL,
-                int n_rows = 0) = 0;
+                int no_rows = 0) = 0;
     };
 
 }
@@ -70,7 +70,7 @@ namespace dbm {
                      Matrix<T> &prediction,
                      const T shrinkage = 1,
                      const int *row_inds = nullptr,
-                     int n_rows = 0);
+                     int no_rows = 0);
 
         friend void save_global_mean<>(const Global_mean<T> *mean,
                                        std::ofstream &out);
@@ -79,6 +79,63 @@ namespace dbm {
                                        Global_mean<T> *&mean);
 
         friend class Mean_trainer<T>;
+
+    };
+
+}
+
+namespace dbm {
+
+    template <typename T>
+    class Kmeans;
+
+    template <typename T>
+    class Kmeans_trainer;
+
+    template <typename T>
+    void save_kmeans(const Kmeans<T> *kmeans,
+                      std::ofstream &out);
+
+    template <typename T>
+    void load_kmeans(std::ifstream &in,
+                     Kmeans<T> *&kmeans);
+
+    template <typename T>
+    class Kmeans : public Base_learner<T> {
+    private:
+
+        int no_predictors;
+        int no_centroids;
+        char loss_type;
+
+        int *col_inds;
+
+        T **centroids;
+        T *predictions;
+
+        T distance(const Matrix<T> &train_x,
+                   const int &row_ind,
+                   const int &centroid_ind);
+
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
+    public:
+        Kmeans(int no_predictors, int no_centroids, char loss_type);
+        ~Kmeans();
+
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &prediction,
+                     const T shrinkage = 1,
+                     const int *row_inds = nullptr,
+                     int no_rows = 0);
+
+        friend void save_kmeans<>(const Kmeans<T> *kmeans,
+                                   std::ofstream &out);
+
+        friend void load_kmeans<>(std::ifstream &in,
+                                  Kmeans<T> *&kmeans);
+
+        friend class Kmeans_trainer<T>;
 
     };
 
@@ -103,12 +160,12 @@ namespace dbm {
     template <typename T>
     class Splines : public Base_learner<T> {
     private:
-        static const int n_predictor = 2;
+        static const int no_predictors = 2;
 
-        int n_knot;
+        int no_knots;
         char loss_type;
 
-        int col_inds[n_predictor];
+        int col_inds[no_predictors];
 
         T x_left_hinge(T &x, T &y, T &knot);
         T x_right_hinge(T &x, T &y, T &knot);
@@ -122,22 +179,17 @@ namespace dbm {
         T *y_left_coefs;
         T *y_right_coefs;
 
-//        std::function<T(T&&, T&&)> *spline_array = nullptr;
-//        T *coefs = nullptr;
-
-//        int n_splines;
-
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
     public:
-        Splines(int n_knot, char loss_type);
+        Splines(int no_knots, char loss_type);
         ~Splines();
 
         void predict(const Matrix<T> &data_x,
                      Matrix<T> &prediction,
                      const T shrinkage = 1,
                      const int *row_inds = nullptr,
-                     int n_rows = 0);
+                     int no_rows = 0);
 
         friend void save_splines<>(const Splines<T> *splines,
                                    std::ofstream &out);
@@ -170,21 +222,21 @@ namespace dbm {
     template <typename T>
     class Neural_network : public Base_learner<T> {
     private:
-        int n_predictor;
-        int n_hidden_neuron;
+        int no_predictors;
+        int no_hidden_neurons;
 
         char loss_type;
 
         int *col_inds = nullptr;
 
-        // n_hidden_neuron * (n_predictor + 1)
+        // no_hidden_neurons * (no_predictors + 1)
         Matrix<T> *input_weight;
-        // 1 * (n_hidden_neuron + 1)
+        // 1 * (no_hidden_neurons + 1)
         Matrix<T> *hidden_weight;
 
-        // (n_predictor + 1) * 1
+        // (no_predictors + 1) * 1
         Matrix<T> *input_output;
-        // (n_hidden_neuron + 1) * 1
+        // (no_hidden_neurons + 1) * 1
         Matrix<T> *hidden_output;
         // 1 * 1
         T output_output;
@@ -196,8 +248,8 @@ namespace dbm {
                           int row_ind);
 
     public:
-        Neural_network(int n_predictor,
-                       int n_hidden_neuron,
+        Neural_network(int no_predictors,
+                       int no_hidden_neurons,
                        char loss_type);
         ~Neural_network();
 
@@ -205,7 +257,7 @@ namespace dbm {
                      Matrix<T> &prediction,
                      const T shrinkage = 1,
                      const int *row_inds = nullptr,
-                     int n_rows = 0);
+                     int no_rows = 0);
 
         friend void save_neural_network<>(const Neural_network<T> *neural_network,
                                           std::ofstream &out);
@@ -238,7 +290,7 @@ namespace dbm {
     template <typename T>
     class Linear_regression : public Base_learner<T> {
     private:
-        int n_predictor;
+        int no_predictors;
         char loss_type;
 
         int *col_inds = nullptr;
@@ -249,7 +301,7 @@ namespace dbm {
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
     public:
-        Linear_regression(int n_predictor,
+        Linear_regression(int no_predictors,
                           char loss_type);
         ~Linear_regression();
 
@@ -257,7 +309,7 @@ namespace dbm {
                      Matrix<T> &prediction,
                      const T shrinkage = 1,
                      const int *row_inds = nullptr,
-                     int n_rows = 0);
+                     int no_rows = 0);
 
         friend void save_linear_regression<>(const Linear_regression<T> *linear_regression,
                                              std::ofstream &out);
@@ -331,7 +383,7 @@ namespace dbm {
                      Matrix<T> &prediction,
                      const T shrinkage = 1,
                      const int *row_inds = nullptr,
-                     int n_rows = 0);
+                     int no_rows = 0);
 
         friend void save_tree_node<>(const Tree_node<T> *node,
                                      std::ofstream &out);

@@ -239,6 +239,8 @@ namespace dbm {
                 params.portion_for_nn = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "portion_for_s")
                 params.portion_for_s = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "portion_for_k")
+                params.portion_for_k = std::stod(words[2 * i + 1]);
 
             // tweedie
             else if (words[2 * i] == "tweedie_p")
@@ -248,17 +250,25 @@ namespace dbm {
             else if (words[2 * i] == "no_knot")
                 params.no_knot = std::stoi(words[2 * i + 1]);
 
+            // kmeans
+            else if (words[2 * i] == "no_centroids")
+                params.no_centroids = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "kmeans_max_iteration")
+                params.kmeans_max_iteration = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "kmeans_tolerance")
+                params.kmeans_tolerance = std::stod(words[2 * i + 1]);
+
             // neural networks
-            else if (words[2 * i] == "n_hidden_neuron")
-                params.n_hidden_neuron = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "no_hidden_neurons")
+                params.no_hidden_neurons = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "step_size")
                 params.step_size = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "validate_portion")
                 params.validate_portion = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "batch_size")
                 params.batch_size = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "max_iteration")
-                params.max_iteration = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "nn_max_iteration")
+                params.nn_max_iteration = std::stoi(words[2 * i + 1]);
 
             // CART
             else if (words[2 * i] == "max_depth")

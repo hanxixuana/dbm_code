@@ -23,7 +23,7 @@ namespace dbm {
         // DBM
         int no_bunches_of_learners = 100;
         int no_candidate_feature = 5;
-        int no_train_sample = 5000;
+        int no_train_sample = 50000;
 
         int no_cores = 0;
 
@@ -33,13 +33,14 @@ namespace dbm {
         bool record_every_tree = true;
         int freq_showing_loss_on_test = 10;
 
-        double shrinkage = 0.1;
+        double shrinkage = 0.25;
 
         // portions should be summed to 1
-        double portion_for_trees = 0.5;
-        double portion_for_lr = 0.4;
-        double portion_for_nn = 0.1;
-        double portion_for_s = 0.1;
+        double portion_for_trees = 0.2;
+        double portion_for_lr = 0.2;
+        double portion_for_s = 0.2;
+        double portion_for_k = 0.2;
+        double portion_for_nn = 0.2;
 
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
@@ -47,13 +48,18 @@ namespace dbm {
         // splines
         int no_knot = 5;
 
+        // kmeans
+        int no_centroids = 10;
+        int kmeans_max_iteration = 100;
+        double kmeans_tolerance = 3e-2;
+
         // neural networks
-        int n_hidden_neuron = 5;
+        int no_hidden_neurons = 5;
         double step_size = 0.01;
         double validate_portion = 0.25;
         int batch_size = 100;
-        int max_iteration = 100;
-        int n_rise_of_loss_on_validate = 20;
+        int nn_max_iteration = 100;
+        int no_rise_of_loss_on_validate = 20;
 
         // CART
         int max_depth = 5;
