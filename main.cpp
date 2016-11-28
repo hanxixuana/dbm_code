@@ -37,11 +37,11 @@ int main() {
 
 void prepare_data() {
     string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name, 100000, 30, 'b');
+    dbm::make_data<float>(file_name, 10000, 30, 'n');
 }
 
 void train_test_save_load_dbm() {
-    int n_samples = 100000, n_features = 30, n_width = 31;
+    int n_samples = 10000, n_features = 30, n_width = 31;
 
     dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
 
@@ -63,10 +63,10 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_bunches_of_learners 5 no_cores 5 loss_function b "
-            "no_train_sample 75000 no_candidate_feature 5 no_centroids 15 shrinkage 0.25 "
-            "portion_for_trees 0 portion_for_lr 0 portion_for_s 0 "
-            "portion_for_k 1 portion_for_nn 0";
+    string param_string = "no_bunches_of_learners 51 no_cores 5 loss_function n "
+            "no_train_sample 5000 no_candidate_feature 5 shrinkage 0.25 "
+            "portion_for_trees 0.2 portion_for_lr 0.2 portion_for_s 0.2 "
+            "portion_for_k 0.2 portion_for_nn 0.2";
     dbm::DBM<float> dbm(param_string);
 
     dbm.train(data_set);
@@ -74,8 +74,11 @@ void train_test_save_load_dbm() {
     dbm.predict(data_set.get_train_x(), train_prediction);
     dbm.predict(data_set.get_test_x(), test_prediction);
 
-    dbm::Matrix<float> pdp = dbm.partial_dependence_plot(data_set.get_train_x(), 2);
+    dbm::Matrix<float> pdp = dbm.partial_dependence_plot(data_set.get_train_x(), 16);
     pdp.print_to_file("pdp.txt");
+
+    dbm::Matrix<float> ss = dbm.statistical_significance(data_set.get_train_x());
+    ss.print_to_file("ss.txt");
 
     {
         ofstream out("dbm.txt");
@@ -97,8 +100,6 @@ void train_test_save_load_dbm() {
     }
 
     re_dbm->predict(data_set.get_test_x(), re_test_prediction);
-    dbm::Matrix<float> re_pdp = re_dbm->partial_dependence_plot(data_set.get_train_x(), 2);
-    pdp.print_to_file("re_pdp.txt");
 
     dbm::Matrix<float> temp = dbm::hori_merge(*dbm.get_prediction_on_train_data(), train_prediction);
     dbm::Matrix<float> check = dbm::hori_merge(dbm::hori_merge(data_set.get_train_x(), data_set.get_train_y()), temp);

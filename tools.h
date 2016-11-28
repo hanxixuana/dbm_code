@@ -49,7 +49,7 @@ namespace dbm {
         int no_knot = 5;
 
         // kmeans
-        int no_centroids = 10;
+        int no_centroids = 15;
         int kmeans_max_iteration = 50;
         double kmeans_tolerance = 1e-2;
 

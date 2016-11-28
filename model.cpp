@@ -9,6 +9,8 @@
 
 #ifdef __OMP__
 #include <omp.h>
+#include <limits>
+
 #endif
 
 namespace dbm {
@@ -2603,6 +2605,137 @@ namespace dbm {
             return result;
 
         }
+    }
+
+    template <typename T>
+    Matrix<T> DBM<T>::statistical_significance(const Matrix<T> &data) {
+
+        #if _DEBUG_MODEL
+            assert(total_no_feature == data.get_width());
+        #endif
+
+        Matrix<T> *modified_data = nullptr;
+
+        int data_height = data.get_height(),
+                data_width = data.get_width(),
+                *row_inds = new int[data.get_height()],
+                resampling_size = int(data.get_height() * params.resampling_portion);
+        for(int i = 0; i < data_height; ++i)
+            row_inds[i] = i;
+
+        Matrix<T> means(total_no_feature, params.no_x_ticks, 0);
+        Matrix<T> stds(total_no_feature, params.no_x_ticks, 0);
+        T predictor_min,
+                predictor_max,
+                x_tick,
+                standard_dev;
+
+        Matrix<T> bootstraping(params.no_x_ticks, params.no_resamplings, 0);
+        Matrix<T> result(total_no_feature, 1, 0);
+
+        const int no_probs = 30;
+        T z_scores[no_probs] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1,
+                          1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2,
+                          2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3};
+        T probs[no_probs] = {0.0796, 0.1586, 0.23582, 0.31084, 0.38292, 0.4515, 0.51608, 0.57628, 0.63188, 0.68268,
+                       0.72866, 0.76986, 0.8064, 0.83848, 0.86638, 0.8904, 0.91086, 0.92814, 0.94256, 0.9545,
+                       0.96428, 0.9722, 0.97856, 0.9836, 0.98758, 0.99068, 0.99306, 0.99488, 0.99626, 0.9973};
+
+        #ifdef __OMP__
+        omp_set_num_threads(no_cores);
+        unsigned int *seeds = new unsigned int[params.no_resamplings];
+        for(int i = 0; i < params.no_resamplings; ++i)
+            seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+        #endif
+
+        for(int i = 0; i < total_no_feature; ++i) {
+
+            predictor_min = data.get_col_min(i),
+                    predictor_max = data.get_col_max(i);
+
+            modified_data = new Matrix<T>(data_height, data_width, 0);
+            copy(data, *modified_data);
+
+            for(int j = 0; j < params.no_x_ticks; ++j) {
+
+                x_tick = predictor_min + j * (predictor_max - predictor_min) / (params.no_x_ticks - 1);
+
+                for(int k = 0; k < data_height; ++k)
+                    modified_data->assign(k, i, x_tick);
+
+                #ifdef __OMP__
+                #pragma omp parallel default(shared)
+                {
+                    #pragma omp for schedule(dynamic) nowait
+                #endif
+                    for(int k = 0; k < params.no_resamplings; ++k) {
+
+                        #ifdef __OMP__
+                        int *thread_row_inds = new int[data_height];
+                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
+
+                        shuffle(thread_row_inds, data_height, seeds[k]);
+                        Matrix<T> resampling_prediction(resampling_size, 1, 0);
+                        #else
+                        shuffle(row_inds, data_height);
+                        #endif
+
+                        predict(modified_data->rows(thread_row_inds, resampling_size), resampling_prediction);
+
+                        bootstraping.assign(j, k, resampling_prediction.col_average(0));
+
+                        delete[] thread_row_inds;
+
+                    }
+                }
+
+                means.assign(i, j, bootstraping.row_average(j));
+
+                stds.assign(i, j, bootstraping.row_std(j));
+            }
+
+            delete modified_data;
+
+        }
+
+        means.print_to_file("means.txt");
+        stds.print_to_file("stds.txt");
+
+        T largest_lower_ci, smallest_higher_ci;
+
+        for(int i = 0; i < total_no_feature; ++i) {
+
+            int j;
+            for(j = 0; j < no_probs; ++j) {
+
+                largest_lower_ci = std::numeric_limits<T>::lowest(),
+                        smallest_higher_ci = std::numeric_limits<T>::max();
+
+                for(int k = 0; k < params.no_x_ticks; ++k) {
+
+                    if(means.get(i, k) - z_scores[j] * stds.get(i, k) > largest_lower_ci) {
+                        largest_lower_ci = means.get(i, k) - z_scores[j] * stds.get(i, k);
+                    }
+                    if(means.get(i, k) + z_scores[j] * stds.get(i, k) < smallest_higher_ci) {
+                        smallest_higher_ci = means.get(i, k) + z_scores[j] * stds.get(i, k);
+                    }
+
+                }
+
+                if(largest_lower_ci < smallest_higher_ci)
+                    break;
+
+            }
+
+            result.assign(i, 0, probs[std::max(j - 1, 0)]);
+
+        }
+
+        delete[] seeds;
+        seeds = nullptr;
+
+        return result;
+
     }
 
 }

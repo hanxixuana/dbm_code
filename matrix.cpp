@@ -228,8 +228,8 @@ namespace dbm {
             #endif
             int j = 0;
             for (; j < width - 1; ++j)
-                file << std::fixed << std::setprecision(2) << data[i][j] << "\t";
-            file << std::fixed << std::setprecision(2) << data[i][j] << std::endl;
+                file << std::fixed << std::setprecision(5) << data[i][j] << "\t";
+            file << std::fixed << std::setprecision(5) << data[i][j] << std::endl;
         }
 
         file.close();

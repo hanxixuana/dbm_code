@@ -113,6 +113,8 @@ namespace dbm {
                                           const T *x_tick_min = nullptr,
                                           const T *x_tick_max = nullptr);
 
+        Matrix<T> statistical_significance(const Matrix<T> &data);
+
         /*
          *  IO
          */
