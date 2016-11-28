@@ -32,10 +32,10 @@ namespace dbm {
     class Linear_regression_trainer<float>;
 
     template
-    class Kmeans_trainer<double>;
+    class Kmeans2d_trainer<double>;
 
     template
-    class Kmeans_trainer<float>;
+    class Kmeans2d_trainer<float>;
 
     template
     class Splines_trainer<double>;
@@ -78,17 +78,22 @@ namespace dbm {
                       << std::endl;
 
         if(row_inds == nullptr) {
-            mean->mean = loss_function.estimate_mean(ind_delta,
-                                                     loss_function_type);
+//            mean->mean = loss_function.estimate_mean(ind_delta,
+//                                                     loss_function_type);
+
+            mean->mean = 0;
+
         }
         else {
             #if _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0);
             #endif
-            mean->mean = loss_function.estimate_mean(ind_delta,
-                                                     loss_function_type,
-                                                     row_inds,
-                                                     no_rows);
+//            mean->mean = loss_function.estimate_mean(ind_delta,
+//                                                     loss_function_type,
+//                                                     row_inds,
+//                                                     no_rows);
+            mean->mean = 0;
+
         }
 
     }
@@ -766,18 +771,40 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Kmeans_trainer<T>::Kmeans_trainer(const Params &params) :
+    Kmeans2d_trainer<T>::Kmeans2d_trainer(const Params &params) :
             no_centroids(params.no_centroids),
-            no_predictors(params.no_candidate_feature),
+            no_candidate_feature(params.no_candidate_feature),
             kmeans_max_iteration(params.kmeans_max_iteration),
             kmeans_tolerance(params.kmeans_tolerance),
-            loss_function(Loss_function<T>(params)) {}
+            loss_function(Loss_function<T>(params)) {
+
+        no_pairs = params.no_candidate_feature * (params.no_candidate_feature - 1) / 2;
+
+        predictor_pairs_inds = new int *[no_pairs];
+        for(int i = 0; i < no_pairs; ++i) {
+            predictor_pairs_inds[i] = new int[2];
+        }
+
+        for(int i = 0, count = 0; i < params.no_candidate_feature - 1; ++i)
+            for(int j = i + 1; j < params.no_candidate_feature; ++j) {
+                predictor_pairs_inds[count][0] = i;
+                predictor_pairs_inds[count][1] = j;
+                count += 1;
+            }
+
+    }
 
     template <typename T>
-    Kmeans_trainer<T>::~Kmeans_trainer() {}
+    Kmeans2d_trainer<T>::~Kmeans2d_trainer() {
+
+        for(int i = 0; i < no_pairs; ++i)
+            delete[] predictor_pairs_inds[i];
+        delete[] predictor_pairs_inds;
+
+    }
 
     template <typename T>
-    void Kmeans_trainer<T>::train(Kmeans<T> *kmeans,
+    void Kmeans2d_trainer<T>::train(Kmeans2d<T> *kmeans2d,
                                   const Matrix<T> &train_x,
                                   const Matrix<T> &ind_delta,
                                   char loss_function_type,
@@ -794,58 +821,149 @@ namespace dbm {
         else {
 
             #if _DEBUG_BASE_LEARNER_TRAINER
-                assert(no_rows > 0 && no_cols == kmeans->no_predictors);
+                assert(no_rows > 0 && no_cols == no_candidate_feature);
             #endif
 
-            T **new_centroids;
-            int *no_samples_in_each_centroid;
+            T **start_centroids = new T*[no_centroids],
+                    *start_prediction = new T[no_centroids],
+                    **next_centroids = new T*[no_centroids],
+                    *best_prediction = new T[no_centroids];
 
-            new_centroids = new T*[no_centroids];
-            for(int i = 0; i < no_centroids; ++i)
-                new_centroids[i] = new T[no_predictors];
-
-            no_samples_in_each_centroid = new int[no_centroids];
-
-            Matrix<T> w(1, no_rows, 0);
-            int closest_centroid_ind = 0;
-            T *feature_mins = new T[no_cols], *feature_maxes = new T[no_cols];
-            T dist, lowest_dist;
-            int *sample_inds_for_each_centroid[no_centroids];
-
-
-            for(int i = 0; i < no_rows; ++i)
-                w.assign(0, i, ind_delta.get(row_inds[i], 1));
-
-            for(int i = 0; i < no_cols; ++i) {
-
-                kmeans->col_inds[i] = col_inds[i];
-
-                feature_mins[i] = train_x.get_col_min(col_inds[i], row_inds, no_rows);
-                feature_maxes[i] = train_x.get_col_max(col_inds[i], row_inds, no_rows);
-
+            for(int i = 0; i < no_centroids; ++i) {
+                start_centroids[i] = new T[kmeans2d->no_predictors];
+                next_centroids[i] = new T[kmeans2d->no_predictors];
             }
 
-            std::srand((unsigned int) std::chrono::duration_cast< std::chrono::milliseconds >(std::chrono::system_clock::now().time_since_epoch()).count() );
+            int *no_samples_in_each_centroid = new int[no_centroids],
+                    predictor_col_inds[kmeans2d->no_predictors];
 
+            int closest_centroid_ind = 0;
+
+            T feature_mins[kmeans2d->no_predictors],
+                    feature_maxes[kmeans2d->no_predictors];
+
+            T dist, lowest_dist, standard_dev,
+                    largest_standard_dev = std::numeric_limits<T>::min();
+
+            int **sample_inds_for_each_centroid = new int*[no_centroids];
             for(int i = 0; i < no_centroids; ++i)
-                for(int j = 0; j < no_cols; ++j) {
+                sample_inds_for_each_centroid[i] = nullptr;
 
-                    kmeans->centroids[i][j] = std::rand() / double(RAND_MAX) *
-                                              (feature_maxes[j] - feature_mins[j]) + feature_mins[j];
+            T mse, lowest_mse = std::numeric_limits<T>::max();
+
+            Matrix<T> prediction(no_centroids, 1, 0);
+
+            T denominator_in_prediction;
+
+            for(int l = 0; l < no_pairs / 3; ++l) {
+
+                for(int i = 0; i < kmeans2d->no_predictors; ++i) {
+
+                    predictor_col_inds[i] = col_inds[ predictor_pairs_inds[l][i] ];
+
+                    feature_mins[i] = train_x.get_col_min(col_inds[i], row_inds, no_rows);
+                    feature_maxes[i] = train_x.get_col_max(col_inds[i], row_inds, no_rows);
 
                 }
 
-            for(int iter = 0; iter < kmeans_max_iteration; ++iter) {
+                std::srand((unsigned int)
+                                   std::chrono::duration_cast< std::chrono::milliseconds >
+                                           (std::chrono::system_clock::now().time_since_epoch()).count() );
+
+                for(int i = 0; i < no_centroids; ++i)
+                    for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                        start_centroids[i][j] =
+                                std::rand() / double(RAND_MAX) *
+                                                    (feature_maxes[j] - feature_mins[j]) + feature_mins[j];
+
+                    }
+
+                for(int iter = 0; iter < kmeans_max_iteration; ++iter) {
+
+                    for(int i = 0; i < no_centroids; ++i) {
+
+                        no_samples_in_each_centroid[i] = 0;
+
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                            next_centroids[i][j] = 0;
+
+                        }
+                    }
+
+                    for(int i = 0; i < no_rows; ++i) {
+
+                        lowest_dist = std::numeric_limits<T>::max();
+
+                        for(int j = 0; j < no_centroids; ++j) {
+
+                            dist = 0;
+
+                            for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                                dist += std::pow(start_centroids[j][k] -
+                                                         train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
+                            }
+
+                            dist = std::sqrt(dist);
+
+                            if(dist < lowest_dist) {
+                                lowest_dist = dist;
+                                closest_centroid_ind = j;
+                            }
+
+                        }
+
+                        no_samples_in_each_centroid[closest_centroid_ind] += 1;
+
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
+
+                            next_centroids[closest_centroid_ind][j] +=
+                                    train_x.get(row_inds[i], predictor_col_inds[j]);
+
+                    }
+
+                    dist = 0;
+                    for(int i = 0; i < no_centroids; ++i)
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                            next_centroids[i][j] /= no_samples_in_each_centroid[i];
+
+                            dist += std::pow(start_centroids[i][j] - next_centroids[i][j], 2.0);
+
+                        }
+
+                    dist = std::sqrt(dist);
+
+                    if(dist < kmeans_tolerance) {
+
+//                        std::cout << "Training of Kmeans(" << predictor_col_inds[0]
+//                                  <<", " << predictor_col_inds[1]
+//                                  << ") at " << kmeans2d
+//                                  << " was early stoped after " << iter << "/" << kmeans_max_iteration
+//                                  << " with the ending distance change: " << dist
+//                                  << " !"
+//                                  << std::endl;
+
+                        break;
+
+                    }
+                    else if(iter < kmeans_max_iteration - 1) {
+
+                        for(int i = 0; i < no_centroids; ++i)
+                            for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                                start_centroids[i][j] = next_centroids[i][j];
+
+                    }
+
+                }
 
                 for(int i = 0; i < no_centroids; ++i) {
 
+                    sample_inds_for_each_centroid[i] = new int[no_samples_in_each_centroid[i]];
+
                     no_samples_in_each_centroid[i] = 0;
 
-                    for(int j = 0; j < no_cols; ++j) {
-
-                        new_centroids[i][j] = 0;
-
-                    }
                 }
 
                 for(int i = 0; i < no_rows; ++i) {
@@ -856,8 +974,8 @@ namespace dbm {
 
                         dist = 0;
 
-                        for(int k = 0; k < no_cols; ++k) {
-                            dist += std::pow(kmeans->centroids[j][k] - train_x.get(row_inds[i], kmeans->col_inds[k]), 2.0);
+                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                            dist += std::pow(start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
                         }
 
                         dist = std::sqrt(dist);
@@ -869,98 +987,87 @@ namespace dbm {
 
                     }
 
+                    sample_inds_for_each_centroid[closest_centroid_ind]
+                    [no_samples_in_each_centroid[closest_centroid_ind]] = row_inds[i];
+
                     no_samples_in_each_centroid[closest_centroid_ind] += 1;
 
-                    for(int j = 0; j < no_cols; ++j)
+                }
 
-                        new_centroids[closest_centroid_ind][j] += train_x.get(row_inds[i], kmeans->col_inds[j]);
+                for(int i = 0; i < no_centroids; ++i) {
+
+                    start_prediction[i] = 0, denominator_in_prediction = 0;
+
+                    for(int j = 0; j < no_samples_in_each_centroid[i]; ++j) {
+                        start_prediction[i] += ind_delta.get(sample_inds_for_each_centroid[i][j], 0) *
+                                ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
+                        denominator_in_prediction += ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
+                    }
+
+                    start_prediction[i] /= denominator_in_prediction;
+
+//                    prediction.assign(i, 0, start_prediction[i]);
+
+                    delete[] sample_inds_for_each_centroid[i];
+
+                    sample_inds_for_each_centroid[i] = nullptr;
 
                 }
 
-                dist = 0;
-                for(int i = 0; i < no_centroids; ++i)
-                    for(int j = 0; j < no_cols; ++j) {
+                for(int i = 0; i < no_rows; ++i) {
 
-                        new_centroids[i][j] /= no_samples_in_each_centroid[i];
+                    lowest_dist = std::numeric_limits<T>::max();
 
-                        dist += std::pow(new_centroids[i][j] - kmeans->centroids[i][j], 2.0);
+                    for(int j = 0; j < no_centroids; ++j) {
+
+                        dist = 0;
+
+                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                            dist += std::pow(start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
+                        }
+
+                        dist = std::sqrt(dist);
+
+                        if(dist < lowest_dist) {
+                            lowest_dist = dist;
+                            closest_centroid_ind = j;
+                        }
 
                     }
 
-                dist = std::sqrt(dist);
-
-                if(dist < kmeans_tolerance) {
-
-                    std::cout << "Training of Kmeans at " << kmeans
-                              << " was early stoped after " << iter << "/" << kmeans_max_iteration
-                              << " with the ending distance change: " << dist
-                              << " !"
-                              << std::endl;
-
-                    break;
-
-                }
-                else {
-
-                    for(int i = 0; i < no_centroids; ++i)
-                        for(int j = 0; j < no_cols; ++j)
-                            kmeans->centroids[i][j] = new_centroids[i][j];
+                    standard_dev += std::pow(ind_delta.get(row_inds[i], 0) - start_prediction[closest_centroid_ind], 2.0);
 
                 }
 
-            }
+                standard_dev = std::sqrt(standard_dev / (no_rows - 1));
 
-            for(int i = 0; i < no_centroids; ++i) {
+//                standard_dev = prediction.col_std(0);
+                if(standard_dev > largest_standard_dev) {
+                    largest_standard_dev = standard_dev;
 
-                sample_inds_for_each_centroid[i] = new int[no_samples_in_each_centroid[i]];
+                    kmeans2d->col_inds[0] = predictor_col_inds[0];
+                    kmeans2d->col_inds[1] = predictor_col_inds[1];
 
-                no_samples_in_each_centroid[i] = 0;
+                    for(int i = 0; i < no_centroids; ++i) {
 
-            }
+                        kmeans2d->predictions[i] = start_prediction[i];
 
-            for(int i = 0; i < no_rows; ++i) {
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                            kmeans2d->centroids[i][j] = start_centroids[i][j];
 
-                lowest_dist = std::numeric_limits<T>::max();
-
-                for(int j = 0; j < no_centroids; ++j) {
-
-                    dist = 0;
-
-                    for(int k = 0; k < no_cols; ++k) {
-                        dist += std::pow(kmeans->centroids[j][k] - train_x.get(row_inds[i], kmeans->col_inds[k]), 2.0);
-                    }
-
-                    dist = std::sqrt(dist);
-
-                    if(dist < lowest_dist) {
-                        lowest_dist = dist;
-                        closest_centroid_ind = j;
                     }
 
                 }
 
-                sample_inds_for_each_centroid[closest_centroid_ind][no_samples_in_each_centroid[closest_centroid_ind]] = i;
-
-                no_samples_in_each_centroid[closest_centroid_ind] += 1;
-
             }
 
-            for(int i = 0; i < no_centroids; ++i) {
-
-                kmeans->predictions[i] = loss_function.estimate_mean(ind_delta,
-                                                                     loss_function_type,
-                                                                     sample_inds_for_each_centroid[i],
-                                                                     no_samples_in_each_centroid[i]);
-
-                delete[] sample_inds_for_each_centroid[i];
-
-            }
-
-            delete[] feature_mins, feature_maxes, sample_inds_for_each_centroid;
+            delete[] start_prediction,
+                    best_prediction,
+                    sample_inds_for_each_centroid;
 
             for(int i = 0; i < no_centroids; ++i)
-                delete[] new_centroids[i];
-            delete[] new_centroids;
+                delete[] start_centroids[i], next_centroids[i];
+            delete[] start_centroids, next_centroids;
 
             delete[] no_samples_in_each_centroid;
 

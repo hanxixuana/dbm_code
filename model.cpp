@@ -24,9 +24,9 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    DBM<T>::DBM(int no_bunches_of_learners, int no_cores, int no_candidate_feature, int no_train_sample):
+    DBM<T>::DBM(int no_bunches_of_learners, int no_cores, int no_candidate_feature, int no_train_sample, int total_no_feature):
             no_bunches_of_learners(no_bunches_of_learners), no_cores(no_cores),
-            no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample),
+            no_candidate_feature(no_candidate_feature), no_train_sample(no_train_sample), total_no_feature(total_no_feature),
             loss_function(Loss_function<T>(params)) {
 
         learners = new Base_learner<T> *[(no_bunches_of_learners - 1) * no_cores + 1];
@@ -40,7 +40,7 @@ namespace dbm {
         linear_regression_trainer = nullptr;
         neural_network_trainer = nullptr;
         splines_trainer = nullptr;
-        kmeans_trainer = nullptr;
+        kmeans2d_trainer = nullptr;
     }
 
     template<typename T>
@@ -96,9 +96,8 @@ namespace dbm {
             else if(type_choose < (params.portion_for_trees + params.portion_for_lr +
                                     params.portion_for_s + params.portion_for_k))
                 for(int j = 0; j < no_cores; ++j)
-                    learners[no_cores * (i - 1) + j + 1] = new Kmeans<T>(no_candidate_feature,
-                                                                         params.no_centroids,
-                                                                         params.loss_function);
+                    learners[no_cores * (i - 1) + j + 1] = new Kmeans2d<T>(params.no_centroids,
+                                                                           params.loss_function);
 
             else if(type_choose < (params.portion_for_trees + params.portion_for_lr +
                                     params.portion_for_s + params.portion_for_k +
@@ -114,7 +113,7 @@ namespace dbm {
         linear_regression_trainer = new Linear_regression_trainer<T>(params);
         neural_network_trainer = new Neural_network_trainer<T>(params);
         splines_trainer = new Splines_trainer<T>(params);
-        kmeans_trainer = new Kmeans_trainer<T>(params);
+        kmeans2d_trainer = new Kmeans2d_trainer<T>(params);
     }
 
     template<typename T>
@@ -130,7 +129,7 @@ namespace dbm {
         delete linear_regression_trainer;
         delete neural_network_trainer;
         delete splines_trainer;
-        delete kmeans_trainer;
+        delete kmeans2d_trainer;
 
         if(prediction_train_data != nullptr)
             delete prediction_train_data;
@@ -150,8 +149,10 @@ namespace dbm {
 
         int n_samples = train_y.get_height(), n_features = train_x.get_width();
 
+        total_no_feature = n_features;
+
         #if _DEBUG_MODEL
-            assert(no_train_sample < n_samples && no_candidate_feature < n_features);
+            assert(no_train_sample <= n_samples && no_candidate_feature < n_features);
         #endif
 
         int * monotonic_constraints = nullptr;
@@ -240,7 +241,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, params.max_depth, params.no_candidate_split_point);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -270,6 +271,9 @@ namespace dbm {
                                         tree_info.print_to_file("trees.txt", learner_id);
                                     }
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -291,7 +295,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -312,6 +316,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -334,13 +341,13 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_centroids);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -354,6 +361,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -376,7 +386,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_knot);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -397,6 +407,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -419,7 +432,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_hidden_neurons);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -440,6 +453,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -486,7 +502,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, params.max_depth, params.no_candidate_split_point);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -508,6 +524,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -529,7 +548,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -550,6 +569,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -572,13 +594,13 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_centroids);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -592,6 +614,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -614,7 +639,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_knot);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -635,6 +660,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -657,7 +685,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_hidden_neurons);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -678,6 +706,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -719,7 +750,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -749,6 +780,9 @@ namespace dbm {
                                         tree_info.print_to_file("trees.txt", learner_id);
                                     }
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -764,7 +798,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -785,6 +819,8 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
                             }
                             break;
                         }
@@ -801,13 +837,13 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -821,6 +857,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -837,7 +876,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -858,6 +897,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -874,7 +916,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -895,6 +937,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -934,7 +979,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -956,6 +1001,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -971,7 +1019,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -992,6 +1040,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1014,13 +1065,13 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_centroids);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -1034,6 +1085,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1056,7 +1110,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_knot);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1077,6 +1131,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1099,7 +1156,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_hidden_neurons);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1120,6 +1177,9 @@ namespace dbm {
                                     learners[learner_id]->predict(train_x, *prediction_train_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1151,8 +1211,10 @@ namespace dbm {
         int n_samples = train_x.get_height(), n_features = train_x.get_width();
         int test_n_samples = test_x.get_height();
 
+        total_no_feature = n_features;
+
         #if _DEBUG_MODEL
-            assert(no_train_sample < n_samples && no_candidate_feature < n_features);
+            assert(no_train_sample <= n_samples && no_candidate_feature <= n_features);
         #endif
 
         int * monotonic_constraints = nullptr;
@@ -1252,7 +1314,7 @@ namespace dbm {
                                                 type, learner_id, learners[learner_id],
                                                 no_train_sample, params.max_depth, params.no_candidate_split_point);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1287,6 +1349,9 @@ namespace dbm {
                                         tree_info.print_to_file("trees.txt", learner_id);
                                     }
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1308,7 +1373,7 @@ namespace dbm {
                                                 type, learner_id, learners[learner_id],
                                                 no_train_sample, no_candidate_feature);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1334,6 +1399,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                      params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1349,20 +1417,20 @@ namespace dbm {
                                 int thread_id = 0, learner_id = i;
                             #endif
                                 std::printf("Learner (%c) No. %d -> "
-                                                    "Kmeans at %p "
+                                                    "Kmeans2d at %p "
                                                     "number of samples: %d "
                                                     "number of predictors: %d "
                                                     "number of centroids: %d ...\n",
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_centroids);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                        train_x, ind_delta, params.loss_function,
                                                        thread_row_inds, no_train_sample,
                                                        thread_col_inds, no_candidate_feature);
@@ -1381,6 +1449,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1403,7 +1474,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_knot);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1429,6 +1500,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1451,7 +1525,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_hidden_neurons);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1477,6 +1551,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1543,7 +1620,7 @@ namespace dbm {
                                                 type, learner_id, learners[learner_id],
                                                 no_train_sample, params.max_depth, params.no_candidate_split_point);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1570,6 +1647,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1591,7 +1671,7 @@ namespace dbm {
                                                 type, learner_id, learners[learner_id],
                                                 no_train_sample, no_candidate_feature);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1617,6 +1697,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1639,13 +1722,13 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_centroids);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -1664,6 +1747,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1686,7 +1772,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_knot);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1712,6 +1798,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1734,7 +1823,7 @@ namespace dbm {
                                             type, learner_id, learners[learner_id],
                                             no_train_sample, no_candidate_feature, params.no_hidden_neurons);
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1760,6 +1849,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1813,7 +1905,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1848,6 +1940,9 @@ namespace dbm {
                                         tree_info.print_to_file("trees.txt", learner_id);
                                     }
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1863,7 +1958,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1889,6 +1984,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1905,13 +2003,13 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -1930,6 +2028,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1946,7 +2047,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -1972,6 +2073,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -1988,7 +2092,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -2014,6 +2118,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2064,7 +2171,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -2091,6 +2198,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2106,7 +2216,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -2132,6 +2242,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2148,13 +2261,13 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
                                 shuffle(thread_col_inds, n_features, seeds[learner_id - 1]);
 
-                                kmeans_trainer->train(dynamic_cast<Kmeans<T> *> (learners[learner_id]),
+                                kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                       train_x, ind_delta, params.loss_function,
                                                       thread_row_inds, no_train_sample,
                                                       thread_col_inds, no_candidate_feature);
@@ -2173,6 +2286,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2189,7 +2305,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -2215,6 +2331,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2231,7 +2350,7 @@ namespace dbm {
                             #endif
                                 std::printf(".");
 
-                                int thread_row_inds[n_samples], thread_col_inds[n_features];
+                                int *thread_row_inds = new int[n_samples], *thread_col_inds = new int[n_features];
                                 std::copy(row_inds, row_inds + n_samples, thread_row_inds);
                                 std::copy(col_inds, col_inds + n_features, thread_col_inds);
                                 shuffle(thread_row_inds, n_samples, seeds[learner_id - 1]);
@@ -2257,6 +2376,9 @@ namespace dbm {
                                     learners[learner_id]->predict(test_x, prediction_test_data,
                                                                   params.shrinkage);
                                 }
+
+                                delete[] thread_row_inds, thread_col_inds;
+
                             }
                             break;
                         }
@@ -2347,6 +2469,142 @@ namespace dbm {
 
     }
 
+    template <typename T>
+    Matrix<T> DBM<T>::partial_dependence_plot(const Matrix<T> &data,
+                                              const int &predictor_ind,
+                                              const T *x_tick_min,
+                                              const T *x_tick_max) {
+        #if _DEBUG_MODEL
+            assert(total_no_feature == data.get_width());
+            assert( (x_tick_min == nullptr && x_tick_max == nullptr) ||
+                            (x_tick_min != nullptr && x_tick_max != nullptr) );
+        #endif
+
+        Matrix<T> modified_data = copy(data);
+
+        int data_height = data.get_height(),
+                data_width = data.get_width(),
+                *row_inds = new int[modified_data.get_height()],
+                resampling_size = int(modified_data.get_height() * params.resampling_portion);
+        for(int i = 0; i < data_height; ++i)
+            row_inds[i] = i;
+
+        Matrix<T> result(params.no_x_ticks, 4, 0);
+        T predictor_min, predictor_max, standard_dev;
+
+        Matrix<T> bootstraping(params.no_x_ticks, params.no_resamplings, 0);
+
+        #ifdef __OMP__
+            omp_set_num_threads(no_cores);
+            unsigned int *seeds = new unsigned int[params.no_resamplings];
+            for(int i = 0; i < params.no_resamplings; ++i)
+                seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+        #endif
+
+        if(x_tick_min == nullptr) {
+
+            predictor_min = data.get_col_min(predictor_ind),
+                    predictor_max = data.get_col_max(predictor_ind);
+
+            for(int i = 0; i < params.no_x_ticks; ++i) {
+
+                result.assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.no_x_ticks - 1));
+
+                for(int j = 0; j < data_height; ++j)
+                    modified_data.assign(j, predictor_ind, result.get(i, 0));
+
+                #ifdef __OMP__
+                #pragma omp parallel default(shared)
+                {
+                    #pragma omp for schedule(dynamic) nowait
+                #endif
+                    for(int j = 0; j < params.no_resamplings; ++j) {
+
+                        #ifdef __OMP__
+                            int thread_row_inds[data_height];
+                            std::copy(row_inds, row_inds + data_height, thread_row_inds);
+
+                            shuffle(thread_row_inds, data_height, seeds[j]);
+                            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+                        #else
+                            shuffle(row_inds, data_height);
+                        #endif
+
+                        predict(modified_data.rows(thread_row_inds, resampling_size), resampling_prediction);
+
+                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
+
+                    }
+                }
+
+                result.assign(i, 1, bootstraping.row_average(i));
+
+                standard_dev = bootstraping.row_std(i);
+
+                result.assign(i, 2, result.get(i, 1) - params.ci_bandwidth / 2.0 * standard_dev);
+                result.assign(i, 3, result.get(i, 1) + params.ci_bandwidth / 2.0 * standard_dev);
+
+            }
+
+            delete[] seeds;
+            seeds = nullptr;
+
+            return result;
+
+        }
+        else {
+
+            predictor_min = *x_tick_min,
+                    predictor_max = *x_tick_max;
+
+            for(int i = 0; i < params.no_x_ticks; ++i) {
+
+                result.assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.no_x_ticks - 1));
+
+                for(int j = 0; j < data_height; ++j)
+                    modified_data.assign(j, predictor_ind, result.get(i, 0));
+
+                #ifdef __OMP__
+                #pragma omp parallel default(shared)
+                {
+                    #pragma omp for schedule(dynamic) nowait
+                    #endif
+                    for(int j = 0; j < params.no_resamplings; ++j) {
+
+                        #ifdef __OMP__
+                        int thread_row_inds[data_height];
+                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
+
+                        shuffle(thread_row_inds, data_height, seeds[j]);
+                        Matrix<T> resampling_prediction(resampling_size, 1, 0);
+                        #else
+                        shuffle(row_inds, data_height);
+                        #endif
+
+                        predict(modified_data.rows(thread_row_inds, resampling_size), resampling_prediction);
+
+                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
+
+                    }
+                }
+
+                result.assign(i, 1, bootstraping.row_average(i));
+
+                standard_dev = bootstraping.row_std(i);
+
+                result.assign(i, 2, result.get(i, 1) - params.ci_bandwidth / 2.0 * standard_dev);
+                result.assign(i, 3, result.get(i, 1) + params.ci_bandwidth / 2.0 * standard_dev);
+
+            }
+
+            delete[] seeds;
+            seeds = nullptr;
+
+            return result;
+
+        }
+    }
+
 }
 
 namespace dbm {
@@ -2360,6 +2618,7 @@ namespace dbm {
             << dbm->no_train_sample << ' '
             << dbm->params.loss_function << ' '
             << dbm->params.shrinkage << ' '
+            << dbm->total_no_feature << ' '
             << std::endl;
         char type;
         for (int i = 0; i < (dbm->no_bunches_of_learners - 1) * dbm->no_cores + 1; ++i) {
@@ -2389,7 +2648,7 @@ namespace dbm {
 
                 case 'k': {
                     out << "== Kmeans " << i << " ==" << std::endl;
-                    dbm::save_kmeans(dynamic_cast<Kmeans<T> *>(dbm->learners[i]), out);
+                    dbm::save_kmeans2d(dynamic_cast<Kmeans2d<T> *>(dbm->learners[i]), out);
                     out << "== End of Kmeans " << i << " ==" << std::endl;
                     break;
                 }
@@ -2430,10 +2689,10 @@ namespace dbm {
         int count = split_into_words(line, words);
 
         #if _DEBUG_MODEL
-            assert(count == 6);
+            assert(count == 7);
         #endif
 
-        dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]), std::stoi(words[3]));
+        dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]), std::stoi(words[3]), std::stoi(words[6]));
         dbm->set_loss_function_and_shrinkage(words[4].front(), T(std::stod(words[5])));
 
         Tree_node<T> *temp_tree_ptr;
@@ -2441,7 +2700,7 @@ namespace dbm {
         Linear_regression<T> *temp_linear_regression_ptr;
         Neural_network<T> *temp_neural_network_ptr;
         Splines<T> *temp_splines_ptr;
-        Kmeans<T> *temp_kmeans_ptr;
+        Kmeans2d<T> *temp_kmeans2d_ptr;
 
         char type;
 
@@ -2489,9 +2748,9 @@ namespace dbm {
                 }
 
                 case 'K': {
-                    temp_kmeans_ptr = nullptr;
-                    load_kmeans(in, temp_kmeans_ptr);
-                    dbm->learners[i] = temp_kmeans_ptr;
+                    temp_kmeans2d_ptr = nullptr;
+                    load_kmeans2d(in, temp_kmeans2d_ptr);
+                    dbm->learners[i] = temp_kmeans2d_ptr;
 
                     // skip the end line
                     std::getline(in, line);

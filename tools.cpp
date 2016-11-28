@@ -276,6 +276,16 @@ namespace dbm {
             else if (words[2 * i] == "no_candidate_split_point")
                 params.no_candidate_split_point = std::stoi(words[2 * i + 1]);
 
+            // partial dependence plot
+            else if (words[2 * i] == "no_x_ticks")
+                params.no_x_ticks = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "no_resamplings")
+                params.no_resamplings = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "resampling_portion")
+                params.resampling_portion = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "ci_bandwidth")
+                params.ci_bandwidth = std::stod(words[2 * i + 1]);
+
             // throw an exception
             else {
                 throw std::invalid_argument("Specified parameter does not exist.");

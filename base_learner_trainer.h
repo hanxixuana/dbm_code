@@ -14,10 +14,10 @@
 #include "loss_function.h"
 #include "tools.h"
 
+// for means
 namespace dbm {
 
-    // for means
-    template <typename T>
+    template<typename T>
     class Mean_trainer {
     private:
 
@@ -27,6 +27,7 @@ namespace dbm {
 
     public:
         Mean_trainer(const Params &params);
+
         ~Mean_trainer();
 
         void train(Global_mean<T> *mean,
@@ -39,8 +40,12 @@ namespace dbm {
 
     };
 
-    // for neural networks
-    template <typename T>
+}
+
+// for neural networks
+namespace dbm {
+
+    template<typename T>
     class Neural_network_trainer {
     private:
 
@@ -54,6 +59,7 @@ namespace dbm {
         Loss_function<T> loss_function;
 
         T activation_derivative(const T &input);
+
         void backward(Neural_network<T> *neural_network,
                       Matrix<T> *hidden_delta,
                       Matrix<T> *input_delta,
@@ -62,6 +68,7 @@ namespace dbm {
 
     public:
         Neural_network_trainer(const Params &params);
+
         ~Neural_network_trainer();
 
         void train(Neural_network<T> *neural_network,
@@ -74,8 +81,12 @@ namespace dbm {
 
     };
 
-    // for splines
-    template <typename T>
+}
+
+// for splines
+namespace dbm {
+
+    template<typename T>
     class Splines_trainer {
     private:
 
@@ -85,6 +96,7 @@ namespace dbm {
 
     public:
         Splines_trainer(const Params &params);
+
         ~Splines_trainer();
 
         void train(Splines<T> *splines,
@@ -97,23 +109,32 @@ namespace dbm {
 
     };
 
-    // for k-means
-    template <typename T>
-    class Kmeans_trainer {
+}
+
+// for k-means-2d
+namespace dbm {
+
+    template<typename T>
+    class Kmeans2d_trainer {
     private:
 
         int no_centroids;
-        int no_predictors;
+        int no_candidate_feature;
+        int no_pairs;
+
         int kmeans_max_iteration;
         T kmeans_tolerance;
+
+        int **predictor_pairs_inds;
 
         Loss_function<T> loss_function;
 
     public:
-        Kmeans_trainer(const Params &params);
-        ~Kmeans_trainer();
+        Kmeans2d_trainer(const Params &params);
 
-        void train(Kmeans<T> *kmeans,
+        ~Kmeans2d_trainer();
+
+        void train(Kmeans2d<T> *kmeans2d,
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
                    char loss_function_type = 'n',
@@ -124,13 +145,19 @@ namespace dbm {
 
     };
 
-    // for linear regression
-    template <typename T>
+}
+
+
+// for linear regression
+namespace dbm {
+
+    template<typename T>
     class Linear_regression_trainer {
     private:
 
     public:
         Linear_regression_trainer(const Params &params);
+
         ~Linear_regression_trainer();
 
         void train(Linear_regression<T> *linear_regression,
@@ -143,7 +170,11 @@ namespace dbm {
 
     };
 
-    // for trees
+}
+
+// for trees
+namespace dbm {
+
     template<typename T>
     class Tree_trainer {
 
@@ -171,7 +202,6 @@ namespace dbm {
 
         void prune(Tree_node<T> *tree);
     };
-
 
 }
 

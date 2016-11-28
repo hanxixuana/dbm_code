@@ -753,6 +753,66 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
+    T Matrix<T>::row_sum(const int &row_ind) const {
+
+        T result = 0;
+        for(int i = 0; i < width; ++i)
+            result += data[row_ind][i];
+
+        return result;
+
+    }
+
+    template <typename T>
+    T Matrix<T>::col_sum(const int &col_ind) const {
+
+        T result = 0;
+        for(int i = 0; i < height; ++i)
+            result += data[i][col_ind];
+
+        return result;
+
+    }
+
+    template <typename T>
+    T Matrix<T>::row_average(const int &row_ind) const {
+
+        return row_sum(row_ind) / width;
+
+    }
+
+    template <typename T>
+    T Matrix<T>::col_average(const int &col_ind) const {
+
+        return col_sum(col_ind) / height;
+
+    }
+
+    template <typename T>
+    T Matrix<T>::row_std(const int &row_ind) const {
+
+        T average = row_average(row_ind),
+                result = 0;
+        for(int i = 0; i < width; ++i)
+            result += std::pow(data[row_ind][i] - average, 2.0);
+
+        return std::sqrt(result / (width - 1));
+
+    }
+
+    template <typename T>
+    T Matrix<T>::col_std(const int &col_ind) const {
+
+        T average = col_average(col_ind),
+                result = 0;
+        for(int i = 0; i < height; ++i)
+            result += std::pow(data[i][col_ind] - average, 2.0);
+
+        return std::sqrt(result / (height - 1));
+
+    }
+
+    template <typename T>
     Matrix<T> transpose(const Matrix<T> &matrix) {
         Matrix<T> result(matrix.width, matrix.height, 0);
         for(int i = 0; i < matrix.height; ++i)

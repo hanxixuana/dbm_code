@@ -185,6 +185,16 @@ namespace dbm {
         //================
         // math operations
         //================
+
+        T row_sum(const int &row_ind) const;
+        T col_sum(const int &col_ind) const;
+
+        T row_average(const int &row_ind) const;
+        T col_average(const int &col_ind) const;
+
+        T row_std(const int &row_ind) const;
+        T col_std(const int &col_ind) const;
+
         friend Matrix transpose<>(const Matrix &matrix);
 
         friend Matrix plus<>(const Matrix &left, const Matrix &right);

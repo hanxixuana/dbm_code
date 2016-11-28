@@ -87,28 +87,28 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    class Kmeans;
+    class Kmeans2d;
 
     template <typename T>
-    class Kmeans_trainer;
+    class Kmeans2d_trainer;
 
     template <typename T>
-    void save_kmeans(const Kmeans<T> *kmeans,
-                      std::ofstream &out);
+    void save_kmeans2d(const Kmeans2d<T> *kmeans2d,
+                     std::ofstream &out);
 
     template <typename T>
-    void load_kmeans(std::ifstream &in,
-                     Kmeans<T> *&kmeans);
+    void load_kmeans2d(std::ifstream &in,
+                     Kmeans2d<T> *&kmeans2d);
 
     template <typename T>
-    class Kmeans : public Base_learner<T> {
+    class Kmeans2d : public Base_learner<T> {
     private:
 
-        int no_predictors;
+        static const int no_predictors = 2;
         int no_centroids;
         char loss_type;
 
-        int *col_inds;
+        int col_inds[no_predictors];
 
         T **centroids;
         T *predictions;
@@ -120,8 +120,8 @@ namespace dbm {
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
     public:
-        Kmeans(int no_predictors, int no_centroids, char loss_type);
-        ~Kmeans();
+        Kmeans2d(int no_centroids, char loss_type);
+        ~Kmeans2d();
 
         void predict(const Matrix<T> &data_x,
                      Matrix<T> &prediction,
@@ -129,13 +129,13 @@ namespace dbm {
                      const int *row_inds = nullptr,
                      int no_rows = 0);
 
-        friend void save_kmeans<>(const Kmeans<T> *kmeans,
-                                   std::ofstream &out);
+        friend void save_kmeans2d<>(const Kmeans2d<T> *kmeans2d,
+                                    std::ofstream &out);
 
-        friend void load_kmeans<>(std::ifstream &in,
-                                  Kmeans<T> *&kmeans);
+        friend void load_kmeans2d<>(std::ifstream &in,
+                                    Kmeans2d<T> *&kmeans2d);
 
-        friend class Kmeans_trainer<T>;
+        friend class Kmeans2d_trainer<T>;
 
     };
 

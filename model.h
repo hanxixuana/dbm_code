@@ -24,21 +24,26 @@ namespace dbm {
     class DBM;
 
     template<typename T>
-    void save_dbm(const DBM<T> *dbm, std::ofstream &out);
+    void save_dbm(const DBM<T> *dbm,
+                  std::ofstream &out);
 
     template<typename T>
-    void load_dbm(std::ifstream &in, DBM<T> *&dbm);
-
+    void load_dbm(std::ifstream &in,
+                  DBM<T> *&dbm);
 
     template<typename T>
     class Regressor {
     public:
 
-        virtual void train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints) = 0;
+        virtual void train(const Matrix<T> &train_x,
+                           const Matrix<T> &train_y,
+                           const int * input_monotonic_constaints) = 0;
 
-        virtual void train(const Data_set<T> &data_set, const int * input_monotonic_constaints) = 0;
+        virtual void train(const Data_set<T> &data_set,
+                           const int * input_monotonic_constaints) = 0;
 
-        virtual void predict(const Matrix<T> &data_x, Matrix<T> &predict_y) = 0;
+        virtual void predict(const Matrix<T> &data_x,
+                             Matrix<T> &predict_y) = 0;
 
     };
 
@@ -48,6 +53,7 @@ namespace dbm {
         int no_bunches_of_learners;
         int no_cores;
 
+        int total_no_feature;
         int no_candidate_feature;
         int no_train_sample;
 
@@ -58,7 +64,7 @@ namespace dbm {
         Linear_regression_trainer<T> *linear_regression_trainer = nullptr;
         Neural_network_trainer<T> *neural_network_trainer = nullptr;
         Splines_trainer<T> *splines_trainer = nullptr;
-        Kmeans_trainer<T> *kmeans_trainer = nullptr;
+        Kmeans2d_trainer<T> *kmeans2d_trainer = nullptr;
 
         Params params;
         Loss_function<T> loss_function;
@@ -69,7 +75,11 @@ namespace dbm {
 
     public:
 
-        DBM(int no_bunches_of_learners, int no_cores, int no_candidate_feature, int no_train_sample);
+        DBM(int no_bunches_of_learners,
+            int no_cores,
+            int no_candidate_feature,
+            int no_train_sample,
+            int total_no_feature);
 
         DBM(const std::string &param_string);
 
@@ -78,17 +88,38 @@ namespace dbm {
         // comments on monotonic_constraints
         // 1: positive relationship; 0: anything; -1: negative relationship
         // by only allowing 1, 0, -1, we could be able to check if the length is correct in some sense
-        void train(const Matrix<T> &train_x, const Matrix<T> &train_y, const int * input_monotonic_constaints = nullptr);
-        void train(const Data_set<T> &data_set, const int * input_monotonic_constaints = nullptr);
-        void predict(const Matrix<T> &data_x, Matrix<T> &predict_y);
+        void train(const Matrix<T> &train_x,
+                   const Matrix<T> &train_y,
+                   const int * input_monotonic_constaints = nullptr);
+
+        void train(const Data_set<T> &data_set,
+                   const int * input_monotonic_constaints = nullptr);
+
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &predict_y);
+
+
+        /*
+         *  TOOLS
+         */
 
         Matrix<T> *get_prediction_on_train_data() const;
         T *get_test_loss() const;
 
         void set_loss_function_and_shrinkage(const char &type, const T &shrinkage);
 
-        friend void save_dbm<>(const DBM *dbm, std::ofstream &out);
-        friend void load_dbm<>(std::ifstream &in, DBM *&dbm);
+        Matrix<T> partial_dependence_plot(const Matrix<T> &data,
+                                          const int &predictor_ind,
+                                          const T *x_tick_min = nullptr,
+                                          const T *x_tick_max = nullptr);
+
+        /*
+         *  IO
+         */
+        friend void save_dbm<>(const DBM *dbm,
+                               std::ofstream &out);
+        friend void load_dbm<>(std::ifstream &in,
+                               DBM *&dbm);
 
     };
 

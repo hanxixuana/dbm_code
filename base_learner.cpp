@@ -211,15 +211,11 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Kmeans<T>::Kmeans(int no_predictors,
-                      int no_centroids,
-                      char loss_type) :
-            no_predictors(no_predictors),
+    Kmeans2d<T>::Kmeans2d(int no_centroids,
+                          char loss_type) :
             no_centroids(no_centroids),
             loss_type(loss_type),
             Base_learner<T>('k') {
-
-        col_inds = new int[no_predictors];
 
         centroids = new T*[no_centroids];
         for(int i = 0; i < no_centroids; ++i)
@@ -229,13 +225,13 @@ namespace dbm {
     }
 
     template <typename T>
-    Kmeans<T>::~Kmeans() {
-        delete[] col_inds, centroids, predictions;
-        col_inds = nullptr, centroids = nullptr, predictions = nullptr;
+    Kmeans2d<T>::~Kmeans2d() {
+        delete[] centroids, predictions;
+        centroids = nullptr, predictions = nullptr;
     };
 
     template <typename T>
-    T Kmeans<T>::distance(const Matrix<T> &data,
+    T Kmeans2d<T>::distance(const Matrix<T> &data,
                           const int &row_ind,
                           const int &centroid_ind) {
 
@@ -248,7 +244,7 @@ namespace dbm {
     }
 
     template <typename T>
-    T Kmeans<T>::predict_for_row(const Matrix<T> &data,
+    T Kmeans2d<T>::predict_for_row(const Matrix<T> &data,
                                  int row_ind) {
         T lowest_dist = std::numeric_limits<T>::max(),
                 result = 0, dist;
@@ -259,11 +255,22 @@ namespace dbm {
                 result = predictions[i];
             }
         }
-        return result;
+        switch (loss_type) {
+            case 'n':
+                return result;
+            case 'p':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            case 'b':
+                return result;
+            case 't':
+                return std::log(result <= 0.0001 ? 0.0001 : result);
+            default:
+                throw std::invalid_argument("Specified distribution does not exist.");
+        }
     }
 
     template <typename T>
-    void Kmeans<T>::predict(const Matrix<T> &data_x,
+    void Kmeans2d<T>::predict(const Matrix<T> &data_x,
                             Matrix<T> &prediction,
                             const T shrinkage,
                             const int *row_inds,
@@ -272,7 +279,7 @@ namespace dbm {
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
             #if _DEBUG_BASE_LEARNER
-                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+             assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
             for (int i = 0; i < data_height; ++i) {
@@ -693,39 +700,38 @@ namespace dbm {
     
 }
 
-// for kmeans
+// for kmeans2d
 namespace dbm {
 
     template <typename T>
-    void save_kmeans(const Kmeans<T> *kmeans,
+    void save_kmeans2d(const Kmeans2d<T> *kmeans2d,
                      std::ofstream &out) {
 
-        out << kmeans->no_predictors << ' '
-            << kmeans->no_centroids << ' '
-            << kmeans->loss_type
+        out << kmeans2d->no_centroids << ' '
+            << kmeans2d->loss_type
             << std::endl;
 
-        for(int i = 0; i < kmeans->no_predictors; ++i)
-            out << kmeans->col_inds[i] << ' ';
+        for(int i = 0; i < kmeans2d->no_predictors; ++i)
+            out << kmeans2d->col_inds[i] << ' ';
         out << std::endl;
 
-        for(int i = 0; i < kmeans->no_centroids; ++i) {
+        for(int i = 0; i < kmeans2d->no_centroids; ++i) {
 
-            for(int j = 0; j < kmeans->no_predictors; ++j)
-                out << kmeans->centroids[i][j] << ' ';
+            for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                out << kmeans2d->centroids[i][j] << ' ';
             out << std::endl;
 
         }
 
-        for(int i = 0; i < kmeans->no_centroids; ++i)
-            out << kmeans->predictions[i] << ' ';
+        for(int i = 0; i < kmeans2d->no_centroids; ++i)
+            out << kmeans2d->predictions[i] << ' ';
         out << std::endl;
 
     }
 
     template <typename T>
-    void load_kmeans(std::ifstream &in,
-                     Kmeans<T> *&kmeans) {
+    void load_kmeans2d(std::ifstream &in,
+                     Kmeans2d<T> *&kmeans2d) {
 
 
         std::string line;
@@ -734,31 +740,30 @@ namespace dbm {
         std::getline(in, line);
         int count = split_into_words(line, words);
         #if _DEBUG_BASE_LEARNER
-            assert(count == 3);
+            assert(count == 2);
         #endif
-        kmeans = new Kmeans<T>(std::stoi(words[0]),
-                               std::stoi(words[1]),
-                               words[2].front());
+        kmeans2d = new Kmeans2d<T>(std::stoi(words[0]),
+                                   words[1].front());
 
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
         #if _DEBUG_BASE_LEARNER
-            assert(count == kmeans->no_predictors);
+            assert(count == kmeans2d->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
-            kmeans->col_inds[i] = std::stoi(words[i]);
+            kmeans2d->col_inds[i] = std::stoi(words[i]);
 
-        for(int i = 0; i < kmeans->no_centroids; ++i) {
+        for(int i = 0; i < kmeans2d->no_centroids; ++i) {
 
             line.clear();
             std::getline(in, line);
             count = split_into_words(line, words);
             #if _DEBUG_BASE_LEARNER
-                assert(count == kmeans->no_predictors);
+                assert(count == kmeans2d->no_predictors);
             #endif
-            for(int j = 0; j < kmeans->no_predictors; ++j)
-                kmeans->centroids[i][j] = T(std::stod(words[j]));
+            for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                kmeans2d->centroids[i][j] = T(std::stod(words[j]));
 
         }
 
@@ -766,10 +771,10 @@ namespace dbm {
         std::getline(in, line);
         count = split_into_words(line, words);
         #if _DEBUG_BASE_LEARNER
-            assert(count == kmeans->no_centroids);
+            assert(count == kmeans2d->no_centroids);
         #endif
         for(int i = 0; i < count; ++i)
-            kmeans->predictions[i] = T(std::stod(words[i]));
+            kmeans2d->predictions[i] = T(std::stod(words[i]));
 
     }
 
@@ -1192,14 +1197,13 @@ namespace dbm {
 
     template void load_neural_network<float>(std::ifstream &in, Neural_network<float> *&neural_network);
 
+    template void save_kmeans2d<double>(const Kmeans2d<double> *kmeans2d, std::ofstream &out);
 
-    template void save_kmeans<double>(const Kmeans<double> *kmeans, std::ofstream &out);
+    template void save_kmeans2d<float>(const Kmeans2d<float> *kmeans2d, std::ofstream &out);
 
-    template void save_kmeans<float>(const Kmeans<float> *kmeans, std::ofstream &out);
+    template void load_kmeans2d<double>(std::ifstream &in, Kmeans2d<double> *&kmeans2d);
 
-    template void load_kmeans<double>(std::ifstream &in, Kmeans<double> *&kmeans);
-
-    template void load_kmeans<float>(std::ifstream &in, Kmeans<float> *&kmeans);
+    template void load_kmeans2d<float>(std::ifstream &in, Kmeans2d<float> *&kmeans2d);
 
 
     template void save_splines<double>(const Splines<double> *splines, std::ofstream &out);

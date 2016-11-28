@@ -50,8 +50,8 @@ namespace dbm {
 
         // kmeans
         int no_centroids = 10;
-        int kmeans_max_iteration = 100;
-        double kmeans_tolerance = 3e-2;
+        int kmeans_max_iteration = 50;
+        double kmeans_tolerance = 1e-2;
 
         // neural networks
         int no_hidden_neurons = 5;
@@ -64,6 +64,12 @@ namespace dbm {
         // CART
         int max_depth = 5;
         int no_candidate_split_point = 5;
+
+        // partial dependence plot
+        int no_x_ticks = 10;
+        int no_resamplings = 10;
+        double resampling_portion = 0.5;
+        double ci_bandwidth = 4;
 
     };
 
