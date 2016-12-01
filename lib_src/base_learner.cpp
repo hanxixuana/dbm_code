@@ -120,17 +120,13 @@ namespace dbm {
         input_weight = new Matrix<T>(no_hidden_neurons, no_predictors + 1);
         hidden_weight = new Matrix<T>(1, no_hidden_neurons + 1);
 
-        input_output = new Matrix<T>(no_predictors + 1, 1, 0);
-        hidden_output = new Matrix<T>(no_hidden_neurons + 1, 1, 0);
-
     }
 
     template <typename T>
     Neural_network<T>::~Neural_network<T>() {
-        delete input_weight, hidden_weight, input_output, hidden_output;
+        delete input_weight, hidden_weight;
         delete[] col_inds;
-        input_weight = nullptr, hidden_weight = nullptr;
-        input_output = nullptr, hidden_output = nullptr, col_inds = nullptr;
+        input_weight = nullptr, hidden_weight = nullptr, col_inds = nullptr;
     }
 
     template <typename T>
@@ -139,27 +135,33 @@ namespace dbm {
     }
 
     template <typename T>
-    void Neural_network<T>::forward() {
+    void Neural_network<T>::forward(const Matrix<T> &input_output, Matrix<T> &hidden_output, T &output_output) {
         T ip = 0;
         for(int i = 0; i < no_hidden_neurons; ++i) {
             for(int j = 0; j < no_predictors + 1; ++j)
-                ip += input_weight->get(i, j) * input_output->get(j, 0);
-            hidden_output->assign(i, 0, activation(ip));
+                ip += input_weight->get(i, j) * input_output.get(j, 0);
+            hidden_output.assign(i, 0, activation(ip));
         }
-        hidden_output->assign(no_hidden_neurons, 0, 1);
+        hidden_output.assign(no_hidden_neurons, 0, 1);
 
         output_output = 0;
         for(int j = 0; j < no_hidden_neurons + 1; ++j)
-            output_output += hidden_weight->get(0, j) * hidden_output->get(j, 0);
+            output_output += hidden_weight->get(0, j) * hidden_output.get(j, 0);
     }
 
     template <typename T>
     T Neural_network<T>::predict_for_row(const Matrix<T> &data,
                                          int row_ind) {
+
+        Matrix<T> input_output(no_predictors + 1, 1, 0);
+        Matrix<T> hidden_output(no_hidden_neurons + 1, 1, 0);
+        T output_output;
+
         for(int i = 0; i < no_predictors; ++i)
-            input_output->assign(i, 0, data.get(row_ind, col_inds[i]));
-        input_output->assign(no_predictors, 0, 1);
-        forward();
+            input_output.assign(i, 0, data.get(row_ind, col_inds[i]));
+        input_output.assign(no_predictors, 0, 1);
+        forward(input_output, hidden_output, output_output);
+
         switch (loss_type) {
             case 'n':
                 return output_output;

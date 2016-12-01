@@ -78,22 +78,18 @@ namespace dbm {
                       << std::endl;
 
         if(row_inds == nullptr) {
-//            mean->mean = loss_function.estimate_mean(ind_delta,
-//                                                     loss_function_type);
-
-            mean->mean = 0;
+            mean->mean = loss_function.estimate_mean(ind_delta,
+                                                     loss_function_type);
 
         }
         else {
             #if _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0);
             #endif
-//            mean->mean = loss_function.estimate_mean(ind_delta,
-//                                                     loss_function_type,
-//                                                     row_inds,
-//                                                     no_rows);
-            mean->mean = 0;
-
+            mean->mean = loss_function.estimate_mean(ind_delta,
+                                                     loss_function_type,
+                                                     row_inds,
+                                                     no_rows);
         }
 
     }
@@ -122,23 +118,26 @@ namespace dbm {
 
     template <typename T>
     void Neural_network_trainer<T>::backward(Neural_network<T> *neural_network,
-                                             Matrix<T> *hidden_delta,
-                                             Matrix<T> *input_delta,
+                                             const Matrix<T> &input_output,
+                                             Matrix<T> &hidden_output,
+                                             T &output_output,
+                                             Matrix<T> &hidden_delta,
+                                             Matrix<T> &input_delta,
                                              T ind_delta,
                                              T weight) {
-        T temp = step_size * weight * (neural_network->output_output - ind_delta);
+        T temp = step_size * weight * (output_output - ind_delta);
 
         for(int i = 0; i < neural_network->no_hidden_neurons + 1; ++i)
-            hidden_delta->assign(0, i,
-                                 hidden_delta->get(0, i) - temp * neural_network->hidden_output->get(i, 0));
+            hidden_delta.assign(0, i,
+                                hidden_delta.get(0, i) - temp * hidden_output.get(i, 0));
 
         for(int i = 0; i < neural_network->no_hidden_neurons; ++i)
             for(int j = 0; j < neural_network->no_predictors + 1; ++j)
-                input_delta->assign(i, j,
-                                    input_delta->get(i, j) -
-                                            temp * neural_network->hidden_weight->get(0, i) *
-                                                    activation_derivative(neural_network->hidden_output->get(i, 0))*
-                                                    neural_network->input_output->get(j, 0));
+                input_delta.assign(i, j,
+                                   input_delta.get(i, j) -
+                                           temp * neural_network->hidden_weight->get(0, i) *
+                                                   activation_derivative(hidden_output.get(i, 0))*
+                                                   input_output.get(j, 0));
     }
 
     template <typename T>
@@ -156,18 +155,15 @@ namespace dbm {
             assert(neural_network->no_predictors == train_x.get_width());
             #endif
 
+            Matrix<T> input_output(neural_network->no_predictors + 1, 1, 0);
+            Matrix<T> hidden_output(neural_network->no_hidden_neurons + 1, 1, 0);
+            T output_output;
+
             // no_hidden_neurons * (no_predictors + 1)
-            Matrix<T> *input_delta;
+            Matrix<T> input_delta(neural_network->no_hidden_neurons,
+                                  neural_network->no_predictors + 1, 0);
             // 1 * (no_hidden_neurons + 1)
-            Matrix<T> *hidden_delta;
-
-            input_delta = new Matrix<T>(neural_network->no_hidden_neurons,
-                                        neural_network->no_predictors + 1,
-                                        0);
-            hidden_delta = new Matrix<T>(1,
-                                         neural_network->no_predictors + 1,
-                                         0);
-
+            Matrix<T> hidden_delta(1, neural_network->no_predictors + 1, 0);
 
             int data_height = train_x.get_height(),
                     data_width = train_x.get_width();
@@ -200,11 +196,13 @@ namespace dbm {
                     mse;
 
             for(int i = 0; i < nn_max_iteration; ++i) {
+
                 shuffle(train_row_inds, no_train, seeds[i]);
+
                 for(int j = 0; j < no_batch / 3; ++j) {
 
-                    input_delta->clear();
-                    hidden_delta->clear();
+                    input_delta.clear();
+                    hidden_delta.clear();
 
                     weight_sum_in_batch = 0;
                     for(int k = 0; k < batch_size; ++k) {
@@ -216,16 +214,17 @@ namespace dbm {
                         row_index = train_row_inds[batch_size * j + k];
 
                         for(int l = 0; l < neural_network->no_predictors; ++l)
-                            neural_network->input_output->assign(l,
-                                                                 0,
-                                                                 train_x.get(row_index, neural_network->col_inds[l]));
+                            input_output.assign(l, 0,
+                                                train_x.get(row_index, neural_network->col_inds[l]));
 
-                        neural_network->input_output->assign(neural_network->no_predictors,
-                                                             0,
-                                                             1);
+                        input_output.assign(neural_network->no_predictors,
+                                            0, 1);
 
-                        neural_network->forward();
+                        neural_network->forward(input_output, hidden_output, output_output);
                         backward(neural_network,
+                                 input_output,
+                                 hidden_output,
+                                 output_output,
                                  hidden_delta,
                                  input_delta,
                                  ind_delta.get(row_index, 0),
@@ -233,9 +232,9 @@ namespace dbm {
                     }
 
                     Matrix<T> temp_input_delta = plus(*neural_network->input_weight,
-                                                      *input_delta);
+                                                      input_delta);
                     Matrix<T> temp_hidden_delta = plus(*neural_network->hidden_weight,
-                                                       *hidden_delta);
+                                                       hidden_delta);
 
                     copy(temp_input_delta,
                          *neural_network->input_weight);
@@ -245,18 +244,16 @@ namespace dbm {
 
                 mse = 0;
                 for(int j = 0; j < no_validate; ++j) {
+
                     for(int k = 0; k < neural_network->no_predictors; ++k)
-                        neural_network->input_output->assign(k,
-                                                             0,
-                                                             train_x.get(validate_row_inds[j],
-                                                                         neural_network->col_inds[k]));
+                        input_output.assign(k, 0,
+                                            train_x.get(validate_row_inds[j], neural_network->col_inds[k]));
 
-                    neural_network->input_output->assign(neural_network->no_predictors,
-                                                         0,
-                                                         1);
-                    neural_network->forward();
+                    input_output.assign(neural_network->no_predictors,
+                                        0, 1);
+                    neural_network->forward(input_output, hidden_output, output_output);
 
-                    mse += std::pow(ind_delta.get(validate_row_inds[j], 0) - neural_network->output_output, 2.0) *
+                    mse += std::pow(ind_delta.get(validate_row_inds[j], 0) - output_output, 2.0) *
                            ind_delta.get(validate_row_inds[j], 1) / validate_weight_sum;
                 }
 
@@ -275,9 +272,6 @@ namespace dbm {
             delete validate_row_inds, train_row_inds, seeds;
             validate_row_inds = nullptr, train_row_inds = nullptr, seeds = nullptr;
 
-            delete input_delta, hidden_delta;
-            input_delta = nullptr, hidden_delta = nullptr;
-
         }
         else {
 
@@ -285,17 +279,15 @@ namespace dbm {
                 assert(no_rows > 0 && neural_network->no_predictors == no_cols);
             #endif
 
-            // no_hidden_neurons * (no_predictors + 1)
-            Matrix<T> *input_delta;
-            // 1 * (no_hidden_neurons + 1)
-            Matrix<T> *hidden_delta;
+            Matrix<T> input_output(neural_network->no_predictors + 1, 1, 0);
+            Matrix<T> hidden_output(neural_network->no_hidden_neurons + 1, 1, 0);
+            T output_output;
 
-            input_delta = new Matrix<T>(neural_network->no_hidden_neurons,
-                                        neural_network->no_predictors + 1,
-                                        0);
-            hidden_delta = new Matrix<T>(1,
-                                         neural_network->no_predictors + 1,
-                                         0);
+            // no_hidden_neurons * (no_predictors + 1)
+            Matrix<T> input_delta(neural_network->no_hidden_neurons,
+                                                   neural_network->no_predictors + 1, 0);
+            // 1 * (no_hidden_neurons + 1)
+            Matrix<T> hidden_delta(1, neural_network->no_predictors + 1, 0);
 
             for(int i = 0; i < no_cols; ++i)
                 neural_network->col_inds[i] = col_inds[i];
@@ -330,8 +322,8 @@ namespace dbm {
                         seeds[i]);
                 for(int j = 0; j < no_batch / 3; ++j) {
 
-                    input_delta->clear();
-                    hidden_delta->clear();
+                    input_delta.clear();
+                    hidden_delta.clear();
 
                     weight_sum_ino_batch = 0;
                     for(int k = 0; k < batch_size; ++k) {
@@ -343,16 +335,16 @@ namespace dbm {
                         row_index = train_row_inds[batch_size * j + k];
 
                         for(int l = 0; l < neural_network->no_predictors; ++l)
-                            neural_network->input_output->assign(l,
-                                                                 0,
-                                                                 train_x.get(row_index, neural_network->col_inds[l]));
+                            input_output.assign(l, 0,
+                                                 train_x.get(row_index, neural_network->col_inds[l]));
 
-                        neural_network->input_output->assign(neural_network->no_predictors,
-                                                             0,
-                                                             1);
+                        input_output.assign(neural_network->no_predictors, 0, 1);
 
-                        neural_network->forward();
+                        neural_network->forward(input_output, hidden_output, output_output);
                         backward(neural_network,
+                                 input_output,
+                                 hidden_output,
+                                 output_output,
                                  hidden_delta,
                                  input_delta,
                                  ind_delta.get(row_index, 0),
@@ -360,9 +352,9 @@ namespace dbm {
                     }
 
                     Matrix<T> temp_input_delta = plus(*neural_network->input_weight,
-                                                      *input_delta);
+                                                      input_delta);
                     Matrix<T> temp_hidden_delta = plus(*neural_network->hidden_weight,
-                                                       *hidden_delta);
+                                                       hidden_delta);
 
                     copy(temp_input_delta,
                          *neural_network->input_weight);
@@ -374,18 +366,13 @@ namespace dbm {
                 for(int j = 0; j < no_validate; ++j) {
 
                     for(int k = 0; k < neural_network->no_predictors; ++k)
-                        neural_network->input_output->assign(
-                                k,
-                                0,
-                                train_x.get(validate_row_inds[j],
-                                            neural_network->col_inds[k]));
+                        input_output.assign(k, 0,
+                                            train_x.get(validate_row_inds[j], neural_network->col_inds[k]));
 
-                    neural_network->input_output->assign(neural_network->no_predictors,
-                                                         0,
-                                                         1);
-                    neural_network->forward();
+                    input_output.assign(neural_network->no_predictors, 0, 1);
+                    neural_network->forward(input_output, hidden_output, output_output);
 
-                    mse += std::pow(ind_delta.get(validate_row_inds[j], 0) - neural_network->output_output, 2.0) *
+                    mse += std::pow(ind_delta.get(validate_row_inds[j], 0) - output_output, 2.0) *
                            ind_delta.get(validate_row_inds[j], 1) / validate_weight_sum;
 
                 }
@@ -412,9 +399,6 @@ namespace dbm {
 
             delete validate_row_inds, train_row_inds, seeds;
             validate_row_inds = nullptr, train_row_inds = nullptr, seeds = nullptr;
-
-            delete input_delta, hidden_delta;
-            input_delta = nullptr, hidden_delta = nullptr;
 
         }
 
@@ -447,7 +431,7 @@ namespace dbm {
     Splines_trainer<T>::~Splines_trainer() {
 
         for(int i = 0; i < no_pairs; ++i) {
-            delete predictor_pairs_inds[i];
+            delete[] predictor_pairs_inds[i];
         }
         delete[] predictor_pairs_inds;
 
@@ -503,7 +487,7 @@ namespace dbm {
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
-                eye.assign(i, i, 0.00001);
+                eye.assign(i, i, 0.1);
 
             for(int i = 0; i < no_pairs / 3; ++i) {
 
@@ -647,7 +631,7 @@ namespace dbm {
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
-                eye.assign(i, i, 0.00001);
+                eye.assign(i, i, 0.1);
 
             for(int i = 0; i < no_pairs / 3; ++i) {
 
@@ -688,8 +672,7 @@ namespace dbm {
                 left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
                 Matrix<T> left = inner_product(left_in_left,
                                                design_matrix);
-                Matrix<T> left_inversed = inverse(plus(left,
-                                                       eye));
+                Matrix<T> left_inversed = inverse(plus(left, eye));
 
                 int y_ind[] = {0}, no_y_ind = 1;
                 Matrix<T> Y = ind_delta.submatrix(row_inds,
@@ -987,8 +970,7 @@ namespace dbm {
 
                     }
 
-                    sample_inds_for_each_centroid[closest_centroid_ind]
-                    [no_samples_in_each_centroid[closest_centroid_ind]] = row_inds[i];
+                    sample_inds_for_each_centroid[closest_centroid_ind][no_samples_in_each_centroid[closest_centroid_ind]] = row_inds[i];
 
                     no_samples_in_each_centroid[closest_centroid_ind] += 1;
 

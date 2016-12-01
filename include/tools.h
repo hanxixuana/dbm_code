@@ -67,9 +67,10 @@ namespace dbm {
 
         // partial dependence plot
         int no_x_ticks = 10;
-        int no_resamplings = 10;
-        double resampling_portion = 0.5;
+        int no_resamplings = 3;
+        double resampling_portion = 0.1;
         double ci_bandwidth = 4;
+        int save_files = 1;
 
     };
 

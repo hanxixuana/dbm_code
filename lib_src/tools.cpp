@@ -286,6 +286,8 @@ namespace dbm {
                 params.resampling_portion = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "ci_bandwidth")
                 params.ci_bandwidth = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "save_files")
+                params.save_files = std::stoi(words[2 * i + 1]);
 
             // throw an exception
             else {

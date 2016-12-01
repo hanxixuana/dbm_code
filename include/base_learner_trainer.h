@@ -61,8 +61,11 @@ namespace dbm {
         T activation_derivative(const T &input);
 
         void backward(Neural_network<T> *neural_network,
-                      Matrix<T> *hidden_delta,
-                      Matrix<T> *input_delta,
+                      const Matrix<T> &input_output,
+                      Matrix<T> &hidden_output,
+                      T &output_output,
+                      Matrix<T> &hidden_delta,
+                      Matrix<T> &input_delta,
                       T ind_delta,
                       T weight);
 

@@ -6,11 +6,11 @@
 
 #include <cassert>
 #include <iostream>
+#include <limits>
+#include <cmath>
 
 #ifdef __OMP__
 #include <omp.h>
-#include <limits>
-
 #endif
 
 namespace dbm {
@@ -80,7 +80,9 @@ namespace dbm {
 
         double type_choose;
         for (int i = 1; i < no_bunches_of_learners; ++i) {
+
             type_choose = double(std::rand()) / RAND_MAX;
+
             if(type_choose < params.portion_for_trees)
                 for(int j = 0; j < no_cores; ++j)
                     learners[no_cores * (i - 1) + j + 1] = new Tree_node<T>(0);
@@ -147,7 +149,7 @@ namespace dbm {
          * This function is not tested.
          */
 
-        dbm::Time_measurer timer;
+        Time_measurer timer;
 
         int n_samples = train_y.get_height(), n_features = train_x.get_width();
 
@@ -1195,7 +1197,7 @@ namespace dbm {
         }
 
         std::cout << std::endl;
-        delete row_inds, col_inds, seeds;
+        delete[] row_inds, col_inds, seeds;
         row_inds = nullptr, col_inds = nullptr, seeds = nullptr;
 
     }
@@ -1203,7 +1205,7 @@ namespace dbm {
     template<typename T>
     void DBM<T>::train(const Data_set<T> &data_set, const int * input_monotonic_constaints) {
 
-        dbm::Time_measurer timer;
+        Time_measurer timer;
 
         Matrix<T> const &train_x = data_set.get_train_x();
         Matrix<T> const &train_y = data_set.get_train_y();
@@ -2412,7 +2414,7 @@ namespace dbm {
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
 
-        delete row_inds, col_inds, seeds;
+        delete[] row_inds, col_inds, seeds;
         row_inds = nullptr, col_inds = nullptr, seeds = nullptr;
 
     }
@@ -2423,7 +2425,9 @@ namespace dbm {
         int data_height = data_x.get_height();
 
         #if _DEBUG_MODEL
-            assert(data_height == predict_y.get_height() && predict_y.get_width() == 1);
+            assert(total_no_feature == data_x.get_width() &&
+                           data_height == predict_y.get_height() &&
+                           predict_y.get_width() == 1);
         #endif
 
         for (int i = 0; i < data_height; ++i)
@@ -2485,23 +2489,35 @@ namespace dbm {
         Matrix<T> modified_data = copy(data);
 
         int data_height = data.get_height(),
-                data_width = data.get_width(),
-                *row_inds = new int[modified_data.get_height()],
-                resampling_size = int(modified_data.get_height() * params.resampling_portion);
+                *row_inds = new int[data_height],
+                resampling_size = int(data_height * params.resampling_portion);
         for(int i = 0; i < data_height; ++i)
             row_inds[i] = i;
 
         Matrix<T> result(params.no_x_ticks, 4, 0);
         T predictor_min, predictor_max, standard_dev;
 
-        Matrix<T> bootstraping(params.no_x_ticks, params.no_resamplings, 0);
+        int total_no_resamplings = params.no_resamplings * no_cores;
+        Matrix<T> bootstraping(params.no_x_ticks, total_no_resamplings, 0);
 
         #ifdef __OMP__
+
             omp_set_num_threads(no_cores);
-            unsigned int *seeds = new unsigned int[params.no_resamplings];
-            for(int i = 0; i < params.no_resamplings; ++i)
+
+            unsigned int *seeds = new unsigned int[total_no_resamplings];
+            for(int i = 0; i < total_no_resamplings; ++i)
                 seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+
+        #else
+
+            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+
         #endif
+
+        Time_measurer timer;
+        std::cout << std::endl
+                  << "Starting bootstraping..."
+                  << std::endl;
 
         if(x_tick_min == nullptr) {
 
@@ -2515,28 +2531,45 @@ namespace dbm {
                 for(int j = 0; j < data_height; ++j)
                     modified_data.assign(j, predictor_ind, result.get(i, 0));
 
-                #ifdef __OMP__
-                #pragma omp parallel default(shared)
-                {
-                    #pragma omp for schedule(dynamic) nowait
-                #endif
-                    for(int j = 0; j < params.no_resamplings; ++j) {
+                for(int j = 0; j < params.no_resamplings; ++j) {
 
-                        #ifdef __OMP__
-                            int thread_row_inds[data_height];
-                            std::copy(row_inds, row_inds + data_height, thread_row_inds);
+                    #ifdef __OMP__
+                    #pragma omp parallel default(shared)
+                    {
 
-                            shuffle(thread_row_inds, data_height, seeds[j]);
-                            Matrix<T> resampling_prediction(resampling_size, 1, 0);
-                        #else
-                            shuffle(row_inds, data_height);
-                        #endif
+                        int resampling_id = no_cores * j + omp_get_thread_num();
 
-                        predict(modified_data.rows(thread_row_inds, resampling_size), resampling_prediction);
+                    #else
+                    {
+                    #endif
+
+                    #ifdef __OMP__
+
+                        int *thread_row_inds = new int[data_height];
+                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
+                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
+
+                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
+
+                            bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
+
+                        delete[] thread_row_inds;
+                        delete resampling_prediction;
+
+                    #else
+
+                        shuffle(row_inds, data_height);
+
+                        resampling_prediction.clear();
+                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
 
                         bootstraping.assign(i, j, resampling_prediction.col_average(0));
 
+                    #endif
+
                     }
+
                 }
 
                 result.assign(i, 1, bootstraping.row_average(i));
@@ -2548,8 +2581,13 @@ namespace dbm {
 
             }
 
-            delete[] seeds;
-            seeds = nullptr;
+            #ifdef __OMP__
+                delete[] seeds;
+                seeds = nullptr;
+            #endif
+
+            delete[] row_inds;
+            row_inds = nullptr;
 
             return result;
 
@@ -2566,28 +2604,45 @@ namespace dbm {
                 for(int j = 0; j < data_height; ++j)
                     modified_data.assign(j, predictor_ind, result.get(i, 0));
 
-                #ifdef __OMP__
-                #pragma omp parallel default(shared)
-                {
-                    #pragma omp for schedule(dynamic) nowait
+                for(int j = 0; j < params.no_resamplings; ++j) {
+
+                    #ifdef __OMP__
+                    #pragma omp parallel default(shared)
+                    {
+
+                        int resampling_id = no_cores * j + omp_get_thread_num();
+
+                    #else
+                    {
                     #endif
-                    for(int j = 0; j < params.no_resamplings; ++j) {
 
-                        #ifdef __OMP__
-                        int thread_row_inds[data_height];
+                    #ifdef __OMP__
+
+                        int *thread_row_inds = new int[data_height];
                         std::copy(row_inds, row_inds + data_height, thread_row_inds);
+                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
 
-                        shuffle(thread_row_inds, data_height, seeds[j]);
-                        Matrix<T> resampling_prediction(resampling_size, 1, 0);
-                        #else
+                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
+
+                        bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
+
+                        delete[] thread_row_inds;
+                        delete resampling_prediction;
+
+                    #else
+
                         shuffle(row_inds, data_height);
-                        #endif
 
-                        predict(modified_data.rows(thread_row_inds, resampling_size), resampling_prediction);
+                        resampling_prediction.clear();
+                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
 
                         bootstraping.assign(i, j, resampling_prediction.col_average(0));
 
+                    #endif
+
                     }
+
                 }
 
                 result.assign(i, 1, bootstraping.row_average(i));
@@ -2599,8 +2654,13 @@ namespace dbm {
 
             }
 
-            delete[] seeds;
-            seeds = nullptr;
+            #ifdef __OMP__
+                delete[] seeds;
+                seeds = nullptr;
+            #endif
+
+            delete[] row_inds;
+            row_inds = nullptr;
 
             return result;
 
@@ -2618,19 +2678,23 @@ namespace dbm {
 
         int data_height = data.get_height(),
                 data_width = data.get_width(),
-                *row_inds = new int[data.get_height()],
-                resampling_size = int(data.get_height() * params.resampling_portion);
+                *row_inds = new int[data_height],
+                resampling_size = int(data_height * params.resampling_portion);
         for(int i = 0; i < data_height; ++i)
             row_inds[i] = i;
 
-        Matrix<T> means(total_no_feature, params.no_x_ticks, 0);
-        Matrix<T> stds(total_no_feature, params.no_x_ticks, 0);
         T predictor_min,
                 predictor_max,
                 x_tick,
                 standard_dev;
 
-        Matrix<T> bootstraping(params.no_x_ticks, params.no_resamplings, 0);
+        Matrix<T> x_ticks(total_no_feature, params.no_x_ticks, 0);
+        Matrix<T> means(total_no_feature, params.no_x_ticks, 0);
+        Matrix<T> stds(total_no_feature, params.no_x_ticks, 0);
+
+        int total_no_resamplings = params.no_resamplings * no_cores;
+        Matrix<T> bootstraping(params.no_x_ticks, total_no_resamplings, 0);
+
         Matrix<T> result(total_no_feature, 1, 0);
 
         const int no_probs = 30;
@@ -2642,11 +2706,23 @@ namespace dbm {
                        0.96428, 0.9722, 0.97856, 0.9836, 0.98758, 0.99068, 0.99306, 0.99488, 0.99626, 0.9973};
 
         #ifdef __OMP__
-        omp_set_num_threads(no_cores);
-        unsigned int *seeds = new unsigned int[params.no_resamplings];
-        for(int i = 0; i < params.no_resamplings; ++i)
-            seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+
+            omp_set_num_threads(no_cores);
+
+            unsigned int *seeds = new unsigned int[total_no_resamplings];
+            for(int i = 0; i < total_no_resamplings; ++i)
+                seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
+
+        #else
+
+            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+
         #endif
+
+        Time_measurer timer;
+        std::cout << std::endl
+                  << "Starting bootstraping..."
+                  << std::endl;
 
         for(int i = 0; i < total_no_feature; ++i) {
 
@@ -2663,43 +2739,65 @@ namespace dbm {
                 for(int k = 0; k < data_height; ++k)
                     modified_data->assign(k, i, x_tick);
 
-                #ifdef __OMP__
-                #pragma omp parallel default(shared)
-                {
-                    #pragma omp for schedule(dynamic) nowait
-                #endif
-                    for(int k = 0; k < params.no_resamplings; ++k) {
+                for(int k = 0; k < params.no_resamplings; ++k) {
 
-                        #ifdef __OMP__
+                    #ifdef __OMP__
+                    #pragma omp parallel default(shared)
+                    {
+
+                        int resampling_id = no_cores * k + omp_get_thread_num();
+
+                    #else
+                    {
+                    #endif
+
+                    #ifdef __OMP__
+
                         int *thread_row_inds = new int[data_height];
                         std::copy(row_inds, row_inds + data_height, thread_row_inds);
+                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
 
-                        shuffle(thread_row_inds, data_height, seeds[k]);
-                        Matrix<T> resampling_prediction(resampling_size, 1, 0);
-                        #else
+                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+                        predict(modified_data->rows(thread_row_inds, resampling_size), *resampling_prediction);
+
+                        bootstraping.assign(j, resampling_id, resampling_prediction->col_average(0));
+
+                        delete[] thread_row_inds;
+                        delete resampling_prediction;
+
+                    #else
+
                         shuffle(row_inds, data_height);
-                        #endif
 
-                        predict(modified_data->rows(thread_row_inds, resampling_size), resampling_prediction);
+                        resampling_prediction.clear();
+                        predict(modified_data->rows(row_inds, resampling_size), resampling_prediction);
 
                         bootstraping.assign(j, k, resampling_prediction.col_average(0));
 
-                        delete[] thread_row_inds;
+                    #endif
 
                     }
+
                 }
 
+                x_ticks.assign(i, j, x_tick);
                 means.assign(i, j, bootstraping.row_average(j));
-
                 stds.assign(i, j, bootstraping.row_std(j));
             }
 
             delete modified_data;
 
+            std::cout << "Predictor ( " << i
+                      << " ) --> bootstraping completed..."
+                      << std::endl;
+
         }
 
-        means.print_to_file("means.txt");
-        stds.print_to_file("stds.txt");
+        if(params.save_files) {
+            x_ticks.print_to_file("x_ticks.txt");
+            means.print_to_file("means.txt");
+            stds.print_to_file("stds.txt");
+        }
 
         T largest_lower_ci, smallest_higher_ci;
 
@@ -2731,8 +2829,13 @@ namespace dbm {
 
         }
 
-        delete[] seeds;
-        seeds = nullptr;
+        #ifdef __OMP__
+            delete[] seeds;
+            seeds = nullptr;
+        #endif
+
+        delete[] row_inds;
+        row_inds = nullptr;
 
         return result;
 

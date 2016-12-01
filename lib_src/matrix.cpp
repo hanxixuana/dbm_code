@@ -885,9 +885,18 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> inverse(const Matrix<T> &matrix) {
+
+        T abs_det = std::abs(determinant(matrix));
+
+        if(std::isnan(abs_det) || std::isinf(abs_det) || abs_det < std::numeric_limits<T>::min() * 1e2) {
+            std::cout << "The matrix has problems and is saved!"
+                      << std::endl;
+            matrix.print_to_file("matrix_fed_to_inverse.txt");
+        }
+
         #if _DEBUG_MATRIX
             assert(matrix.width > 0 && matrix.width == matrix.height &&
-                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e5);
+                           abs_det > std::numeric_limits<T>::min() * 1e2);
         #endif
         Matrix<T> result(matrix.height, matrix.width, 0);
         if(matrix.width == 1) {

@@ -234,15 +234,8 @@ namespace dbm {
         // 1 * (no_hidden_neurons + 1)
         Matrix<T> *hidden_weight;
 
-        // (no_predictors + 1) * 1
-        Matrix<T> *input_output;
-        // (no_hidden_neurons + 1) * 1
-        Matrix<T> *hidden_output;
-        // 1 * 1
-        T output_output;
-
         T activation(const T &input);
-        void forward();
+        void forward(const Matrix<T> &input_output, Matrix<T> &hidden_output, T &output_output);
 
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
