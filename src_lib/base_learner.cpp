@@ -79,7 +79,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -89,7 +89,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -110,10 +110,10 @@ namespace dbm {
     Neural_network<T>::Neural_network(int no_predictors,
                                       int no_hidden_neurons,
                                       char loss_type) :
+            Base_learner<T>('n'),
             no_predictors(no_predictors),
             no_hidden_neurons(no_hidden_neurons),
-            loss_type(loss_type),
-            Base_learner<T>('n') {
+            loss_type(loss_type){
 
         col_inds = new int[no_predictors];
 
@@ -124,7 +124,8 @@ namespace dbm {
 
     template <typename T>
     Neural_network<T>::~Neural_network<T>() {
-        delete input_weight, hidden_weight;
+        delete input_weight;
+        delete hidden_weight;
         delete[] col_inds;
         input_weight = nullptr, hidden_weight = nullptr, col_inds = nullptr;
     }
@@ -185,7 +186,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -195,7 +196,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -215,9 +216,9 @@ namespace dbm {
     template <typename T>
     Kmeans2d<T>::Kmeans2d(int no_centroids,
                           char loss_type) :
+            Base_learner<T>('k'),
             no_centroids(no_centroids),
-            loss_type(loss_type),
-            Base_learner<T>('k') {
+            loss_type(loss_type){
 
         centroids = new T*[no_centroids];
         for(int i = 0; i < no_centroids; ++i)
@@ -228,7 +229,8 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d<T>::~Kmeans2d() {
-        delete[] centroids, predictions;
+        delete[] centroids;
+        delete[] predictions;
         centroids = nullptr, predictions = nullptr;
     };
 
@@ -280,7 +282,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
              assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -290,7 +292,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
                 assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -330,9 +332,9 @@ namespace dbm {
     template <typename T>
     Splines<T>::Splines(int no_knots,
                         char loss_type) :
+            Base_learner<T>('s'),
             no_knots(no_knots),
-            loss_type(loss_type),
-            Base_learner<T>('s') {
+            loss_type(loss_type){
 
         x_knots = new T[no_knots];
 
@@ -348,8 +350,12 @@ namespace dbm {
 
     template <typename T>
     Splines<T>::~Splines() {
-        delete[] x_knots, x_left_coefs, x_right_coefs,
-                y_knots, y_left_coefs, y_right_coefs;
+        delete[] x_knots;
+        delete[] x_left_coefs;
+        delete[] x_right_coefs;
+        delete[] y_knots;
+        delete[] y_left_coefs;
+        delete[] y_right_coefs;
         x_knots = nullptr, x_left_coefs = nullptr, x_right_coefs = nullptr,
                 y_knots = nullptr, y_left_coefs = nullptr, y_right_coefs = nullptr;
     };
@@ -388,7 +394,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
                 assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -398,7 +404,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
                 assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -418,16 +424,17 @@ namespace dbm {
     template <typename T>
     Linear_regression<T>::Linear_regression(int no_predictors,
                                             char loss_type) :
+            Base_learner<T>('l'),
             no_predictors(no_predictors),
-            loss_type(loss_type),
-            Base_learner<T>('l') {
+            loss_type(loss_type) {
         col_inds = new int[no_predictors];
         coefs_no_intercept = new T[no_predictors];
     }
 
     template <typename T>
     Linear_regression<T>::~Linear_regression() {
-        delete[] col_inds, coefs_no_intercept;
+        delete[] col_inds;
+        delete[] coefs_no_intercept;
         col_inds = nullptr, coefs_no_intercept = nullptr;
     };
 
@@ -462,7 +469,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -472,7 +479,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -491,16 +498,16 @@ namespace dbm {
 
     template<typename T>
     Tree_node<T>::Tree_node(int depth) :
+            Base_learner<T>('t'),
             larger(nullptr),
             smaller(nullptr),
+            depth(depth),
             column(-1),
             split_value(0),
             loss(std::numeric_limits<T>::max()),
-            depth(depth),
             last_node(false),
             prediction(0),
-            no_training_samples(0),
-            Base_learner<T>('t') {}
+            no_training_samples(0){}
 
     template<typename T>
     Tree_node<T>::Tree_node(int depth,
@@ -510,16 +517,16 @@ namespace dbm {
                             T loss,
                             T prediction,
                             int no_tr_samples) :
+            Base_learner<T>('t'),
             larger(nullptr),
             smaller(nullptr),
+            depth(depth),
             column(column),
             split_value(split_value),
             loss(loss),
-            depth(depth),
             last_node(last_node),
             prediction(prediction),
-            no_training_samples(no_tr_samples),
-            Base_learner<T>('t') {}
+            no_training_samples(no_tr_samples) {}
 
     template<typename T>
     Tree_node<T>::~Tree_node() {
@@ -540,12 +547,12 @@ namespace dbm {
         if (last_node)
             return prediction;
         if (data_x.get(row_ind, column) > split_value) {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(larger != NULL);
             #endif
             return larger->predict_for_row(data_x, row_ind);
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(larger != NULL);
             #endif
             return smaller->predict_for_row(data_x, row_ind);
@@ -561,7 +568,7 @@ namespace dbm {
 
         if (row_inds == NULL) {
             int data_height = data_x.get_height();
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(data_height == prediction.get_height() && prediction.get_width() == 1);
             #endif
             T predicted_value;
@@ -571,7 +578,7 @@ namespace dbm {
                 prediction.assign(i, 0, predicted_value);
             }
         } else {
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(no_rows > 0 && prediction.get_height() == 1);
             #endif
             T predicted_value;
@@ -613,7 +620,7 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == 1);
         #endif
         mean = new Global_mean<T>;
@@ -656,7 +663,7 @@ namespace dbm {
 
         std::getline(in, line);
         int count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == 3);
         #endif
         neural_network = new Neural_network<T>(std::stoi(words[0]),
@@ -666,7 +673,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == neural_network->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
@@ -677,7 +684,7 @@ namespace dbm {
             line.clear();
             std::getline(in, line);
             count = split_into_words(line, words);
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
             assert(count == neural_network->no_predictors + 1);
             #endif
             for(int j = 0; j < count; ++j)
@@ -690,7 +697,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == neural_network->no_hidden_neurons + 1);
         #endif
         for(int i = 0; i < count; ++i)
@@ -741,7 +748,7 @@ namespace dbm {
 
         std::getline(in, line);
         int count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == 2);
         #endif
         kmeans2d = new Kmeans2d<T>(std::stoi(words[0]),
@@ -750,7 +757,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == kmeans2d->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
@@ -761,7 +768,7 @@ namespace dbm {
             line.clear();
             std::getline(in, line);
             count = split_into_words(line, words);
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
                 assert(count == kmeans2d->no_predictors);
             #endif
             for(int j = 0; j < kmeans2d->no_predictors; ++j)
@@ -772,7 +779,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == kmeans2d->no_centroids);
         #endif
         for(int i = 0; i < count; ++i)
@@ -827,7 +834,7 @@ namespace dbm {
 
         std::getline(in, line);
         int count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == 2);
         #endif
         splines = new Splines<T>(std::stoi(words[0]),
@@ -836,7 +843,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
@@ -845,7 +852,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -854,7 +861,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -863,7 +870,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -872,7 +879,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -881,7 +888,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -890,7 +897,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
             assert(count == splines->no_knots);
         #endif
         for(int i = 0; i < count; ++i)
@@ -928,7 +935,7 @@ namespace dbm {
 
         std::getline(in, line);
         int count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == 2);
         #endif
         linear_regression = new Linear_regression<T>(std::stoi(words[0]),
@@ -937,7 +944,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == linear_regression->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
@@ -946,7 +953,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-        #if _DEBUG_BASE_LEARNER
+        #ifdef _DEBUG_BASE_LEARNER
         assert(count == linear_regression->no_predictors);
         #endif
         for(int i = 0; i < count; ++i)
@@ -955,7 +962,7 @@ namespace dbm {
         line.clear();
         std::getline(in, line);
         count = split_into_words(line, words);
-            #if _DEBUG_BASE_LEARNER
+            #ifdef _DEBUG_BASE_LEARNER
         assert(count == 1);
             #endif
         linear_regression->intercept = T(std::stod(words[0]));

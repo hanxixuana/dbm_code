@@ -5,9 +5,9 @@
 #ifndef DBM_CODE_MODEL_H
 #define DBM_CODE_MODEL_H
 
-#ifndef _DEBUG_MODEL
-#define _DEBUG_MODEL 1
-#endif
+//#ifndef _DEBUG_MODEL
+//#define _DEBUG_MODEL
+//#endif
 
 #include "matrix.h"
 #include "data_set.h"
@@ -37,13 +37,20 @@ namespace dbm {
 
         virtual void train(const Matrix<T> &train_x,
                            const Matrix<T> &train_y,
-                           const int * input_monotonic_constaints) = 0;
+                           const Matrix<T> &input_monotonic_constraints) = 0;
 
         virtual void train(const Data_set<T> &data_set,
-                           const int * input_monotonic_constaints) = 0;
+                           const Matrix<T> &input_monotonic_constraints) = 0;
+
+        virtual void train(const Matrix<T> &train_x,
+                           const Matrix<T> &train_y) = 0;
+
+        virtual void train(const Data_set<T> &data_set) = 0;
 
         virtual void predict(const Matrix<T> &data_x,
                              Matrix<T> &predict_y) = 0;
+
+        virtual Matrix<T> &predict(const Matrix<T> &data_x) = 0;
 
     };
 
@@ -73,6 +80,11 @@ namespace dbm {
 
         T *test_loss_record = nullptr;
 
+        Matrix<T> *pdp_result = nullptr;
+        Matrix<T> *ss_result = nullptr;
+
+        Matrix<T> *prediction = nullptr;
+
     public:
 
         DBM(int no_bunches_of_learners,
@@ -81,7 +93,7 @@ namespace dbm {
             int no_train_sample,
             int total_no_feature);
 
-        DBM(const std::string &param_string);
+        DBM(const Params &params);
 
         ~DBM();
 
@@ -90,14 +102,20 @@ namespace dbm {
         // by only allowing 1, 0, -1, we could be able to check if the length is correct in some sense
         void train(const Matrix<T> &train_x,
                    const Matrix<T> &train_y,
-                   const int * input_monotonic_constaints = nullptr);
+                   const Matrix<T> &input_monotonic_constraints);
 
         void train(const Data_set<T> &data_set,
-                   const int * input_monotonic_constaints = nullptr);
+                   const Matrix<T> &input_monotonic_constraints);
+
+        void train(const Matrix<T> &train_x,
+                   const Matrix<T> &train_y);
+
+        void train(const Data_set<T> &data_set);
 
         void predict(const Matrix<T> &data_x,
                      Matrix<T> &predict_y);
 
+        Matrix<T> &predict(const Matrix<T> &data_x);
 
         /*
          *  TOOLS
@@ -108,12 +126,15 @@ namespace dbm {
 
         void set_loss_function_and_shrinkage(const char &type, const T &shrinkage);
 
-        Matrix<T> partial_dependence_plot(const Matrix<T> &data,
-                                          const int &predictor_ind,
-                                          const T *x_tick_min = nullptr,
-                                          const T *x_tick_max = nullptr);
+        Matrix<T> &partial_dependence_plot(const Matrix<T> &data,
+                                          const int &predictor_ind);
 
-        Matrix<T> statistical_significance(const Matrix<T> &data);
+        Matrix<T> &partial_dependence_plot(const Matrix<T> &data,
+                                          const int &predictor_ind,
+                                          const T &x_tick_min,
+                                          const T &x_tick_max);
+
+        Matrix<T> &statistical_significance(const Matrix<T> &data);
 
         /*
          *  IO
@@ -122,6 +143,9 @@ namespace dbm {
                                std::ofstream &out);
         friend void load_dbm<>(std::ifstream &in,
                                DBM *&dbm);
+
+        void save_dbm_to(const std::string &file_name);
+        void load_dbm_from(const std::string &file_name);
 
     };
 

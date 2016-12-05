@@ -8,7 +8,6 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <cmath>
 
 namespace dbm {
 
@@ -55,7 +54,7 @@ namespace dbm {
 
     template <typename T>
     void range(const T &start, const T &end, const int & number, T *result, const T &scaling) {
-        #if _DEBUG_TOOLS
+        #ifdef _DEBUG_TOOLS
             assert(end > start);
         #endif
         T length = (end - start) / (number - 1);
@@ -201,7 +200,7 @@ namespace dbm {
             count += 1;
         }
 
-        #if _DEBUG_TOOLS
+        #ifdef _DEBUG_TOOLS
             assert(count % 2 == 0);
         #endif
 
@@ -250,6 +249,8 @@ namespace dbm {
             // splines
             else if (words[2 * i] == "no_knot")
                 params.no_knot = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "regularization")
+                params.regularization = std::stod(words[2 * i + 1]);
 
             // kmeans
             else if (words[2 * i] == "no_centroids")

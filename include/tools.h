@@ -5,9 +5,9 @@
 #ifndef DBM_CODE_TOOLS_H
 #define DBM_CODE_TOOLS_H
 
-#ifndef _DEBUG_TOOLS
-#define _DEBUG_TOOLS 1
-#endif
+//#ifndef _DEBUG_TOOLS
+//#define _DEBUG_TOOLS
+//#endif
 
 #include <string>
 #include <ctime>
@@ -21,9 +21,9 @@ namespace dbm {
     struct Params {
 
         // DBM
-        int no_bunches_of_learners = 100;
+        int no_bunches_of_learners = 101;
         int no_candidate_feature = 5;
-        int no_train_sample = 50000;
+        int no_train_sample = 5000;
 
         int no_cores = 0;
 
@@ -47,6 +47,7 @@ namespace dbm {
 
         // splines
         int no_knot = 5;
+        double regularization = 0.1;
 
         // kmeans
         int no_centroids = 15;

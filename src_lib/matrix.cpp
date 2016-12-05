@@ -33,7 +33,11 @@ namespace dbm {
     Matrix<T>::Matrix(int height, int width) :
             height(height), width(width) {
 
-        std::srand((unsigned int)(std::time(NULL)));
+        #ifdef _CD_INDICATOR
+            std::cout << "Instantiating Matrix at " << this << "." << std::endl;
+        #endif
+
+        std::srand((unsigned int)(std::time(nullptr)));
         data = new T *[height];
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
@@ -42,7 +46,7 @@ namespace dbm {
             }
         }
 
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
         for (int i = 0; i < width; ++i) {
             col_labels[i] = i;
@@ -53,14 +57,18 @@ namespace dbm {
             row_labels[i] = i;
         #endif
 
-        #if _CD_INDICATOR
-        std::cout << "Matrix at " << this << " is instantiated." << std::endl;
+        #ifdef _CD_INDICATOR
+            std::cout << "Matrix at " << this << " is instantiated." << std::endl;
         #endif
     }
 
     template<typename T>
     Matrix<T>::Matrix(int height, int width, const T &value) :
             height(height), width(width) {
+
+        #ifdef _CD_INDICATOR
+        std::cout << "Instantiating Matrix at " << this << "." << std::endl;
+        #endif
 
         data = new T *[height];
         for (int i = 0; i < height; ++i) {
@@ -70,7 +78,7 @@ namespace dbm {
             }
         }
 
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
         for (int i = 0; i < width; ++i) {
             col_labels[i] = i;
@@ -82,10 +90,100 @@ namespace dbm {
             row_labels[i] = i;
         #endif
 
-        #if _CD_INDICATOR
+        #ifdef _CD_INDICATOR
         std::cout << "Matrix at " << this << " is instantiated." << std::endl;
         #endif
     }
+
+    template<typename T>
+    Matrix<T>::Matrix(const Matrix<T>& rhs) {
+
+        #ifdef _CD_INDICATOR
+            std::cout << "Copying Matrix at " << this << "." << std::endl;
+        #endif
+
+		if (data != nullptr) {
+			for (int i = 0; i < height; i ++) {
+				delete[] data[i];
+			} // i
+			delete[] data;
+		}
+        #ifdef _DEBUG_MATRIX
+        if (col_labels != nullptr) delete[] col_labels;
+        if (row_labels != nullptr) delete[] row_labels;
+        #endif
+
+		height = rhs.height;
+		width = rhs.width;
+		data = new T*[height];
+		for (int i = 0; i < height; i ++) {
+			data[i] = new T[width];
+			for (int j = 0; j < width; j ++) {
+				data[i][j] = rhs.data[i][j];
+			} // j	
+		} // i
+		
+        #ifdef _DEBUG_MATRIX
+        col_labels = new int[width];
+        for (int i = 0; i < width; ++i) {
+            col_labels[i] = rhs.col_labels[i];
+        }
+
+        row_labels = new int[height];
+        for (int i = 0; i < height; ++i)
+            row_labels[i] = rhs.row_labels[i];
+        #endif
+
+        #ifdef _CD_INDICATOR
+            std::cout << "Matrix at " << this << " is instantiated." << std::endl;
+        #endif
+    } // copy constructor
+
+    template<typename T>
+	Matrix<T>& Matrix<T>::operator=(const Matrix<T>& rhs) {
+
+		#ifdef _CD_INDICATOR
+        	std::cout << "Assigning Matrix at " << this << "." << std::endl;
+		#endif
+
+		if (data != nullptr) {
+			for (int i = 0; i < height; i ++) {
+				delete[] data[i];
+			} // i
+			delete[] data;
+		}
+        #ifdef _DEBUG_MATRIX
+        if (col_labels != nullptr) delete[] col_labels;
+        if (row_labels != nullptr) delete[] row_labels;
+        #endif
+		
+		height = rhs.height;
+		width = rhs.width;
+		data = new T*[height];
+		for (int i = 0; i < height; i ++) {
+			data[i] = new T[width];
+			for (int j = 0; j < width; j ++) {
+				data[i][j] = rhs.data[i][j];
+			} // j	
+		} // i
+		
+        #ifdef _DEBUG_MATRIX
+        col_labels = new int[width];
+        for (int i = 0; i < width; ++i) {
+            col_labels[i] = rhs.col_labels[i];
+        }
+
+        row_labels = new int[height];
+        for (int i = 0; i < height; ++i)
+            row_labels[i] = rhs.row_labels[i];
+        #endif
+
+        #ifdef _CD_INDICATOR
+            std::cout << "Matrix at " << this << " is instantiated." << std::endl;
+        #endif
+		
+		return *this;
+    } // operator=
 
     /*  the data must have the form as below
      * s_f  f_0 f_1 f_2 ....
@@ -95,14 +193,19 @@ namespace dbm {
      */
     template<typename T>
     Matrix<T>::Matrix(int height, int width,
-                      const std::string file_name, const char &delimiter) :
+                      const std::string file_name, 
+                      const char &delimiter) :
             height(height), width(width) {
+
+        #ifdef _CD_INDICATOR
+            std::cout << "Instantiating Matrix at " << this << "." << std::endl;
+        #endif
 
         data = new T *[height];
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
         row_labels = new int[height];
         #endif
@@ -114,22 +217,22 @@ namespace dbm {
         // read feature labels
         unsigned long prev = 0, next = 0;
         std::string temp_storage;
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         std::getline(file, line);
         next = line.find_first_of(delimiter, prev);
         prev = next + 1;
         while ((next = line.find_first_of(delimiter, prev)) != std::string::npos) {
             temp_storage = line.substr(prev, next - prev);
             col_labels[col_number] = std::atoi(temp_storage.c_str());
-            col_number += 1;
+            col_number++;
             prev = next + 1;
         }
         if (prev < line.size()) {
             temp_storage = line.substr(prev);
             col_labels[col_number] = std::atoi(temp_storage.c_str());
-            col_number += 1;
+            col_number++;
         }
-        line_number += 1;
+        line_number++;
 
         assert(col_number == width);
         #endif
@@ -138,32 +241,32 @@ namespace dbm {
         while (std::getline(file, line)) {
             col_number = 0;
             prev = 0, next = 0;
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             next = line.find_first_of(delimiter, prev);
             temp_storage = line.substr(prev, next - prev);
             row_labels[line_number - 1] = std::atoi(temp_storage.c_str());
-            col_number += 1;
+            col_number++;
             prev = next + 1;
             #endif
             while ((next = line.find_first_of(delimiter, prev)) != std::string::npos) {
                 temp_storage = line.substr(prev, next - prev);
                 data[line_number - 1][col_number - 1] = std::atof(temp_storage.c_str());
-                col_number += 1;
+                col_number++;
                 prev = next + 1;
             }
             if (prev < line.size()) {
                 temp_storage = line.substr(prev);
                 data[line_number - 1][col_number - 1] = std::atof(temp_storage.c_str());
-                col_number += 1;
+                col_number++;
                 prev = next + 1;
             }
-            line_number += 1;
+            line_number++;
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(line_number - 1 == height);
         #endif
 
-        #if _CD_INDICATOR
+        #ifdef _CD_INDICATOR
         std::cout << "Matrix at " << this << " is instantiated." << std::endl;
         #endif
     }
@@ -171,18 +274,22 @@ namespace dbm {
     template<typename T>
     Matrix<T>::~Matrix() {
 
+        #ifdef _CD_INDICATOR
+            std::cout << "Deleting Matrix at " << this << "." << std::endl;
+        #endif
+
         for (int i = 0; i < height; ++i) {
             delete[] data[i];
         }
 
         delete[] data;
 
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         delete[] col_labels;
         delete[] row_labels;
         #endif
 
-        #if _CD_INDICATOR
+        #ifdef _CD_INDICATOR
         std::cout << "Matrix at " << this << " is deleted." << std::endl;
         #endif
 
@@ -191,44 +298,78 @@ namespace dbm {
     template<typename T>
     void Matrix<T>::print() const {
 
-        #if _DEBUG_MATRIX
-            std::cout << "s_f\t";
+        #ifdef _DEBUG_MATRIX
+            printf("s_f\t");
+//            std::cout << "s_f\t";
 
             for (int i = 0; i < width; ++i)
-                std::cout << col_labels[i] << "\t";
-            std::cout << std::endl;
+                printf("%d\t", col_labels[i]);
+//                std::cout << col_labels[i] << "\t";
+            printf("\n");
+//            std::cout << std::endl;
         #endif
 
         for (int i = 0; i < height; ++i) {
-            #if _DEBUG_MATRIX
-            std::cout << row_labels[i] << "\t";
+            #ifdef _DEBUG_MATRIX
+                printf("%d\t", row_labels[i]);
+//            std::cout << row_labels[i] << "\t";
             #endif
             for (int j = 0; j < width; ++j)
-                std::cout << std::fixed << std::setprecision(4) << data[i][j] << "\t";
-            std::cout << std::endl;
+                printf("%.5lf\t", data[i][j]);
+//                std::cout << std::fixed << std::setprecision(4) << data[i][j] << "\t";
+            printf("\n");
+//            std::cout << std::endl;
         }
-        std::cout << std::endl;
+        printf("\n");
+//        std::cout << std::endl;
     }
 
+//    template <typename T>
+//    std::string Matrix<T>::print_to_string() const {
+//
+//        std::ostringstream output;
+//
+//        #ifdef _DEBUG_MATRIX
+//            output << "s_f\t";
+//            int i = 0;
+//            for (; i < width - 1; ++i)
+//                output << col_labels[i] << "\t";
+//            output << col_labels[i] << std::endl;
+//        #endif
+//
+//        for (i = 0; i < height; ++i) {
+//            #ifdef _DEBUG_MATRIX
+//                output << row_labels[i] << "\t";
+//            #endif
+//            int j = 0;
+//            for (; j < width - 1; ++j)
+//                output << std::fixed << std::setprecision(5) << data[i][j] << "\t";
+//            output << std::fixed << std::setprecision(5) << data[i][j] << std::endl;
+//        }
+//
+//        return output.str();
+//
+//    }
+
     template<typename T>
-    void Matrix<T>::print_to_file(const std::string &file_name) const {
+    void Matrix<T>::print_to_file(const std::string &file_name, const char &delimiter) const {
         std::ofstream file(file_name.c_str());
 
-        #if _DEBUG_MATRIX
-        file << "s_f\t";
+        #ifdef _DEBUG_MATRIX
+        file << "s_f" << delimiter;
         int i = 0;
         for (; i < width - 1; ++i)
-            file << col_labels[i] << "\t";
+            file << col_labels[i] << delimiter;
         file << col_labels[i] << std::endl;
         #endif
 
         for (i = 0; i < height; ++i) {
-            #if _DEBUG_MATRIX
-            file << row_labels[i] << "\t";
+            #ifdef _DEBUG_MATRIX
+            file << row_labels[i] << delimiter;
             #endif
             int j = 0;
             for (; j < width - 1; ++j)
-                file << std::fixed << std::setprecision(5) << data[i][j] << "\t";
+                file << std::fixed << std::setprecision(5) << data[i][j] << delimiter;
             file << std::fixed << std::setprecision(5) << data[i][j] << std::endl;
         }
 
@@ -242,18 +383,18 @@ namespace dbm {
 
     template<typename T>
     T Matrix<T>::get_col_max(int col_index, const int *row_inds, int no_rows) const {
-        if (row_inds == NULL) {
-            T result = std::numeric_limits<T>::min();
+        if (row_inds == nullptr) {
+            T result = std::numeric_limits<T>::lowest();
             for (int i = 0; i < height; ++i) {
                 if (data[i][col_index] >= result)
                     result = data[i][col_index];
             }
             return result;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
-            T result = std::numeric_limits<T>::min();
+            T result = std::numeric_limits<T>::lowest();
             for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] >= result)
                     result = data[row_inds[i]][col_index];
@@ -264,7 +405,7 @@ namespace dbm {
 
     template<typename T>
     T Matrix<T>::get_col_min(int col_index, const int *row_inds, int no_rows) const {
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             T result = std::numeric_limits<T>::max();
             for (int i = 0; i < height; ++i) {
                 if (data[i][col_index] <= result)
@@ -272,7 +413,7 @@ namespace dbm {
             }
             return result;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             T result = std::numeric_limits<T>::max();
@@ -302,18 +443,18 @@ namespace dbm {
         //    cout << b.get_height() << ' ' << end << endl;
         //    for(int i = 0; i < end; ++i) cout << uniques[i] << ' ';
         //    cout << endl;
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(col_index < width);
         #endif
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             for (int i = 0; i < height; ++i)
                 values[i] = data[i][col_index];
             std::sort(values, values + height);
             T *end = std::unique(values, values + height);
             return (int) std::distance(values, end);
         } else {
-            #if _DEBUG_MATRIX
-            assert(no_rows != 0);
+            #ifdef _DEBUG_MATRIX
+            assert(no_rows > 0);
             #endif
             for (int i = 0; i < no_rows; ++i)
                 values[i] = data[row_inds[i]][col_index];
@@ -331,7 +472,7 @@ namespace dbm {
     void Matrix<T>::clear() {
         for(int i = 0; i < height; ++i)
             for(int j = 0; j < width; ++j)
-                data[i][j] = 0;
+                data[i][j] = (T) 0;
     }
 
 }
@@ -349,7 +490,8 @@ namespace dbm {
     template<typename T>
     Matrix<T> Matrix<T>::row_shuffled_to() const {
         int r_inds[height];
-        for (int i = 0; i < height; ++i) r_inds[i] = i;
+        for (int i = 0; i < height; ++i) 
+            r_inds[i] = i;
         std::random_shuffle(r_inds, r_inds + height);
         return rows(r_inds, height);
     };
@@ -361,7 +503,7 @@ namespace dbm {
 
     template<typename T>
     void Matrix<T>::assign(int i, int j, const T &value) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(i < height && j < width);
         #endif
         data[i][j] = value;
@@ -370,7 +512,7 @@ namespace dbm {
     // carefully check if the length of column is equal to height
     template<typename T>
     void Matrix<T>::assign_col(int j, T *column) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(j < width);
         #endif
         for (int i = 0; i < height; ++i) {
@@ -381,13 +523,13 @@ namespace dbm {
     // carefully check if the length of row is equal to width
     template<typename T>
     void Matrix<T>::assign_row(int i, T *row) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(i < height);
         #endif
         std::copy(row, row + width, data[i]);
     }
 
-    #if _DEBUG_MATRIX
+    #ifdef _DEBUG_MATRIX
 
     template<typename T>
     void Matrix<T>::assign_row_label(int i, const int &label) {
@@ -411,7 +553,7 @@ namespace dbm {
     // matrix[i] returns a pointer to (i + 1)'th row
     template<typename T>
     T *Matrix<T>::operator[](int k) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(k < height);
         #endif
         return data[k];
@@ -424,7 +566,7 @@ namespace dbm {
 
     template<typename T>
     T Matrix<T>::get(int i, int j) const {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(i < height && j < width);
         #endif
         return data[i][j];
@@ -432,17 +574,17 @@ namespace dbm {
 
     template<typename T>
     Matrix<T> Matrix<T>::col(int col_index) const {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(col_index < height);
         #endif
         Matrix<T> result(height, 1, 0);
         for (int i = 0; i < height; ++i) {
             result.data[i][0] = data[i][col_index];
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.row_labels[i] = row_labels[i];
             #endif
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         result.col_labels[0] = col_labels[col_index];
         #endif
         return result;
@@ -450,12 +592,12 @@ namespace dbm {
 
     template<typename T>
     Matrix<T> Matrix<T>::row(int row_index) const {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(row_index < height);
         #endif
         Matrix<T> result(1, width, 0);
         std::copy(data[row_index], data[row_index] + width, result.data[0]);
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         std::copy(col_labels, col_labels + width, result.col_labels);
         result.row_labels[0] = row_labels[row_index];
         #endif
@@ -467,16 +609,16 @@ namespace dbm {
     Matrix<T> Matrix<T>::cols(const int *col_indices, int no_cols) const {
         Matrix<T> result(height, no_cols, 0);
         for (int j = 0; j < no_cols; ++j) {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(col_indices[j] < width);
             #endif
             for (int i = 0; i < height; ++i)
                 result.data[i][j] = data[i][col_indices[j]];
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.col_labels[j] = col_labels[col_indices[j]];
             #endif
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         for (int i = 0; i < height; ++i)
             result.row_labels[i] = row_labels[i];
         #endif
@@ -488,16 +630,16 @@ namespace dbm {
     Matrix<T> Matrix<T>::rows(const int *row_indices, int no_rows) const {
         Matrix<T> result(no_rows, width, 0);
         for (int i = 0; i < no_rows; ++i) {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(row_indices[i] < height);
             #endif
             std::copy(data[row_indices[i]], data[row_indices[i]] + width, result.data[i]);
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.row_labels[i] = row_labels[row_indices[i]];
             #endif
 
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         std::copy(col_labels, col_labels + width, result.col_labels);
         #endif
 
@@ -520,16 +662,16 @@ namespace dbm {
                                    const T &threshold,
                                    const int *row_inds,
                                    int no_rows) const {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(col_index < width);
         #endif
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             int result = 0;
             for (int i = 0; i < height; ++i)
                 result += data[i][col_index] > threshold;
             return result;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             int result = 0;
@@ -544,10 +686,10 @@ namespace dbm {
                                           const T &threshold,
                                           const int *row_inds,
                                           int no_rows) const {
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             return height - n_larger_in_col(col_index, threshold);
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             return no_rows - n_larger_in_col(col_index, threshold, row_inds, no_rows);
@@ -560,30 +702,30 @@ namespace dbm {
                                       int *indices,
                                       const int *row_inds,
                                       int no_rows) const {
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             int k = 0;
             for (int i = 0; i < height; ++i) {
                 if (data[i][col_index] > threshold) {
                     indices[k] = i;
-                    k += 1;
+                    k++;
                 }
             }
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(k == n_larger_in_col(col_index, threshold));
             #endif
             return k;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             int k = 0;
             for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] > threshold) {
                     indices[k] = row_inds[i];
-                    k += 1;
+                    k++;
                 }
             }
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(k == n_larger_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             return k;
@@ -596,30 +738,30 @@ namespace dbm {
                                              int *indices,
                                              const int *row_inds,
                                              int no_rows) const {
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             int k = 0;
             for (int i = 0; i < height; ++i) {
                 if (data[i][col_index] <= threshold) {
                     indices[k] = i;
-                    k += 1;
+                    k++;
                 }
             }
-            #if _DEBUG_MATRIX
-            assert(k == n_larger_in_col(col_index, threshold));
+            #ifdef _DEBUG_MATRIX
+            assert(k == n_smaller_or_eq_in_col(col_index, threshold));
             #endif
             return k;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             int k = 0;
             for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] <= threshold) {
                     indices[k] = row_inds[i];
-                    k += 1;
+                    k++;
                 }
             }
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(k == n_smaller_or_eq_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             return k;
@@ -629,7 +771,7 @@ namespace dbm {
     template<typename T>
     Matrix<T> Matrix<T>::vert_split_l(int col_index, const T &threshold) const {
         int n_larger = n_larger_in_col(col_index, threshold);
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(n_larger > 0);
         #endif
         int larger_indices[n_larger];
@@ -640,7 +782,7 @@ namespace dbm {
     template<typename T>
     Matrix<T> Matrix<T>::vert_split_s(int col_index, const T &threshold) const {
         int n_smaller = n_smaller_or_eq_in_col(col_index, threshold);
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(n_smaller > 0);
         #endif
         int smaller_indices[n_smaller];
@@ -653,38 +795,38 @@ namespace dbm {
                                       int *smaller_inds, int *n_two_inds,
                                       const int *row_inds, int no_rows) const {
 
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             int k = 0, j = 0;
             for (int i = 0; i < height; ++i) {
                 if (data[i][col_index] > threshold) {
                     larger_inds[k] = i;
-                    k += 1;
+                    k++;
                 } else {
                     smaller_inds[j] = i;
-                    j += 1;
+                    j++;
                 }
             }
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(k == n_larger_in_col(col_index, threshold));
             #endif
             n_two_inds[0] = k;
             n_two_inds[1] = j;
 
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             int k = 0, j = 0;
             for (int i = 0; i < no_rows; ++i) {
                 if (data[row_inds[i]][col_index] > threshold) {
                     larger_inds[k] = row_inds[i];
-                    k += 1;
+                    k++;
                 } else {
                     smaller_inds[j] = row_inds[i];
-                    j += 1;
+                    j++;
                 }
             }
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(k == n_larger_in_col(col_index, threshold, row_inds, no_rows));
             #endif
             n_two_inds[0] = k;
@@ -700,21 +842,21 @@ namespace dbm {
 
     template<typename T>
     T Matrix<T>::average_col_for_rows(int col_index, const int *row_inds, int no_rows) const {
-        if (row_inds == NULL) {
+        if (row_inds == nullptr) {
             T result = 0;
             for (int i = 0; i < height; ++i) {
                 result += data[i][col_index];
             }
-            return result / T(height);
+            return result / height;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
             T result = 0;
             for (int i = 0; i < no_rows; ++i) {
                 result += data[row_inds[i]][col_index];
             }
-            return result / T(no_rows);
+            return result / no_rows;
         }
     }
 
@@ -725,25 +867,37 @@ namespace dbm {
                                             const int *row_inds,
                                             int no_rows) const {
         two_average[0] = 0, two_average[1] = 0;
-        if (row_inds == NULL) {
+        int j = 0, k = 0;
+        if (row_inds == nullptr) {
             for (int i = 0; i < height; ++i) {
-                if (data[i][col_index] > threshold)
+                if (data[i][col_index] > threshold) {
                     two_average[0] += data[i][col_index];
-                else
+                    j++;
+                }
+                else {
                     two_average[1] += data[i][col_index];
+                    k++;
+                }
             }
-            two_average[0] /= T(height), two_average[1] /= T(height);
+            two_average[0] /= j, two_average[1] /= k;
         } else {
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
+            j = 0;
+            k = 0;
             for (int i = 0; i < no_rows; ++i) {
-                if (data[row_inds[i]][col_index] > threshold)
+                if (data[row_inds[i]][col_index] > threshold) {
                     two_average[0] += data[row_inds[i]][col_index];
-                else
+                    j++;
+                }
+                else {
                     two_average[1] += data[row_inds[i]][col_index];
+                    k++;
+                }
             }
-            two_average[0] /= T(no_rows), two_average[1] /= T(no_rows);
+            two_average[0] /= j;
+            two_average[1] /= k;
         }
     }
 
@@ -794,7 +948,7 @@ namespace dbm {
         T average = row_average(row_ind),
                 result = 0;
         for(int i = 0; i < width; ++i)
-            result += std::pow(data[row_ind][i] - average, 2.0);
+            result += (data[row_ind][i] - average) * (data[row_ind][i] - average);
 
         return std::sqrt(result / (width - 1));
 
@@ -806,7 +960,7 @@ namespace dbm {
         T average = col_average(col_ind),
                 result = 0;
         for(int i = 0; i < height; ++i)
-            result += std::pow(data[i][col_ind] - average, 2.0);
+            result += (data[i][col_ind] - average) * (data[i][col_ind] - average);
 
         return std::sqrt(result / (height - 1));
 
@@ -823,7 +977,7 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> plus(const Matrix<T> &left, const Matrix<T> &right) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(left.width == right.width && left.height == right.height);
         #endif
         Matrix<T> result(left.height, left.width, 0);
@@ -835,7 +989,7 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> substract(const Matrix<T> &left, const Matrix<T> &right) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(left.width == right.width && left.height == right.height);
         #endif
         Matrix<T> result(left.height, left.width, 0);
@@ -847,7 +1001,7 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> inner_product(const Matrix<T> &left, const Matrix<T> &right) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(left.width == right.height);
         #endif
         Matrix<T> result(left.height, right.width, 0);
@@ -860,7 +1014,7 @@ namespace dbm {
 
     template <typename T>
     T determinant(const Matrix<T> &matrix) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(matrix.width == matrix.height);
         #endif
         if(matrix.width == 1)
@@ -894,13 +1048,13 @@ namespace dbm {
             matrix.print_to_file("matrix_fed_to_inverse.txt");
         }
 
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(matrix.width > 0 && matrix.width == matrix.height &&
                            abs_det > std::numeric_limits<T>::min() * 1e2);
         #endif
         Matrix<T> result(matrix.height, matrix.width, 0);
         if(matrix.width == 1) {
-            result.data[0][0] = 1 / matrix.data[0][0];
+            result.data[0][0] = 1. / matrix.data[0][0];
             return result;
         }
         else if(matrix.width == 2) {
@@ -953,7 +1107,7 @@ namespace dbm {
 
     template <typename T>
     void Matrix<T>::inplace_elewise_prod_mat_with_row_vec(const Matrix<T> &row) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             assert(width == row.width && row.height == 1);
         #endif
         for(int i = 0; i < height; ++i)
@@ -967,23 +1121,23 @@ namespace dbm {
 
     template<typename T>
     Matrix<T> vert_merge(const Matrix<T> &upper, const Matrix<T> &lower) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(upper.width == lower.width);
         #endif
         Matrix<T> result(upper.height + lower.height, upper.width, 0);
         for (int i = 0; i < upper.height; ++i) {
             std::copy(upper.data[i], upper.data[i] + upper.width, result.data[i]);
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.row_labels[i] = upper.row_labels[i];
             #endif
         }
         for (int i = 0; i < lower.height; ++i) {
             std::copy(lower.data[i], lower.data[i] + lower.width, result.data[upper.height + i]);
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.row_labels[upper.height + i] = lower.row_labels[i];
             #endif
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         for (int j = 0; j < upper.width; ++j)
             result.col_labels[j] = upper.col_labels[j];
         #endif
@@ -992,18 +1146,18 @@ namespace dbm {
 
     template<typename T>
     Matrix<T> hori_merge(const Matrix<T> &left, const Matrix<T> &right) {
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(left.height == right.height);
         #endif
         Matrix<T> result(left.height, left.width + right.width, 0);
         for (int i = 0; i < left.height; ++i) {
             std::copy(left.data[i], left.data[i] + left.width, result.data[i]);
             std::copy(right.data[i], right.data[i] + right.width, result.data[i] + left.width);
-            #if _DEBUG_MATRIX
+            #ifdef _DEBUG_MATRIX
             result.row_labels[i] = left.row_labels[i];
             #endif
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         for (int j = 0; j < left.width; ++j)
             result.col_labels[j] = left.col_labels[j];
         for (int j = left.width; j < left.width + right.width; ++j)
@@ -1018,7 +1172,7 @@ namespace dbm {
         for (int i = 0; i < target.height; ++i) {
             std::copy(target.data[i], target.data[i] + target.width, result.data[i]);
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
             std::copy(target.row_labels, target.row_labels + target.height, result.row_labels);
             std::copy(target.col_labels, target.col_labels + target.width, result.col_labels);
         #endif
@@ -1028,14 +1182,14 @@ namespace dbm {
     template<typename T>
     void copy(const Matrix<T> &target, Matrix<T> &to) {
 
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         assert(target.height == to.height && target.width == to.width);
         #endif
 
         for (int i = 0; i < target.height; ++i) {
             std::copy(target.data[i], target.data[i] + target.width, to.data[i]);
         }
-        #if _DEBUG_MATRIX
+        #ifdef _DEBUG_MATRIX
         std::copy(target.row_labels, target.row_labels + target.height, to.row_labels);
         std::copy(target.col_labels, target.col_labels + target.width, to.col_labels);
         #endif

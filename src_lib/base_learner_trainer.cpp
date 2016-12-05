@@ -55,8 +55,8 @@ namespace dbm {
 
     template <typename T>
     Mean_trainer<T>::Mean_trainer(const Params &params) :
-            loss_function(Loss_function<T>(params)),
-            display_training_progress(params.display_training_progress) {};
+            display_training_progress(params.display_training_progress),
+            loss_function(Loss_function<T>(params)) {};
 
     template <typename T>
     Mean_trainer<T>::~Mean_trainer() {}
@@ -83,7 +83,7 @@ namespace dbm {
 
         }
         else {
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0);
             #endif
             mean->mean = loss_function.estimate_mean(ind_delta,
@@ -100,9 +100,9 @@ namespace dbm {
 
     template <typename T>
     Neural_network_trainer<T>::Neural_network_trainer(const Params &params) :
-            step_size(params.step_size),
             batch_size(params.batch_size),
             nn_max_iteration(params.nn_max_iteration),
+            step_size(params.step_size),
             validate_portion(params.validate_portion),
             shrinkage(params.shrinkage),
             no_rise_of_loss_on_validate(params.no_rise_of_loss_on_validate),
@@ -151,7 +151,7 @@ namespace dbm {
 
         if(row_inds == nullptr) {
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
             assert(neural_network->no_predictors == train_x.get_width());
             #endif
 
@@ -269,13 +269,15 @@ namespace dbm {
                 }
             }
 
-            delete validate_row_inds, train_row_inds, seeds;
+            delete[] validate_row_inds;
+            delete[] train_row_inds;
+            delete[] seeds;
             validate_row_inds = nullptr, train_row_inds = nullptr, seeds = nullptr;
 
         }
         else {
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && neural_network->no_predictors == no_cols);
             #endif
 
@@ -397,7 +399,9 @@ namespace dbm {
                 last_mse = mse;
             }
 
-            delete validate_row_inds, train_row_inds, seeds;
+            delete[] validate_row_inds;
+            delete[] train_row_inds;
+            delete[] seeds;
             validate_row_inds = nullptr, train_row_inds = nullptr, seeds = nullptr;
 
         }
@@ -409,7 +413,8 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Splines_trainer<T>::Splines_trainer(const Params &params) {
+    Splines_trainer<T>::Splines_trainer(const Params &params)
+            : regularization(params.regularization) {
 
         no_pairs = params.no_candidate_feature * (params.no_candidate_feature - 1) / 2;
 
@@ -487,7 +492,7 @@ namespace dbm {
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
-                eye.assign(i, i, 0.1);
+                eye.assign(i, i, regularization);
 
             for(int i = 0; i < no_pairs / 3; ++i) {
 
@@ -602,7 +607,7 @@ namespace dbm {
             for(int i = 0; i < no_rows; ++i)
                 w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && no_cols >= splines->no_predictors);
             #endif
 
@@ -631,7 +636,7 @@ namespace dbm {
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
-                eye.assign(i, i, 0.1);
+                eye.assign(i, i, regularization);
 
             for(int i = 0; i < no_pairs / 3; ++i) {
 
@@ -803,7 +808,7 @@ namespace dbm {
         }
         else {
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && no_cols == no_candidate_feature);
             #endif
 
@@ -832,7 +837,7 @@ namespace dbm {
             for(int i = 0; i < no_centroids; ++i)
                 sample_inds_for_each_centroid[i] = nullptr;
 
-            T mse, lowest_mse = std::numeric_limits<T>::max();
+//            T mse, lowest_mse = std::numeric_limits<T>::max();
 
             Matrix<T> prediction(no_centroids, 1, 0);
 
@@ -1043,13 +1048,16 @@ namespace dbm {
 
             }
 
-            delete[] start_prediction,
-                    best_prediction,
-                    sample_inds_for_each_centroid;
+            delete[] start_prediction;
+            delete[] best_prediction;
+            delete[] sample_inds_for_each_centroid;
 
-            for(int i = 0; i < no_centroids; ++i)
-                delete[] start_centroids[i], next_centroids[i];
-            delete[] start_centroids, next_centroids;
+            for(int i = 0; i < no_centroids; ++i) {
+                delete[] start_centroids[i];
+                delete[] next_centroids[i];
+            }
+            delete[] start_centroids;
+            delete[] next_centroids;
 
             delete[] no_samples_in_each_centroid;
 
@@ -1083,7 +1091,7 @@ namespace dbm {
             for(int i = 0; i < height; ++i)
                 w.assign(0, i, ind_delta.get(i, 1));
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(train_x.get_width() == linear_regression->no_predictors);
             #endif
 
@@ -1110,7 +1118,7 @@ namespace dbm {
 
             Matrix<T> coefs = inner_product(left_inversed, right);
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
             #endif
             linear_regression->intercept = coefs.get(0, 0);
@@ -1122,7 +1130,7 @@ namespace dbm {
             for(int i = 0; i < no_rows; ++i)
                 w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && no_cols == linear_regression->no_predictors);
             #endif
 
@@ -1159,7 +1167,7 @@ namespace dbm {
             Matrix<T> coefs = inner_product(left_inversed,
                                             right);
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
             #endif
             linear_regression->intercept = coefs.get(0, 0);
@@ -1187,7 +1195,7 @@ namespace dbm {
                                 const Matrix<T> &train_y,
                                 const Matrix<T> &ind_delta,
                                 const Matrix<T> &prediction,
-                                const int *monotonic_constraints,
+                                const Matrix<T> &monotonic_constraints,
                                 char loss_function_type,
                                 const int *row_inds,
                                 int no_rows,
@@ -1250,7 +1258,7 @@ namespace dbm {
                                                                smaller_inds,
                                                                larger_smaller_n[1]);
 
-                    if ( (larger_beta - smaller_beta) * monotonic_constraints[i] < 0 )
+                    if ( (larger_beta - smaller_beta) * monotonic_constraints.get(i, 0) < 0 )
                         continue;
 
                     loss = loss_function.loss(train_y,
@@ -1310,14 +1318,18 @@ namespace dbm {
                       smaller_inds,
                       larger_smaller_n[1]);
 
-                delete larger_inds, smaller_inds, uniques;
+                delete[] larger_inds;
+                delete[] smaller_inds;
+                delete[] uniques;
                 larger_inds = nullptr;
                 smaller_inds = nullptr;
                 uniques = nullptr;
             }
             else {
                 tree->last_node = true;
-                delete larger_inds, smaller_inds, uniques;
+                delete[] larger_inds;
+                delete[] smaller_inds;
+                delete[] uniques;
                 larger_inds = nullptr;
                 smaller_inds = nullptr;
                 uniques = nullptr;
@@ -1328,7 +1340,7 @@ namespace dbm {
 
             tree->no_training_samples = no_rows;
 
-            #if _DEBUG_BASE_LEARNER_TRAINER
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
             assert(no_rows > 0 && no_cols > 0);
             #endif
 
@@ -1386,7 +1398,7 @@ namespace dbm {
                                                                smaller_inds,
                                                                larger_smaller_n[1]);
 
-                    if ( (larger_beta - smaller_beta) * monotonic_constraints[col_inds[i]] < 0 )
+                    if ( (larger_beta - smaller_beta) * monotonic_constraints.get(col_inds[i], 0) < 0 )
                         continue;
 
                     loss = loss_function.loss(train_y,
@@ -1451,14 +1463,18 @@ namespace dbm {
                       larger_smaller_n[1],
                       col_inds,
                       no_cols);
-                delete larger_inds, smaller_inds, uniques;
+                delete[] larger_inds;
+                delete[] smaller_inds;
+                delete[] uniques;
                 larger_inds = nullptr;
                 smaller_inds = nullptr;
                 uniques = nullptr;
             }
             else {
                 tree->last_node = true;
-                delete larger_inds, smaller_inds, uniques;
+                delete[] larger_inds;
+                delete[] smaller_inds;
+                delete[] uniques;
                 larger_inds = nullptr;
                 smaller_inds = nullptr;
                 uniques = nullptr;
@@ -1472,7 +1488,7 @@ namespace dbm {
     void Tree_trainer<T>::prune(Tree_node<T> *tree) {
 
         if (tree->last_node) return;
-        #if _DEBUG_BASE_LEARNER_TRAINER
+        #ifdef _DEBUG_BASE_LEARNER_TRAINER
             assert(tree->larger != NULL && tree->smaller != NULL);
         #endif
         if (tree->larger->loss > tree->smaller->loss) {

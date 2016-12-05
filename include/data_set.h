@@ -7,9 +7,9 @@
 
 #include "matrix.h"
 
-#ifndef _DEBUG_DATA_SET
-#define _DEBUG_DATA_SET 1
-#endif
+//#ifndef _DEBUG_DATA_SET
+//#define _DEBUG_DATA_SET
+//#endif
 
 namespace dbm {
 
@@ -20,23 +20,23 @@ namespace dbm {
 
         int no_samples, no_features, no_train_samples, no_test_samples;
 
-        Matrix<T> *train_x;
-        Matrix<T> *train_y;
-        Matrix<T> *test_x;
-        Matrix<T> *test_y;
+        Matrix<T> *train_x = nullptr;
+        Matrix<T> *train_y = nullptr;
+        Matrix<T> *test_x = nullptr;
+        Matrix<T> *test_y = nullptr;
 
     public:
         Data_set(const Matrix<T> &data_x, const Matrix<T> &data_y, T test_portion);
 
         ~Data_set();
 
-        const Matrix<T> & get_train_x() const;
+        const Matrix<T> &get_train_x() const;
 
-        const Matrix<T> & get_train_y() const;
+        const Matrix<T> &get_train_y() const;
 
-        const Matrix<T> & get_test_x() const;
+        const Matrix<T> &get_test_x() const;
 
-        const Matrix<T> & get_test_y() const;
+        const Matrix<T> &get_test_y() const;
 
         void shuffle_all();
 

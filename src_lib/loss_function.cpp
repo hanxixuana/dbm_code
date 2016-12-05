@@ -34,7 +34,7 @@ namespace dbm {
                                     int no_rows) const {
         int train_y_width = train_y.get_width(), train_y_height = train_y.get_height();
 
-        #if _DEBUG_LOSS_FUNCTION
+        #ifdef _DEBUG_LOSS_FUNCTION
             assert(train_y_width == 1);
         #endif
 
@@ -156,7 +156,7 @@ namespace dbm {
 
         int ind_delta_width = ind_delta.get_width(), ind_delta_height = ind_delta.get_height();
 
-        #if _DEBUG_LOSS_FUNCTION
+        #ifdef _DEBUG_LOSS_FUNCTION
             assert(ind_delta_width == 2);
         #endif
 
@@ -247,7 +247,7 @@ namespace dbm {
         int lpp_height = in_and_out.get_height(),
                 lpp_width = in_and_out.get_width();
 
-        #if _DEBUG_LOSS_FUNCTION
+        #ifdef _DEBUG_LOSS_FUNCTION
             assert(lpp_width == 1);
         #endif
 
@@ -297,7 +297,7 @@ namespace dbm {
 
             int y_height = train_y.get_height();
 
-            #if _DEBUG_LOSS_FUNCTION
+            #ifdef _DEBUG_LOSS_FUNCTION
                 assert(y_height == prediction.get_height() &&
                                prediction.get_height() == ind_delta.get_height() &&
                                ind_delta.get_width() == 2);
@@ -365,7 +365,7 @@ namespace dbm {
             }
         }
         else {
-            #if _DEBUG_LOSS_FUNCTION
+            #ifdef _DEBUG_LOSS_FUNCTION
                 assert(no_rows > 0);
             #endif
             switch (dist) {

@@ -1,0 +1,1 @@
+-I/home/xixuan/R/x86_64-pc-linux-gnu-library/3.2/Rcpp/include -I/usr/share/R/include

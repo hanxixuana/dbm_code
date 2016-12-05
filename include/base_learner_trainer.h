@@ -5,9 +5,9 @@
 #ifndef DBM_CODE_BASE_LEARNER_TRAINER_H
 #define DBM_CODE_BASE_LEARNER_TRAINER_H
 
-#ifndef _DEBUG_BASE_LEARNER_TRAINER
-#define _DEBUG_BASE_LEARNER_TRAINER 1
-#endif
+//#ifndef _DEBUG_BASE_LEARNER_TRAINER
+//#define _DEBUG_BASE_LEARNER_TRAINER
+//#endif
 
 #include "matrix.h"
 #include "base_learner.h"
@@ -95,6 +95,8 @@ namespace dbm {
 
         int no_pairs;
 
+        double regularization;
+
         int **predictor_pairs_inds;
 
     public:
@@ -150,7 +152,6 @@ namespace dbm {
 
 }
 
-
 // for linear regression
 namespace dbm {
 
@@ -196,7 +197,7 @@ namespace dbm {
                    const Matrix<T> &train_y,
                    const Matrix<T> &ind_delta,
                    const Matrix<T> &prediction,
-                   const int *monotonic_constraints,
+                   const Matrix<T> &monotonic_constraints,
                    char loss_function_type = 'n',
                    const int *row_inds = nullptr,
                    int no_rows = 0,

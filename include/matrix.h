@@ -5,13 +5,13 @@
 #ifndef DBM_CODE_MATRIX_H
 #define DBM_CODE_MATRIX_H
 
-#ifndef _DEBUG_MATRIX
-#define _DEBUG_MATRIX 1
-#endif
+//#ifndef _DEBUG_MATRIX
+//#define _DEBUG_MATRIX
+//#endif
 
-#ifndef _CD_INDICATOR
-#define _CD_INDICATOR 0
-#endif
+//#ifndef _CD_INDICATOR
+//#define _CD_INDICATOR
+//#endif
 
 #include <string>
 
@@ -76,12 +76,18 @@ namespace dbm {
         Matrix(int height, int width, const T &value);
 
         Matrix(int height, int width, std::string file_name, const char &delimiter = '\t');
+	
+		Matrix(const Matrix<T>& rhs);
+	
+		Matrix<T>& operator=(const Matrix<T>& rhs);
 
         ~Matrix();
 
         void print() const;
 
-        void print_to_file(const std::string &file_name) const;
+//        std::string print_to_string() const;
+
+        void print_to_file(const std::string &file_name, const char &delimiter = '\t') const;
 
         //=======================
         // dimensions and ranges
@@ -91,10 +97,12 @@ namespace dbm {
         int get_height() const { return height; }
 
         T get_col_max(int col_index,
-                      const int *row_inds = NULL, int no_rows = 0) const;
+                      const int *row_inds = nullptr, 
+                      int no_rows = 0) const;
 
         T get_col_min(int col_index,
-                      const int *row_inds = NULL, int no_rows = 0) const;
+                      const int *row_inds = nullptr, 
+                      int no_rows = 0) const;
 
         //===============
         // unique values
@@ -102,7 +110,7 @@ namespace dbm {
         // returns the number of unique values
         // sort and put unique values in the beginning of values
         int unique_vals_col(int j, T *values,
-                            const int *row_inds = NULL, int no_rows = 0) const;
+                            const int *row_inds = nullptr, int no_rows = 0) const;
 
         //======
         // clear
@@ -155,20 +163,20 @@ namespace dbm {
         // split into two Matrix<T> according to a col and a threshold
         //=============================================================
         int n_larger_in_col(int col_index, const T &threshold,
-                            const int *row_inds = NULL, int no_rows = 0) const;
+                            const int *row_inds = nullptr, int no_rows = 0) const;
 
         int n_smaller_or_eq_in_col(int col_index, const T &threshold,
-                                   const int *row_inds = NULL, int no_rows = 0) const;
+                                   const int *row_inds = nullptr, int no_rows = 0) const;
 
         int inds_larger_in_col(int col_index, const T &threshold, int *indices,
-                               const int *row_inds = NULL, int no_rows = 0) const;
+                               const int *row_inds = nullptr, int no_rows = 0) const;
 
         int inds_smaller_or_eq_in_col(int col_index, const T &threshold, int *indices,
-                                      const int *row_inds = NULL, int no_rows = 0) const;
+                                      const int *row_inds = nullptr, int no_rows = 0) const;
 
         void inds_split(int col_inds, const T &threshold, int *larger_inds,
                         int *smaller_inds, int *n_two_inds,
-                        const int *row_inds = NULL, int no_rows = 0) const;
+                        const int *row_inds = nullptr, int no_rows = 0) const;
 
         Matrix vert_split_l(int col_index, const T &threshold) const;
 
@@ -177,10 +185,10 @@ namespace dbm {
         //===================================
         // average in a col for certain rows
         //===================================
-        T average_col_for_rows(int col_index, const int *row_inds = NULL, int no_rows = 0) const;
+        T average_col_for_rows(int col_index, const int *row_inds = nullptr, int no_rows = 0) const;
 
         void ul_average_col_for_rows(int col_index, const T &threshold, T *two_average,
-                                     const int *row_inds = NULL, int no_rows = 0) const;
+                                     const int *row_inds = nullptr, int no_rows = 0) const;
 
         //================
         // math operations
