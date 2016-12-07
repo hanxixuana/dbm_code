@@ -164,6 +164,7 @@ namespace dbm {
 
         int no_knots;
         char loss_type;
+        T hinge_coefficient;
 
         int col_inds[no_predictors];
 
@@ -182,7 +183,7 @@ namespace dbm {
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
     public:
-        Splines(int no_knots, char loss_type);
+        Splines(int no_knots, char loss_type, T hinge_coefficient);
         ~Splines();
 
         void predict(const Matrix<T> &data_x,

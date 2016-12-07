@@ -55,7 +55,7 @@ namespace dbm {
 
     template <typename T>
     Mean_trainer<T>::Mean_trainer(const Params &params) :
-            display_training_progress(params.display_training_progress),
+            display_training_progress(params.dbm_display_training_progress),
             loss_function(Loss_function<T>(params)) {};
 
     template <typename T>
@@ -100,12 +100,11 @@ namespace dbm {
 
     template <typename T>
     Neural_network_trainer<T>::Neural_network_trainer(const Params &params) :
-            batch_size(params.batch_size),
+            batch_size(params.nn_batch_size),
             nn_max_iteration(params.nn_max_iteration),
-            step_size(params.step_size),
-            validate_portion(params.validate_portion),
-            shrinkage(params.shrinkage),
-            no_rise_of_loss_on_validate(params.no_rise_of_loss_on_validate),
+            step_size(params.nn_step_size),
+            validate_portion(params.nn_validate_portion),
+            no_rise_of_loss_on_validate(params.nn_no_rise_of_loss_on_validate),
             loss_function(Loss_function<T>(params)) {}
 
     template <typename T>
@@ -289,7 +288,7 @@ namespace dbm {
             Matrix<T> input_delta(neural_network->no_hidden_neurons,
                                                    neural_network->no_predictors + 1, 0);
             // 1 * (no_hidden_neurons + 1)
-            Matrix<T> hidden_delta(1, neural_network->no_predictors + 1, 0);
+            Matrix<T> hidden_delta(1, neural_network->no_hidden_neurons + 1, 0);
 
             for(int i = 0; i < no_cols; ++i)
                 neural_network->col_inds[i] = col_inds[i];
@@ -414,17 +413,17 @@ namespace dbm {
 
     template <typename T>
     Splines_trainer<T>::Splines_trainer(const Params &params)
-            : regularization(params.regularization) {
+            : regularization(params.splines_regularization) {
 
-        no_pairs = params.no_candidate_feature * (params.no_candidate_feature - 1) / 2;
+        no_pairs = params.dbm_no_candidate_feature * (params.dbm_no_candidate_feature - 1) / 2;
 
         predictor_pairs_inds = new int *[no_pairs];
         for(int i = 0; i < no_pairs; ++i) {
             predictor_pairs_inds[i] = new int[2];
         }
 
-        for(int i = 0, count = 0; i < params.no_candidate_feature - 1; ++i)
-            for(int j = i + 1; j < params.no_candidate_feature; ++j) {
+        for(int i = 0, count = 0; i < params.dbm_no_candidate_feature - 1; ++i)
+            for(int j = i + 1; j < params.dbm_no_candidate_feature; ++j) {
                 predictor_pairs_inds[count][0] = i;
                 predictor_pairs_inds[count][1] = j;
                 count += 1;
@@ -760,21 +759,21 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d_trainer<T>::Kmeans2d_trainer(const Params &params) :
-            no_centroids(params.no_centroids),
-            no_candidate_feature(params.no_candidate_feature),
+            no_centroids(params.kmeans_no_centroids),
+            no_candidate_feature(params.dbm_no_candidate_feature),
             kmeans_max_iteration(params.kmeans_max_iteration),
             kmeans_tolerance(params.kmeans_tolerance),
             loss_function(Loss_function<T>(params)) {
 
-        no_pairs = params.no_candidate_feature * (params.no_candidate_feature - 1) / 2;
+        no_pairs = params.dbm_no_candidate_feature * (params.dbm_no_candidate_feature - 1) / 2;
 
         predictor_pairs_inds = new int *[no_pairs];
         for(int i = 0; i < no_pairs; ++i) {
             predictor_pairs_inds[i] = new int[2];
         }
 
-        for(int i = 0, count = 0; i < params.no_candidate_feature - 1; ++i)
-            for(int j = i + 1; j < params.no_candidate_feature; ++j) {
+        for(int i = 0, count = 0; i < params.dbm_no_candidate_feature - 1; ++i)
+            for(int j = i + 1; j < params.dbm_no_candidate_feature; ++j) {
                 predictor_pairs_inds[count][0] = i;
                 predictor_pairs_inds[count][1] = j;
                 count += 1;
@@ -1182,8 +1181,8 @@ namespace dbm {
 
     template<typename T>
     Tree_trainer<T>::Tree_trainer(const Params &params) :
-            max_depth(params.max_depth),
-            no_candidate_split_point(params.no_candidate_split_point),
+            max_depth(params.cart_max_depth),
+            portion_candidate_split_point(params.cart_portion_candidate_split_point),
             loss_function(Loss_function<T>(params)) {};
 
     template<typename T>
@@ -1210,7 +1209,7 @@ namespace dbm {
             tree->no_training_samples = data_height;
 
             tree->prediction = loss_function.estimate_mean(ind_delta, loss_function_type);
-            if (tree->depth == max_depth || no_rows < no_candidate_split_point * 4) {
+            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
                 tree->last_node = true;
                 return;
             }
@@ -1239,8 +1238,10 @@ namespace dbm {
                 shuffle(uniques,
                         no_uniques);
 
-                no_uniques = std::min(no_uniques,
-                                      no_candidate_split_point);
+                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
+                             (int)(no_uniques * portion_candidate_split_point) :
+                             (no_uniques > threshold_using_all_split_point ?
+                              threshold_using_all_split_point : no_uniques);
 
                 for (int j = 0; j < no_uniques; ++j) {
                     train_x.inds_split(i,
@@ -1348,7 +1349,7 @@ namespace dbm {
                                                            loss_function_type,
                                                            row_inds,
                                                            no_rows);
-            if (tree->depth == max_depth || no_rows < no_candidate_split_point * 4) {
+            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
                 tree->last_node = true;
                 return;
             }
@@ -1378,8 +1379,11 @@ namespace dbm {
                                      no_uniques);
                 shuffle(uniques,
                         no_uniques);
-                no_uniques = std::min(no_uniques,
-                                      no_candidate_split_point);
+
+                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
+                             (int)(no_uniques * portion_candidate_split_point) :
+                             (no_uniques > threshold_using_all_split_point ?
+                              threshold_using_all_split_point : no_uniques);
 
                 for (int j = 0; j < no_uniques; ++j) {
                     train_x.inds_split(col_inds[i],

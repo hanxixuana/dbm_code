@@ -25,7 +25,7 @@ int main() {
 
 void prepare_data() {
     string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name, 10000, 30, 'b');
+    dbm::make_data<float>(file_name, 10000, 30, 'p');
 }
 
 void train_test_save_load_dbm() {
@@ -49,10 +49,10 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "no_bunches_of_learners 21 no_cores 0 loss_function b "
-            "no_train_sample 5000 no_candidate_feature 5 shrinkage 0.25 "
-            "portion_for_trees 0.2 portion_for_lr 0.2 portion_for_s 0.2 "
-            "portion_for_k 0.2 portion_for_nn 0.2";
+    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 0 dbm_loss_function p "
+            "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
+            "dbm_portion_for_trees 0 dbm_portion_for_lr 0 dbm_portion_for_s 0 "
+            "dbm_portion_for_k 0 dbm_portion_for_nn 1";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 
@@ -131,14 +131,14 @@ void train_test_save_load_nn() {
 
     dbm::Params params = dbm::set_params("no_candidate_feature 5 no_hidden_neurons 5 loss_function b");
 
-    dbm::Neural_network<float> *nn = new dbm::Neural_network<float>(params.no_candidate_feature,
-                                                                    params.no_hidden_neurons,
-                                                                    params.loss_function);
+    dbm::Neural_network<float> *nn = new dbm::Neural_network<float>(params.dbm_no_candidate_feature,
+                                                                    params.nn_no_hidden_neurons,
+                                                                    params.dbm_loss_function);
     dbm::Neural_network_trainer<float> trainer(params);
 
     dbm::Loss_function<float> loss_function(params);
     loss_function.calculate_ind_delta(train_y, prediction,
-                                      ind_delta, params.loss_function, row_inds, n_samples);
+                                      ind_delta, params.dbm_loss_function, row_inds, n_samples);
 
     {
         dbm::Time_measurer time_measurer;
@@ -147,7 +147,7 @@ void train_test_save_load_nn() {
 
     nn->predict(train_x, prediction);
 
-    loss_function.mean_function(prediction, params.loss_function);
+    loss_function.mean_function(prediction, params.dbm_loss_function);
     dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
     result.print_to_file("result.txt");
 

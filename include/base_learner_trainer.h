@@ -53,7 +53,6 @@ namespace dbm {
         int nn_max_iteration;
         T step_size;
         double validate_portion;
-        T shrinkage;
         int no_rise_of_loss_on_validate;
 
         Loss_function<T> loss_function;
@@ -183,8 +182,12 @@ namespace dbm {
     class Tree_trainer {
 
     private:
+
+        const int threshold_using_all_split_point = 10;
+        const int min_samples_in_a_node = 20;
+
         int max_depth;
-        int no_candidate_split_point;
+        T portion_candidate_split_point;
 
         Loss_function<T> loss_function;
 

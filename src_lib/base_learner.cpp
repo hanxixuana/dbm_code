@@ -311,30 +311,32 @@ namespace dbm {
 
     template <typename T>
     inline T Splines<T>::x_left_hinge(T &x, T &y, T &knot) {
-        return std::max(T(0), knot - x);
+        return std::max(T(0), hinge_coefficient * (knot - x));
     }
 
     template <typename T>
     inline T Splines<T>::x_right_hinge(T &x, T &y, T &knot) {
-        return std::max(T(0), x - knot);
+        return std::max(T(0), hinge_coefficient * (x - knot));
     }
 
     template <typename T>
     inline T Splines<T>::y_left_hinge(T &x, T &y, T &knot) {
-        return std::max(T(0), knot - y);
+        return std::max(T(0), hinge_coefficient * (knot - y));
     }
 
     template <typename T>
     inline T Splines<T>::y_right_hinge(T &x, T &y, T &knot) {
-        return std::max(T(0), y - knot);
+        return std::max(T(0), hinge_coefficient * (y - knot));
     }
 
     template <typename T>
     Splines<T>::Splines(int no_knots,
-                        char loss_type) :
+                        char loss_type,
+                        T hinge_coefficient) :
             Base_learner<T>('s'),
             no_knots(no_knots),
-            loss_type(loss_type){
+            loss_type(loss_type),
+            hinge_coefficient(hinge_coefficient){
 
         x_knots = new T[no_knots];
 
@@ -797,7 +799,9 @@ namespace dbm {
                       std::ofstream &out) {
 
         out << splines->no_knots << ' '
-            << splines->loss_type << std::endl;
+            << splines->loss_type << ' '
+            << splines->hinge_coefficient << ' '
+            << std::endl;
 
         for(int i = 0; i < splines->no_predictors; ++i)
             out << splines->col_inds[i] << ' ';
@@ -835,10 +839,11 @@ namespace dbm {
         std::getline(in, line);
         int count = split_into_words(line, words);
         #ifdef _DEBUG_BASE_LEARNER
-            assert(count == 2);
+            assert(count == 3);
         #endif
         splines = new Splines<T>(std::stoi(words[0]),
-                                 words[1].front());
+                                 words[1].front(),
+                                 std::stod(words[2]));
 
         line.clear();
         std::getline(in, line);

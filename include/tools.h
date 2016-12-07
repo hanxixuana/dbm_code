@@ -21,57 +21,58 @@ namespace dbm {
     struct Params {
 
         // DBM
-        int no_bunches_of_learners = 101;
-        int no_candidate_feature = 5;
-        int no_train_sample = 5000;
+        int dbm_no_bunches_of_learners = 101;
+        int dbm_no_candidate_feature = 5;
+        double dbm_portion_train_sample = 0.75;
 
-        int no_cores = 0;
+        int dbm_no_cores = 0;
 
-        char loss_function = 'n';
+        char dbm_loss_function = 'n';
 
-        bool display_training_progress = true;
-        bool record_every_tree = true;
-        int freq_showing_loss_on_test = 10;
+        bool dbm_display_training_progress = true;
+        bool dbm_record_every_tree = true;
+        int dbm_freq_showing_loss_on_test = 10;
 
-        double shrinkage = 0.25;
+        double dbm_shrinkage = 0.25;
 
         // portions should be summed to 1
-        double portion_for_trees = 0.2;
-        double portion_for_lr = 0.2;
-        double portion_for_s = 0.2;
-        double portion_for_k = 0.2;
-        double portion_for_nn = 0.2;
+        double dbm_portion_for_trees = 0.2;
+        double dbm_portion_for_lr = 0.2;
+        double dbm_portion_for_s = 0.2;
+        double dbm_portion_for_k = 0.2;
+        double dbm_portion_for_nn = 0.2;
 
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
 
         // splines
-        int no_knot = 5;
-        double regularization = 0.1;
+        int splines_no_knot = 5;
+        double splines_regularization = 0.1;
+        double splines_hinge_coefficient = 2;
 
         // kmeans
-        int no_centroids = 15;
+        int kmeans_no_centroids = 15;
         int kmeans_max_iteration = 50;
         double kmeans_tolerance = 1e-2;
 
         // neural networks
-        int no_hidden_neurons = 5;
-        double step_size = 0.01;
-        double validate_portion = 0.25;
-        int batch_size = 100;
+        int nn_no_hidden_neurons = 10;
+        double nn_step_size = 0.1;
+        double nn_validate_portion = 0.25;
+        int nn_batch_size = 100;
         int nn_max_iteration = 100;
-        int no_rise_of_loss_on_validate = 20;
+        int nn_no_rise_of_loss_on_validate = 20;
 
         // CART
-        int max_depth = 5;
-        int no_candidate_split_point = 5;
+        int cart_max_depth = 5;
+        double cart_portion_candidate_split_point = 0.05;
 
         // partial dependence plot
-        int no_x_ticks = 10;
-        int no_resamplings = 3;
-        double resampling_portion = 0.1;
-        double ci_bandwidth = 4;
-        int save_files = 1;
+        int pdp_no_x_ticks = 10;
+        int pdp_no_resamplings = 3;
+        double pdp_resampling_portion = 0.1;
+        double pdp_ci_bandwidth = 4;
+        int pdp_save_files = 1;
 
     };
 

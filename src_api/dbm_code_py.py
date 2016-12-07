@@ -104,6 +104,11 @@ class Params(object):
     def set_params(self, string, sep = ' '):
         self.params = dbm.set_params(string, sep)
 
+    def print_all(self):
+        attrs = [attr for attr in dir(self.params) if not callable(attr) and not attr.startswith("__")]
+        for attr in attrs:
+            print("%s = %s" % (attr, getattr(self.params, attr)))
+
 class DBM(object):
 
     def __init__(self, params):

@@ -1,27 +1,30 @@
 #!/usr/bin/env python
 
-import numpy as np
 import os
 import pandas as pd
 import sys
 
-sys.path.append(os.getcwd() + "/api")
+import numpy as np
+
+sys.path.append(os.getcwd())
 
 import dbm_py.dbm_py as dbm
 
-x = dbm.Matrix(5000, 10)
+x = dbm.Matrix(50000, 10)
 x_nd_array = dbm.float_matrix_to_np2darray(x)
 y_nd_array = x_nd_array[:, 0] ** 2 / 2  - \
              x_nd_array[:, 3] * 2 * np.exp(x_nd_array[:, 6] / 10) + \
-             x_nd_array[:, 8] / 2 + \
-             np.random.randn(5000)
+             4 * np.cos(x_nd_array[:, 8] / 2) * np.exp(x_nd_array[:, 5] / 2) + \
+             1.5 * np.random.randn(50000)
+y_nd_array = np.round(np.abs(y_nd_array))
 
 y = dbm.np2darray_to_float_matrix(y_nd_array[:, np.newaxis])
 
 c = dbm.Data_set(x, y, 0.2)
 train_x = c.get_train_x()
 
-s = 'no_bunches_of_learners 41 no_train_sample 3500 no_cores 0 shrinkage 0.04'
+s = 'dbm_no_bunches_of_learners 41 dbm_portion_train_sample 0.85 dbm_no_cores 0 dbm_shrinkage 0.1 ' \
+    'cart_portion_candidate_split_point 0.001 dbm_no_candidate_feature 5 dbm_loss_function p'
 
 params = dbm.Params()
 params.set_params(s)

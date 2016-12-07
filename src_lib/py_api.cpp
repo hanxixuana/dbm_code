@@ -54,79 +54,79 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             ;
 
     class_<dbm::Params>("Params")
-            .def_readwrite("no_bunches_of_learners",
-                           &dbm::Params::no_bunches_of_learners)
-            .def_readwrite("no_candidate_feature",
-                           &dbm::Params::no_candidate_feature)
-            .def_readwrite("no_train_sample",
-                           &dbm::Params::no_train_sample)
-            .def_readwrite("no_cores",
-                           &dbm::Params::no_cores)
-            .def_readwrite("loss_function",
-                           &dbm::Params::loss_function)
-            .def_readwrite("display_training_progress",
-                           &dbm::Params::display_training_progress)
-            .def_readwrite("record_every_tree",
-                           &dbm::Params::record_every_tree)
-            .def_readwrite("freq_showing_loss_on_test",
-                           &dbm::Params::freq_showing_loss_on_test)
-            .def_readwrite("shrinkage",
-                           &dbm::Params::shrinkage)
+            .def_readwrite("dbm_no_bunches_of_learners",
+                           &dbm::Params::dbm_no_bunches_of_learners)
+            .def_readwrite("dbm_no_candidate_feature",
+                           &dbm::Params::dbm_no_candidate_feature)
+            .def_readwrite("dbm_portion_train_sample",
+                           &dbm::Params::dbm_portion_train_sample)
+            .def_readwrite("dbm_no_cores",
+                           &dbm::Params::dbm_no_cores)
+            .def_readwrite("dbm_loss_function",
+                           &dbm::Params::dbm_loss_function)
+            .def_readwrite("dbm_display_training_progress",
+                           &dbm::Params::dbm_display_training_progress)
+            .def_readwrite("dbm_record_every_tree",
+                           &dbm::Params::dbm_record_every_tree)
+            .def_readwrite("dbm_freq_showing_loss_on_test",
+                           &dbm::Params::dbm_freq_showing_loss_on_test)
+            .def_readwrite("dbm_shrinkage",
+                           &dbm::Params::dbm_shrinkage)
 
-            .def_readwrite("portion_for_trees",
-                           &dbm::Params::portion_for_trees)
-            .def_readwrite("portion_for_lr",
-                           &dbm::Params::portion_for_lr)
-            .def_readwrite("portion_for_s",
-                           &dbm::Params::portion_for_s)
-            .def_readwrite("portion_for_k",
-                           &dbm::Params::portion_for_k)
-            .def_readwrite("portion_for_nn",
-                           &dbm::Params::portion_for_nn)
+            .def_readwrite("dbm_portion_for_trees",
+                           &dbm::Params::dbm_portion_for_trees)
+            .def_readwrite("dbm_portion_for_lr",
+                           &dbm::Params::dbm_portion_for_lr)
+            .def_readwrite("dbm_portion_for_s",
+                           &dbm::Params::dbm_portion_for_s)
+            .def_readwrite("dbm_portion_for_k",
+                           &dbm::Params::dbm_portion_for_k)
+            .def_readwrite("dbm_portion_for_nn",
+                           &dbm::Params::dbm_portion_for_nn)
 
             .def_readwrite("tweedie_p",
                            &dbm::Params::tweedie_p)
 
-            .def_readwrite("no_knot",
-                           &dbm::Params::no_knot)
-            .def_readwrite("regularization",
-                           &dbm::Params::regularization)
+            .def_readwrite("splines_no_knot",
+                           &dbm::Params::splines_no_knot)
+            .def_readwrite("splines_regularization",
+                           &dbm::Params::splines_regularization)
 
-            .def_readwrite("no_centroids",
-                           &dbm::Params::no_centroids)
+            .def_readwrite("kmeans_no_centroids",
+                           &dbm::Params::kmeans_no_centroids)
             .def_readwrite("kmeans_max_iteration",
                            &dbm::Params::kmeans_max_iteration)
             .def_readwrite("kmeans_tolerance",
                            &dbm::Params::kmeans_tolerance)
 
-            .def_readwrite("no_hidden_neurons",
-                           &dbm::Params::no_hidden_neurons)
-            .def_readwrite("step_size",
-                           &dbm::Params::step_size)
-            .def_readwrite("validate_portion",
-                           &dbm::Params::validate_portion)
-            .def_readwrite("batch_size",
-                           &dbm::Params::batch_size)
+            .def_readwrite("nn_no_hidden_neurons",
+                           &dbm::Params::nn_no_hidden_neurons)
+            .def_readwrite("nn_step_size",
+                           &dbm::Params::nn_step_size)
+            .def_readwrite("nn_validate_portion",
+                           &dbm::Params::nn_validate_portion)
+            .def_readwrite("nn_batch_size",
+                           &dbm::Params::nn_batch_size)
             .def_readwrite("nn_max_iteration",
                            &dbm::Params::nn_max_iteration)
-            .def_readwrite("no_rise_of_loss_on_validate",
-                           &dbm::Params::no_rise_of_loss_on_validate)
+            .def_readwrite("nn_no_rise_of_loss_on_validate",
+                           &dbm::Params::nn_no_rise_of_loss_on_validate)
 
-            .def_readwrite("max_depth",
-                           &dbm::Params::max_depth)
-            .def_readwrite("no_candidate_split_point",
-                           &dbm::Params::no_candidate_split_point)
+            .def_readwrite("cart_max_depth",
+                           &dbm::Params::cart_max_depth)
+            .def_readwrite("cart_portion_candidate_split_point",
+                           &dbm::Params::cart_portion_candidate_split_point)
 
-            .def_readwrite("no_x_ticks",
-                           &dbm::Params::no_x_ticks)
-            .def_readwrite("no_resamplings",
-                           &dbm::Params::no_resamplings)
-            .def_readwrite("resampling_portion",
-                           &dbm::Params::resampling_portion)
-            .def_readwrite("ci_bandwidth",
-                           &dbm::Params::ci_bandwidth)
-            .def_readwrite("save_files",
-                           &dbm::Params::save_files)
+            .def_readwrite("pdp_no_x_ticks",
+                           &dbm::Params::pdp_no_x_ticks)
+            .def_readwrite("pdp_no_resamplings",
+                           &dbm::Params::pdp_no_resamplings)
+            .def_readwrite("pdp_resampling_portion",
+                           &dbm::Params::pdp_resampling_portion)
+            .def_readwrite("pdp_ci_bandwidth",
+                           &dbm::Params::pdp_ci_bandwidth)
+            .def_readwrite("pdp_save_files",
+                           &dbm::Params::pdp_save_files)
             ;
 
     def("set_params", &dbm::set_params);

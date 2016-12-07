@@ -209,86 +209,88 @@ namespace dbm {
         for (int i = 0; i < count / 2; ++i) {
 
             // DBM
-            if (words[2 * i] == "no_bunches_of_learners")
-                params.no_bunches_of_learners = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "no_candidate_feature")
-                params.no_candidate_feature = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "no_train_sample")
-                params.no_train_sample = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "no_cores")
-                params.no_cores = std::stoi(words[2 * i + 1]);
+            if (words[2 * i] == "dbm_no_bunches_of_learners")
+                params.dbm_no_bunches_of_learners = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_no_candidate_feature")
+                params.dbm_no_candidate_feature = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_train_sample")
+                params.dbm_portion_train_sample = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_no_cores")
+                params.dbm_no_cores = std::stoi(words[2 * i + 1]);
 
-            else if (words[2 * i] == "loss_function")
-                params.loss_function = words[2 * i + 1].front();
+            else if (words[2 * i] == "dbm_loss_function")
+                params.dbm_loss_function = words[2 * i + 1].front();
 
-            else if (words[2 * i] == "display_training_progress")
-                params.display_training_progress = std::stoi(words[2 * i + 1]) > 0;
-            else if (words[2 * i] == "record_every_tree")
-                params.record_every_tree = std::stoi(words[2 * i + 1]) > 0;
-            else if (words[2 * i] == "freq_showing_loss_on_test")
-                params.freq_showing_loss_on_test = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_display_training_progress")
+                params.dbm_display_training_progress = std::stoi(words[2 * i + 1]) > 0;
+            else if (words[2 * i] == "dbm_record_every_tree")
+                params.dbm_record_every_tree = std::stoi(words[2 * i + 1]) > 0;
+            else if (words[2 * i] == "dbm_freq_showing_loss_on_test")
+                params.dbm_freq_showing_loss_on_test = std::stoi(words[2 * i + 1]);
 
-            else if (words[2 * i] == "shrinkage")
-                params.shrinkage = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_shrinkage")
+                params.dbm_shrinkage = std::stod(words[2 * i + 1]);
 
-            else if (words[2 * i] == "portion_for_trees")
-                params.portion_for_trees = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "portion_for_lr")
-                params.portion_for_lr = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "portion_for_nn")
-                params.portion_for_nn = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "portion_for_s")
-                params.portion_for_s = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "portion_for_k")
-                params.portion_for_k = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_trees")
+                params.dbm_portion_for_trees = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_lr")
+                params.dbm_portion_for_lr = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_nn")
+                params.dbm_portion_for_nn = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_s")
+                params.dbm_portion_for_s = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_k")
+                params.dbm_portion_for_k = std::stod(words[2 * i + 1]);
 
             // tweedie
             else if (words[2 * i] == "tweedie_p")
                 params.tweedie_p = std::stod(words[2 * i + 1]);
 
             // splines
-            else if (words[2 * i] == "no_knot")
-                params.no_knot = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "regularization")
-                params.regularization = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "splines_no_knot")
+                params.splines_no_knot = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "splines_regularization")
+                params.splines_regularization = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "splines_hinge_coefficient")
+                params.splines_hinge_coefficient = std::stod(words[2 * i + 1]);
 
             // kmeans
-            else if (words[2 * i] == "no_centroids")
-                params.no_centroids = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "kmeans_no_centroids")
+                params.kmeans_no_centroids = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "kmeans_max_iteration")
                 params.kmeans_max_iteration = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "kmeans_tolerance")
                 params.kmeans_tolerance = std::stod(words[2 * i + 1]);
 
             // neural networks
-            else if (words[2 * i] == "no_hidden_neurons")
-                params.no_hidden_neurons = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "step_size")
-                params.step_size = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "validate_portion")
-                params.validate_portion = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "batch_size")
-                params.batch_size = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "nn_no_hidden_neurons")
+                params.nn_no_hidden_neurons = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "nn_step_size")
+                params.nn_step_size = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "nn_validate_portion")
+                params.nn_validate_portion = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "nn_batch_size")
+                params.nn_batch_size = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "nn_max_iteration")
                 params.nn_max_iteration = std::stoi(words[2 * i + 1]);
 
             // CART
-            else if (words[2 * i] == "max_depth")
-                params.max_depth = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "no_candidate_split_point")
-                params.no_candidate_split_point = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "cart_max_depth")
+                params.cart_max_depth = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "cart_portion_candidate_split_point")
+                params.cart_portion_candidate_split_point = std::stod(words[2 * i + 1]);
 
             // partial dependence plot
-            else if (words[2 * i] == "no_x_ticks")
-                params.no_x_ticks = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "no_resamplings")
-                params.no_resamplings = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "resampling_portion")
-                params.resampling_portion = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "ci_bandwidth")
-                params.ci_bandwidth = std::stod(words[2 * i + 1]);
-            else if (words[2 * i] == "save_files")
-                params.save_files = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "pdp_no_x_ticks")
+                params.pdp_no_x_ticks = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "pdp_no_resamplings")
+                params.pdp_no_resamplings = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "pdp_resampling_portion")
+                params.pdp_resampling_portion = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "pdp_ci_bandwidth")
+                params.pdp_ci_bandwidth = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "pdp_save_files")
+                params.pdp_save_files = std::stoi(words[2 * i + 1]);
 
             // throw an exception
             else {

@@ -144,6 +144,7 @@ TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
 #     Copy     #
 ################
 
+# for python
 configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
         "${CMAKE_HOME_DIRECTORY}/api/dbm_py/dbm_py.py"
         COPYONLY)
@@ -156,6 +157,19 @@ configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.py"
         "${CMAKE_HOME_DIRECTORY}/api/main_test.py"
         COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/src_lib/r_api.cpp"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/_dbm_code_r.cpp"
+# for r
+configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
+        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
         COPYONLY)
+
+configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_r.R"
+        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_r.R"
+        COPYONLY)
+
+configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.R"
+        "${CMAKE_HOME_DIRECTORY}/api/main_test.R"
+        COPYONLY)
+
+add_custom_command(TARGET _dbm_code_py
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_code_py> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)

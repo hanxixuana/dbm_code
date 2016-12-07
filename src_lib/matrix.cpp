@@ -356,11 +356,13 @@ namespace dbm {
         std::ofstream file(file_name.c_str());
 
         #ifdef _DEBUG_MATRIX
-        file << "s_f" << delimiter;
-        int i = 0;
-        for (; i < width - 1; ++i)
-            file << col_labels[i] << delimiter;
-        file << col_labels[i] << std::endl;
+            file << "s_f" << delimiter;
+            int i = 0;
+            for (; i < width - 1; ++i)
+                file << col_labels[i] << delimiter;
+            file << col_labels[i] << std::endl;
+        #else
+            int i = 0;
         #endif
 
         for (i = 0; i < height; ++i) {
@@ -977,6 +979,14 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> plus(const Matrix<T> &left, const Matrix<T> &right) {
+
+        if(!(left.width == right.width && left.height == right.height)) {
+            left.print_to_file("left.txt");
+            right.print_to_file("right.txt");
+            std::cout << left.height << ' ' << right.height << std::endl;
+            std::cout << left.width << ' ' << right.width << std::endl;
+        }
+
         #ifdef _DEBUG_MATRIX
             assert(left.width == right.width && left.height == right.height);
         #endif
@@ -1042,11 +1052,11 @@ namespace dbm {
 
         T abs_det = std::abs(determinant(matrix));
 
-        if(std::isnan(abs_det) || std::isinf(abs_det) || abs_det < std::numeric_limits<T>::min() * 1e2) {
-            std::cout << "The matrix has problems and is saved!"
-                      << std::endl;
-            matrix.print_to_file("matrix_fed_to_inverse.txt");
-        }
+//        if(std::isnan(abs_det) || std::isinf(abs_det) || abs_det < std::numeric_limits<T>::min() * 1e2) {
+//            std::cout << "The matrix has problems and is saved!"
+//                      << std::endl;
+//            matrix.print_to_file("matrix_fed_to_inverse.txt");
+//        }
 
         #ifdef _DEBUG_MATRIX
             assert(matrix.width > 0 && matrix.width == matrix.height &&
