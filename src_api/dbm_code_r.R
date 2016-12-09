@@ -1,7 +1,9 @@
 library(rPython)
 
 python.exec('import sys; import os')
+
 python.exec('sys.path.append(os.getcwd())')
+python.exec('sys.path.append(os.getcwd() + \'/dbm_r\')')
 
 python.exec('import dbm_py as dbm')
 

@@ -157,6 +157,7 @@ namespace dbm {
     template<typename T>
     class Linear_regression_trainer {
     private:
+        T regularization;
 
     public:
         Linear_regression_trainer(const Params &params);

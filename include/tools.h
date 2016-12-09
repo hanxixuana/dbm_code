@@ -42,6 +42,9 @@ namespace dbm {
         double dbm_portion_for_k = 0.2;
         double dbm_portion_for_nn = 0.2;
 
+        double dbm_accumulated_portion_shrinkage_for_selected_bl = 1.05;
+        double dbm_portion_shrinkage_for_unselected_bl = 3;
+
         // tweedie: p should in (1, 2)
         double tweedie_p = 1.6;
 
@@ -66,6 +69,9 @@ namespace dbm {
         // CART
         int cart_max_depth = 5;
         double cart_portion_candidate_split_point = 0.05;
+
+        // linear regression
+        double lr_regularization = 0.1;
 
         // partial dependence plot
         int pdp_no_x_ticks = 10;

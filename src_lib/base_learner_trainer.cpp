@@ -259,10 +259,10 @@ namespace dbm {
                 if(mse > last_mse) {
                     count_to_break += 1;
                     if(count_to_break > no_rise_of_loss_on_validate) {
-                        std::cout << "Training of "
-                                  << neural_network
-                                  << " was early stoped!"
-                                  << std::endl;
+//                        std::cout << "Training of "
+//                                  << neural_network
+//                                  << " was early stoped!"
+//                                  << std::endl;
                         break;
                     }
                 }
@@ -313,9 +313,8 @@ namespace dbm {
                 train_row_inds[i - no_validate] = row_inds[i];
 
             int no_batch = no_train / batch_size, row_index, count_to_break = 0;
-            T last_mse = std::numeric_limits<T>::max(),
-                    mse,
-                    first_mse;
+            T last_mse = std::numeric_limits<T>::max(), mse;
+//            T first_mse;
 
             for(int i = 0; i < nn_max_iteration; ++i) {
                 shuffle(train_row_inds,
@@ -380,18 +379,18 @@ namespace dbm {
 
 //                std::cout << "( " << i << " ) MSE: "<< mse << std::endl;
 
-                if(i == 0)
-                    first_mse = mse;
+//                if(i == 0)
+//                    first_mse = mse;
 
                 if(mse > last_mse) {
                     count_to_break += 1;
                     if(count_to_break > no_rise_of_loss_on_validate) {
-                        std::cout << "Training of Neural Network at " << neural_network
-                                  << " was early stoped after " << i << "/" << nn_max_iteration
-                                  << " iterations with starting MSE: " << first_mse
-                                  << " and ending MSE: " << mse
-                                  << " !"
-                                  << std::endl;
+//                        std::cout << "Training of Neural Network at " << neural_network
+//                                  << " was early stoped after " << i << "/" << nn_max_iteration
+//                                  << " iterations with starting MSE: " << first_mse
+//                                  << " and ending MSE: " << mse
+//                                  << " !"
+//                                  << std::endl;
                         break;
                     }
                 }
@@ -486,8 +485,13 @@ namespace dbm {
             int no_splines = splines->no_knots * 4;
 
             Matrix<T> lowest_mse_coefs(no_splines, 1, 0);
-            Matrix<T> design_matrix(data_height, no_splines, 0);
-            Matrix<T> left_in_left(no_splines, no_rows, 0);
+            Matrix<T> design_matrix(no_rows, no_splines, 0);
+            Matrix<T> left_in_left;
+            Matrix<T> left;
+            int y_ind[] = {0}, no_y_ind = 1;
+            Matrix<T> Y;
+            Matrix<T> coefs;
+
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
@@ -527,18 +531,17 @@ namespace dbm {
                     }
                 }
 
-                copy(transpose(design_matrix), left_in_left);
+                left_in_left = transpose(design_matrix);
                 left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-                Matrix<T> left = inner_product(left_in_left, design_matrix);
-                Matrix<T> left_inversed = inverse(plus(left, eye));
+                left = inner_product(left_in_left, design_matrix);
+                left = inverse(plus(left, eye));
 
-                int no_y_ind = 1;
-                Matrix<T> Y = ind_delta.col(no_y_ind);
-                Matrix<T> right = inner_product(left_in_left,
-                                                Y);
+                Y = ind_delta.submatrix(row_inds,
+                                        no_rows,
+                                        y_ind,
+                                        no_y_ind);
 
-                Matrix<T> coefs = inner_product(left_inversed,
-                                                right);
+                coefs = inner_product(left, inner_product(left_in_left, Y));
 
 
                 // check this part, should I use predict_for_row?
@@ -631,7 +634,12 @@ namespace dbm {
 
             Matrix<T> lowest_mse_coefs(no_splines, 1, 0);
             Matrix<T> design_matrix(no_rows, no_splines, 0);
-            Matrix<T> left_in_left(no_splines, no_rows, 0);
+            Matrix<T> left_in_left;
+            Matrix<T> left;
+            int y_ind[] = {0}, no_y_ind = 1;
+            Matrix<T> Y;
+            Matrix<T> coefs;
+
             Matrix<T> eye(no_splines, no_splines, 0);
 
             for(int i = 0; i < no_splines; ++i)
@@ -671,23 +679,17 @@ namespace dbm {
                     }
                 }
 
-                copy(transpose(design_matrix),
-                     left_in_left);
+                left_in_left = transpose(design_matrix);
                 left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-                Matrix<T> left = inner_product(left_in_left,
-                                               design_matrix);
-                Matrix<T> left_inversed = inverse(plus(left, eye));
+                left = inner_product(left_in_left, design_matrix);
+                left = inverse(plus(left, eye));
 
-                int y_ind[] = {0}, no_y_ind = 1;
-                Matrix<T> Y = ind_delta.submatrix(row_inds,
-                                                  no_rows,
-                                                  y_ind,
-                                                  no_y_ind);
-                Matrix<T> right = inner_product(left_in_left,
-                                                Y);
+                Y = ind_delta.submatrix(row_inds,
+                                        no_rows,
+                                        y_ind,
+                                        no_y_ind);
 
-                Matrix<T> coefs = inner_product(left_inversed,
-                                                right);
+                coefs = inner_product(left, inner_product(left_in_left, Y));
 
 
                 // check this part, should I use predict_for_row?
@@ -802,7 +804,251 @@ namespace dbm {
 
         if(row_inds == nullptr) {
 
+            int height = train_x.get_height();
 
+            T **start_centroids = new T*[no_centroids],
+                    *start_prediction = new T[no_centroids],
+                    **next_centroids = new T*[no_centroids],
+                    *best_prediction = new T[no_centroids];
+
+            for(int i = 0; i < no_centroids; ++i) {
+                start_centroids[i] = new T[kmeans2d->no_predictors];
+                next_centroids[i] = new T[kmeans2d->no_predictors];
+            }
+
+            int *no_samples_in_each_centroid = new int[no_centroids],
+                    predictor_col_inds[kmeans2d->no_predictors];
+
+            int closest_centroid_ind = 0;
+
+            T feature_mins[kmeans2d->no_predictors],
+                    feature_maxes[kmeans2d->no_predictors];
+
+            T dist, lowest_dist, standard_dev,
+                    largest_standard_dev = std::numeric_limits<T>::min();
+
+            int **sample_inds_for_each_centroid = new int*[no_centroids];
+            for(int i = 0; i < no_centroids; ++i)
+                sample_inds_for_each_centroid[i] = nullptr;
+
+            Matrix<T> prediction(no_centroids, 1, 0);
+
+            T denominator_in_prediction;
+
+            for(int l = 0; l < no_pairs / 3; ++l) {
+
+                for(int i = 0; i < kmeans2d->no_predictors; ++i) {
+
+                    predictor_col_inds[i] = col_inds[ predictor_pairs_inds[l][i] ];
+
+                    feature_mins[i] = train_x.get_col_min(col_inds[i]);
+                    feature_maxes[i] = train_x.get_col_max(col_inds[i]);
+
+                }
+
+                std::srand((unsigned int)
+                                   std::chrono::duration_cast< std::chrono::milliseconds >
+                                           (std::chrono::system_clock::now().time_since_epoch()).count() );
+
+                for(int i = 0; i < no_centroids; ++i)
+                    for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                        start_centroids[i][j] =
+                                std::rand() / double(RAND_MAX) *
+                                (feature_maxes[j] - feature_mins[j]) + feature_mins[j];
+
+                    }
+
+                for(int iter = 0; iter < kmeans_max_iteration; ++iter) {
+
+                    for(int i = 0; i < no_centroids; ++i) {
+
+                        no_samples_in_each_centroid[i] = 0;
+
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                            next_centroids[i][j] = 0;
+
+                        }
+                    }
+
+                    for(int i = 0; i < height; ++i) {
+
+                        lowest_dist = std::numeric_limits<T>::max();
+
+                        for(int j = 0; j < no_centroids; ++j) {
+
+                            dist = 0;
+
+                            for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                                dist += std::pow(start_centroids[j][k] -
+                                                 train_x.get(i, predictor_col_inds[k]), 2.0);
+                            }
+
+                            dist = std::sqrt(dist);
+
+                            if(dist < lowest_dist) {
+                                lowest_dist = dist;
+                                closest_centroid_ind = j;
+                            }
+
+                        }
+
+                        no_samples_in_each_centroid[closest_centroid_ind] += 1;
+
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
+
+                            next_centroids[closest_centroid_ind][j] +=
+                                    train_x.get(i, predictor_col_inds[j]);
+
+                    }
+
+                    dist = 0;
+                    for(int i = 0; i < no_centroids; ++i)
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
+
+                            next_centroids[i][j] /= no_samples_in_each_centroid[i];
+
+                            dist += std::pow(start_centroids[i][j] - next_centroids[i][j], 2.0);
+
+                        }
+
+                    dist = std::sqrt(dist);
+
+                    if(dist < kmeans_tolerance) {
+
+//                        std::cout << "Training of Kmeans(" << predictor_col_inds[0]
+//                                  <<", " << predictor_col_inds[1]
+//                                  << ") at " << kmeans2d
+//                                  << " was early stoped after " << iter << "/" << kmeans_max_iteration
+//                                  << " with the ending distance change: " << dist
+//                                  << " !"
+//                                  << std::endl;
+
+                        break;
+
+                    }
+                    else if(iter < kmeans_max_iteration - 1) {
+
+                        for(int i = 0; i < no_centroids; ++i)
+                            for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                                start_centroids[i][j] = next_centroids[i][j];
+
+                    }
+
+                }
+
+                for(int i = 0; i < no_centroids; ++i) {
+
+                    sample_inds_for_each_centroid[i] = new int[no_samples_in_each_centroid[i]];
+
+                    no_samples_in_each_centroid[i] = 0;
+
+                }
+
+                for(int i = 0; i < height; ++i) {
+
+                    lowest_dist = std::numeric_limits<T>::max();
+
+                    for(int j = 0; j < no_centroids; ++j) {
+
+                        dist = 0;
+
+                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                            dist += std::pow(start_centroids[j][k] - train_x.get(i, predictor_col_inds[k]), 2.0);
+                        }
+
+                        dist = std::sqrt(dist);
+
+                        if(dist < lowest_dist) {
+                            lowest_dist = dist;
+                            closest_centroid_ind = j;
+                        }
+
+                    }
+
+                    sample_inds_for_each_centroid[closest_centroid_ind][no_samples_in_each_centroid[closest_centroid_ind]] = i;
+
+                    no_samples_in_each_centroid[closest_centroid_ind] += 1;
+
+                }
+
+                for(int i = 0; i < no_centroids; ++i) {
+
+                    start_prediction[i] = 0, denominator_in_prediction = 0;
+
+                    for(int j = 0; j < no_samples_in_each_centroid[i]; ++j) {
+                        start_prediction[i] += ind_delta.get(sample_inds_for_each_centroid[i][j], 0) *
+                                               ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
+                        denominator_in_prediction += ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
+                    }
+
+                    start_prediction[i] /= denominator_in_prediction;
+
+                    delete[] sample_inds_for_each_centroid[i];
+
+                    sample_inds_for_each_centroid[i] = nullptr;
+
+                }
+
+                for(int i = 0; i < height; ++i) {
+
+                    lowest_dist = std::numeric_limits<T>::max();
+
+                    for(int j = 0; j < no_centroids; ++j) {
+
+                        dist = 0;
+
+                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
+                            dist += std::pow(start_centroids[j][k] - train_x.get(i, predictor_col_inds[k]), 2.0);
+                        }
+
+                        dist = std::sqrt(dist);
+
+                        if(dist < lowest_dist) {
+                            lowest_dist = dist;
+                            closest_centroid_ind = j;
+                        }
+
+                    }
+
+                    standard_dev += std::pow(ind_delta.get(i, 0) - start_prediction[closest_centroid_ind], 2.0);
+
+                }
+
+                standard_dev = std::sqrt(standard_dev / (height - 1));
+
+                if(standard_dev > largest_standard_dev) {
+                    largest_standard_dev = standard_dev;
+
+                    kmeans2d->col_inds[0] = predictor_col_inds[0];
+                    kmeans2d->col_inds[1] = predictor_col_inds[1];
+
+                    for(int i = 0; i < no_centroids; ++i) {
+
+                        kmeans2d->predictions[i] = start_prediction[i];
+
+                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                            kmeans2d->centroids[i][j] = start_centroids[i][j];
+
+                    }
+
+                }
+
+            }
+
+            delete[] start_prediction;
+            delete[] best_prediction;
+            delete[] sample_inds_for_each_centroid;
+
+            for(int i = 0; i < no_centroids; ++i) {
+                delete[] start_centroids[i];
+                delete[] next_centroids[i];
+            }
+            delete[] start_centroids;
+            delete[] next_centroids;
+
+            delete[] no_samples_in_each_centroid;
 
         }
         else {
@@ -1068,7 +1314,8 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Linear_regression_trainer<T>::Linear_regression_trainer(const Params &params) {}
+    Linear_regression_trainer<T>::Linear_regression_trainer(const Params &params) :
+            regularization(params.lr_regularization) {}
 
     template <typename T>
     Linear_regression_trainer<T>::~Linear_regression_trainer() {}
@@ -1109,13 +1356,11 @@ namespace dbm {
             Matrix<T> eye(width + 1, width + 1, 0);
 
             for(int i = 0; i < width + 1; ++i)
-                eye.assign(i, i, 0.00001);
+                eye.assign(i, i, regularization);
 
-            Matrix<T> left_inversed = inverse(plus(left, eye));
+            left = inverse(plus(left, eye));
 
-            Matrix<T> right = inner_product(left_in_left, y);
-
-            Matrix<T> coefs = inner_product(left_inversed, right);
+            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
@@ -1144,8 +1389,7 @@ namespace dbm {
 
             Matrix<T> left_in_left = transpose(x);
             left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-            Matrix<T> left = inner_product(left_in_left,
-                                           x);
+            Matrix<T> left = inner_product(left_in_left, x);
 
             int y_ind[] = {0}, no_y_ind = 1;
             Matrix<T> y = ind_delta.submatrix(row_inds,
@@ -1156,15 +1400,11 @@ namespace dbm {
             Matrix<T> eye(no_cols + 1, no_cols + 1, 0);
 
             for(int i = 0; i < no_cols + 1; ++i)
-                eye.assign(i, i, 0.00001);
+                eye.assign(i, i, regularization);
 
-            Matrix<T> left_inversed = inverse(plus(left, eye));
+            left = inverse(plus(left, eye));
 
-            Matrix<T> right = inner_product(left_in_left,
-                                            y);
-
-            Matrix<T> coefs = inner_product(left_inversed,
-                                            right);
+            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);

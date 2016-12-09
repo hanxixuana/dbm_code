@@ -33,7 +33,7 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def("clear", &dbm::Matrix<float>::clear)
 
             .def("assign", &dbm::Matrix<float>::assign)
-            ;
+        ;
 
     class_<dbm::Data_set<float>>("Data_Set",
                                  init<const dbm::Matrix<float> &,
@@ -84,6 +84,11 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def_readwrite("dbm_portion_for_nn",
                            &dbm::Params::dbm_portion_for_nn)
 
+            .def_readwrite("dbm_accumulated_portion_shrinkage_for_selected_bl",
+                           &dbm::Params::dbm_accumulated_portion_shrinkage_for_selected_bl)
+            .def_readwrite("dbm_portion_shrinkage_for_unselected_bl",
+                           &dbm::Params::dbm_portion_shrinkage_for_unselected_bl)
+
             .def_readwrite("tweedie_p",
                            &dbm::Params::tweedie_p)
 
@@ -117,6 +122,9 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def_readwrite("cart_portion_candidate_split_point",
                            &dbm::Params::cart_portion_candidate_split_point)
 
+            .def_readwrite("lr_regularization",
+                           &dbm::Params::lr_regularization)
+
             .def_readwrite("pdp_no_x_ticks",
                            &dbm::Params::pdp_no_x_ticks)
             .def_readwrite("pdp_no_resamplings",
@@ -132,11 +140,6 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
     def("set_params", &dbm::set_params);
 
     void (dbm::DBM<float>::*train_val_no_const)(const dbm::Data_set<float> &) = &dbm::DBM<float>::train;
-    void (dbm::DBM<float>::*train_no_val_no_const)(const dbm::Matrix<float> &,
-                                                   const dbm::Matrix<float> &) = &dbm::DBM<float>::train;
-    void (dbm::DBM<float>::*train_no_val_const)(const dbm::Matrix<float> &,
-                                                const dbm::Matrix<float> &,
-                                                const dbm::Matrix<float> &) = &dbm::DBM<float>::train;
     void (dbm::DBM<float>::*train_val_const)(const dbm::Data_set<float> &,
                                              const dbm::Matrix<float> &) = &dbm::DBM<float>::train;
 
@@ -152,8 +155,6 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
 
     class_<dbm::DBM<float>>("DBM", init<const dbm::Params &>())
             .def("train_val_no_const", train_val_no_const)
-            .def("train_no_val_no_const", train_no_val_no_const)
-            .def("train_no_val_const", train_no_val_const)
             .def("train_val_const", train_val_const)
 
             .def("predict_out",
@@ -172,6 +173,45 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def("statistical_significance",
                  &dbm::DBM<float>::statistical_significance,
                  return_value_policy<copy_non_const_reference>())
+
+            .def("save_dbm", &dbm::DBM<float>::save_dbm_to)
+            .def("load_dbm", &dbm::DBM<float>::load_dbm_from)
+            ;
+
+    void (dbm::AUTO_DBM<float>::*train_val_no_const)(const dbm::Data_set<float> &) = &dbm::AUTO_DBM<float>::train;
+    void (dbm::AUTO_DBM<float>::*train_val_const)(const dbm::Data_set<float> &,
+                        const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::train;
+
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_auto)(const dbm::Matrix<float> &,
+                        const int &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_min_max)(const dbm::Matrix<float> &,
+                        const int &,
+                        const float &,
+                        const float &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
+
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*predict_out)(const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
+    void (dbm::AUTO_DBM<float>::*predict_in_place)(const dbm::Matrix<float> &, dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
+
+    class_<dbm::AUTO_DBM<float>>("AUTO_DBM", init<const dbm::Params &>())
+            .def("train_val_no_const", train_val_no_const)
+            .def("train_val_const", train_val_const)
+
+            .def("predict_out",
+                predict_out,
+                return_value_policy<copy_non_const_reference>())
+            .def("predict_in_place",
+                predict_in_place)
+
+            .def("pdp_auto",
+                pdp_auto,
+                return_value_policy<copy_non_const_reference>())
+            .def("pdp_min_max",
+                pdp_min_max,
+                return_value_policy<copy_non_const_reference>())
+
+            .def("statistical_significance",
+                &dbm::AUTO_DBM<float>::statistical_significance,
+                return_value_policy<copy_non_const_reference>())
 
             .def("save_dbm", &dbm::DBM<float>::save_dbm_to)
             .def("load_dbm", &dbm::DBM<float>::load_dbm_from)

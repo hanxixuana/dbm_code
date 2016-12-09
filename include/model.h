@@ -32,18 +32,18 @@ namespace dbm {
                   DBM<T> *&dbm);
 
     template<typename T>
+    class AUTO_DBM;
+
+    template<typename T>
+    void save_auto_dbm(const AUTO_DBM<T> *auto_dbm,
+                       std::ofstream &out);
+
+    template<typename T>
     class Regressor {
     public:
 
-        virtual void train(const Matrix<T> &train_x,
-                           const Matrix<T> &train_y,
-                           const Matrix<T> &input_monotonic_constraints) = 0;
-
         virtual void train(const Data_set<T> &data_set,
                            const Matrix<T> &input_monotonic_constraints) = 0;
-
-        virtual void train(const Matrix<T> &train_x,
-                           const Matrix<T> &train_y) = 0;
 
         virtual void train(const Data_set<T> &data_set) = 0;
 
@@ -100,15 +100,9 @@ namespace dbm {
         // comments on monotonic_constraints
         // 1: positive relationship; 0: anything; -1: negative relationship
         // by only allowing 1, 0, -1, we could be able to check if the length is correct in some sense
-        void train(const Matrix<T> &train_x,
-                   const Matrix<T> &train_y,
-                   const Matrix<T> &input_monotonic_constraints);
 
         void train(const Data_set<T> &data_set,
                    const Matrix<T> &input_monotonic_constraints);
-
-        void train(const Matrix<T> &train_x,
-                   const Matrix<T> &train_y);
 
         void train(const Data_set<T> &data_set);
 
@@ -146,6 +140,95 @@ namespace dbm {
 
         void save_dbm_to(const std::string &file_name);
         void load_dbm_from(const std::string &file_name);
+
+    };
+
+    template<typename T>
+    class AUTO_DBM : public Regressor<T> {
+    private:
+        int no_bunches_of_learners;
+        int no_cores;
+
+        int total_no_feature;
+        int no_candidate_feature;
+        int no_train_sample;
+
+        Base_learner<T> **learners = nullptr;
+
+        Tree_trainer<T> *tree_trainer = nullptr;
+        Mean_trainer<T> *mean_trainer = nullptr;
+        Linear_regression_trainer<T> *linear_regression_trainer = nullptr;
+        Neural_network_trainer<T> *neural_network_trainer = nullptr;
+        Splines_trainer<T> *splines_trainer = nullptr;
+        Kmeans2d_trainer<T> *kmeans2d_trainer = nullptr;
+
+        Params params;
+        Loss_function<T> loss_function;
+
+        Matrix<T> *prediction_train_data = nullptr;
+
+        T *test_loss_record = nullptr;
+
+        Matrix<T> *pdp_result = nullptr;
+        Matrix<T> *ss_result = nullptr;
+
+        Matrix<T> *prediction = nullptr;
+
+        static const int no_base_learners = 5;
+        char names_base_learners[no_base_learners] = {'t', 'l', 's', 'k', 'n'};
+        Base_learner<T> **try_base_learners = nullptr;
+        T *portions_base_learners = nullptr;
+        T *new_losses_for_base_learners = nullptr;
+
+        int base_learner_choose(T *portions_base_learners, T *new_losses_for_base_learners);
+
+    public:
+
+        AUTO_DBM(const Params &params);
+
+        ~AUTO_DBM();
+
+        // comments on monotonic_constraints
+        // 1: positive relationship; 0: anything; -1: negative relationship
+        // by only allowing 1, 0, -1, we could be able to check if the length is correct in some sense
+
+        void train(const Data_set<T> &data_set,
+                   const Matrix<T> &input_monotonic_constraints);
+
+        void train(const Data_set<T> &data_set);
+
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &predict_y);
+
+        Matrix<T> &predict(const Matrix<T> &data_x);
+
+        /*
+         *  TOOLS
+         */
+
+        Matrix<T> *get_prediction_on_train_data() const;
+        T *get_test_loss() const;
+
+        void set_loss_function_and_shrinkage(const char &type, const T &shrinkage);
+
+        Matrix<T> &partial_dependence_plot(const Matrix<T> &data,
+                                           const int &predictor_ind);
+
+        Matrix<T> &partial_dependence_plot(const Matrix<T> &data,
+                                           const int &predictor_ind,
+                                           const T &x_tick_min,
+                                           const T &x_tick_max);
+
+        Matrix<T> &statistical_significance(const Matrix<T> &data);
+
+        /*
+         *  IO
+         */
+        friend void save_auto_dbm<>(const AUTO_DBM *auto_dbm,
+                                    std::ofstream &out);
+
+        void save_auto_dbm_to(const std::string &file_name);
+        void load_auto_dbm_from(const std::string &file_name);
 
     };
 

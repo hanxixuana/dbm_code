@@ -17,7 +17,7 @@ set(DBM_CODE_VERSION
 # Preparations #
 ################
 
-#set(CMAKE_CXX_COMPILER /usr/local/bin/g++-6)
+set(CMAKE_CXX_COMPILER /usr/local/bin/g++-6)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -D_OMP")
 
@@ -79,55 +79,58 @@ add_library(_dbm_code SHARED ${MODEL_LIB_FILES})
 #  Python API  #
 ################
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/api/dbm_py)
+if(NOT APPLE)
 
-set(PY_API_LIB_FILES
-        src_lib/py_api.cpp)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/api/dbm_py)
 
-find_package(Boost ${Boost_VERSION})
+    set(PY_API_LIB_FILES
+            src_lib/py_api.cpp)
 
-if(Boost_FOUND)
+    find_package(Boost ${Boost_VERSION})
 
-    message( "-- Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
-    message( "-- Boost_LIBRARIES; " ${Boost_LIBRARIES})
-    include_directories(${Boost_INCLUDE_DIRS})
+    if(Boost_FOUND)
 
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_MULTITHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME OFF)
+        message( "-- Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
+        message( "-- Boost_LIBRARIES; " ${Boost_LIBRARIES})
+        include_directories(${Boost_INCLUDE_DIRS})
 
-    find_package(Boost COMPONENTS python)
+        set(Boost_USE_STATIC_LIBS OFF)
+        set(Boost_USE_MULTITHREADED ON)
+        set(Boost_USE_STATIC_RUNTIME OFF)
 
-elseif(not Boost_FOUND)
+        find_package(Boost COMPONENTS python)
 
-    message(FATAL_ERROR "Unable to find Boost Python!")
+    elseif(not Boost_FOUND)
+
+        message(FATAL_ERROR "Unable to find Boost Python!")
+
+    endif()
+
+    find_package(PythonLibs 2.7 REQUIRED)
+
+    if(PythonLibs_FOUND)
+
+        message( "-- PYTHON_INCLUDE_DIRS: " ${PYTHON_INCLUDE_DIRS})
+        message( "-- PYTHON_LIBRARY: " ${PYTHON_LIBRARY})
+        include_directories(${PYTHON_INCLUDE_DIRS})
+
+    elseif(not PythonLibs_FOUND)
+
+        message(FATAL_ERROR "Unable to find Python libraries!")
+
+    endif()
+
+    #set(PYTHON_LIBRARY /usr/local/Cellar/dbm_py/2.7.12_2/Frameworks/Python.framework/Versions/2.7/lib/libpython2.7.dylib)
+    #set(PYTHON_INCLUDE_DIR /usr/local/Cellar/dbm_py/2.7.12_2/Frameworks/Python.framework/Versions/2.7/include/python2.7)
+    #
+    #find_package(PythonLibs 2.7 REQUIRED)
+    #
+    #INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
+
+    add_library(_dbm_code_py SHARED ${PY_API_LIB_FILES})
+    target_link_libraries(_dbm_code_py _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
 
 endif()
-
-find_package(PythonLibs 2.7 REQUIRED)
-
-if(PythonLibs_FOUND)
-
-    message( "-- PYTHON_INCLUDE_DIRS: " ${PYTHON_INCLUDE_DIRS})
-    message( "-- PYTHON_LIBRARY: " ${PYTHON_LIBRARY})
-    include_directories(${PYTHON_INCLUDE_DIRS})
-
-elseif(not PythonLibs_FOUND)
-
-    message(FATAL_ERROR "Unable to find Python libraries!")
-
-endif()
-
-#set(PYTHON_LIBRARY /usr/local/Cellar/dbm_py/2.7.12_2/Frameworks/Python.framework/Versions/2.7/lib/libpython2.7.dylib)
-#set(PYTHON_INCLUDE_DIR /usr/local/Cellar/dbm_py/2.7.12_2/Frameworks/Python.framework/Versions/2.7/include/python2.7)
-#
-#find_package(PythonLibs 2.7 REQUIRED)
-#
-#INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
-
-add_library(_dbm_code_py SHARED ${PY_API_LIB_FILES})
-target_link_libraries(_dbm_code_py _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
-
 
 ################
 #     Test     #
@@ -137,39 +140,43 @@ set(TEST_SOURCE_FILES
         src_test/main_test.cpp)
 add_executable(main_test ${TEST_SOURCE_FILES})
 
-TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
+#TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
+TARGET_LINK_LIBRARIES(main_test _dbm_code)
 
 
 ################
 #     Copy     #
 ################
 
-# for python
-configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_py/dbm_py.py"
-        COPYONLY)
+if(NOT APPLE)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/src_api/__init__.py"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_py/__init__.py"
-        COPYONLY)
+    # for python
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
+            "${CMAKE_HOME_DIRECTORY}/api/dbm_py/dbm_py.py"
+            COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.py"
-        "${CMAKE_HOME_DIRECTORY}/api/main_test.py"
-        COPYONLY)
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_api/__init__.py"
+            "${CMAKE_HOME_DIRECTORY}/api/dbm_py/__init__.py"
+            COPYONLY)
 
-# for r
-configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
-        COPYONLY)
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.py"
+            "${CMAKE_HOME_DIRECTORY}/api/main_test.py"
+            COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_r.R"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_r.R"
-        COPYONLY)
+    # for r
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
+            "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
+            COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.R"
-        "${CMAKE_HOME_DIRECTORY}/api/main_test.R"
-        COPYONLY)
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_r.R"
+            "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_r.R"
+            COPYONLY)
 
-add_custom_command(TARGET _dbm_code_py
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_code_py> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)
+    configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.R"
+            "${CMAKE_HOME_DIRECTORY}/api/dbm_r/main_test.R"
+            COPYONLY)
+
+    add_custom_command(TARGET _dbm_code_py
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_code_py> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)
+endif()

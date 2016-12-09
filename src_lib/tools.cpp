@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <cmath>
 
 namespace dbm {
 
@@ -242,6 +243,11 @@ namespace dbm {
             else if (words[2 * i] == "dbm_portion_for_k")
                 params.dbm_portion_for_k = std::stod(words[2 * i + 1]);
 
+            else if (words[2 * i] == "dbm_accumulated_portion_shrinkage_for_selected_bl")
+                params.dbm_accumulated_portion_shrinkage_for_selected_bl = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_shrinkage_for_unselected_bl")
+                params.dbm_portion_shrinkage_for_unselected_bl = std::stod(words[2 * i + 1]);
+
             // tweedie
             else if (words[2 * i] == "tweedie_p")
                 params.tweedie_p = std::stod(words[2 * i + 1]);
@@ -279,6 +285,10 @@ namespace dbm {
                 params.cart_max_depth = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "cart_portion_candidate_split_point")
                 params.cart_portion_candidate_split_point = std::stod(words[2 * i + 1]);
+
+            // linear regression
+            else if (words[2 * i] == "lr_regularization")
+                params.lr_regularization = std::stod(words[2 * i + 1]);
 
             // partial dependence plot
             else if (words[2 * i] == "pdp_no_x_ticks")
