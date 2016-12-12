@@ -175,7 +175,7 @@ namespace dbm {
         Matrix<T> *prediction = nullptr;
 
         static const int no_base_learners = 5;
-        char names_base_learners[no_base_learners] = {'t', 'l', 's', 'k', 'n'};
+        char *names_base_learners = nullptr;
         Base_learner<T> **try_base_learners = nullptr;
         T *portions_base_learners = nullptr;
         T *new_losses_for_base_learners = nullptr;

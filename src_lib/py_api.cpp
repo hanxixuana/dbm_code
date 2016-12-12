@@ -33,7 +33,7 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def("clear", &dbm::Matrix<float>::clear)
 
             .def("assign", &dbm::Matrix<float>::assign)
-        ;
+            ;
 
     class_<dbm::Data_set<float>>("Data_Set",
                                  init<const dbm::Matrix<float> &,
@@ -144,11 +144,11 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                                              const dbm::Matrix<float> &) = &dbm::DBM<float>::train;
 
     dbm::Matrix<float> &(dbm::DBM<float>::*pdp_auto)(const dbm::Matrix<float> &,
-                        const int &) = &dbm::DBM<float>::partial_dependence_plot;
+                                                     const int &) = &dbm::DBM<float>::partial_dependence_plot;
     dbm::Matrix<float> &(dbm::DBM<float>::*pdp_min_max)(const dbm::Matrix<float> &,
-                        const int &,
-                        const float &,
-                        const float &) = &dbm::DBM<float>::partial_dependence_plot;
+                                                        const int &,
+                                                        const float &,
+                                                        const float &) = &dbm::DBM<float>::partial_dependence_plot;
 
     dbm::Matrix<float> &(dbm::DBM<float>::*predict_out)(const dbm::Matrix<float> &) = &dbm::DBM<float>::predict;
     void (dbm::DBM<float>::*predict_in_place)(const dbm::Matrix<float> &, dbm::Matrix<float> &) = &dbm::DBM<float>::predict;
@@ -178,40 +178,40 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def("load_dbm", &dbm::DBM<float>::load_dbm_from)
             ;
 
-    void (dbm::AUTO_DBM<float>::*train_val_no_const)(const dbm::Data_set<float> &) = &dbm::AUTO_DBM<float>::train;
-    void (dbm::AUTO_DBM<float>::*train_val_const)(const dbm::Data_set<float> &,
-                        const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::train;
+    void (dbm::AUTO_DBM<float>::*train_auto_no_const)(const dbm::Data_set<float> &) = &dbm::AUTO_DBM<float>::train;
+    void (dbm::AUTO_DBM<float>::*train_auto_const)(const dbm::Data_set<float> &,
+                                                   const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::train;
 
-    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_auto)(const dbm::Matrix<float> &,
-                        const int &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
-    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_min_max)(const dbm::Matrix<float> &,
-                        const int &,
-                        const float &,
-                        const float &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_auto_auto)(const dbm::Matrix<float> &,
+                                                               const int &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*pdp_auto_min_max)(const dbm::Matrix<float> &,
+                                                                  const int &,
+                                                                  const float &,
+                                                                  const float &) = &dbm::AUTO_DBM<float>::partial_dependence_plot;
 
-    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*predict_out)(const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
-    void (dbm::AUTO_DBM<float>::*predict_in_place)(const dbm::Matrix<float> &, dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
+    dbm::Matrix<float> &(dbm::AUTO_DBM<float>::*predict_auto_out)(const dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
+    void (dbm::AUTO_DBM<float>::*predict_auto_in_place)(const dbm::Matrix<float> &, dbm::Matrix<float> &) = &dbm::AUTO_DBM<float>::predict;
 
     class_<dbm::AUTO_DBM<float>>("AUTO_DBM", init<const dbm::Params &>())
-            .def("train_val_no_const", train_val_no_const)
-            .def("train_val_const", train_val_const)
+            .def("train_val_no_const", train_auto_no_const)
+            .def("train_val_const", train_auto_const)
 
             .def("predict_out",
-                predict_out,
-                return_value_policy<copy_non_const_reference>())
+                 predict_auto_out,
+                 return_value_policy<copy_non_const_reference>())
             .def("predict_in_place",
-                predict_in_place)
+                 predict_auto_in_place)
 
             .def("pdp_auto",
-                pdp_auto,
-                return_value_policy<copy_non_const_reference>())
+                 pdp_auto_auto,
+                 return_value_policy<copy_non_const_reference>())
             .def("pdp_min_max",
-                pdp_min_max,
-                return_value_policy<copy_non_const_reference>())
+                 pdp_auto_min_max,
+                 return_value_policy<copy_non_const_reference>())
 
             .def("statistical_significance",
-                &dbm::AUTO_DBM<float>::statistical_significance,
-                return_value_policy<copy_non_const_reference>())
+                 &dbm::AUTO_DBM<float>::statistical_significance,
+                 return_value_policy<copy_non_const_reference>())
 
             .def("save_dbm", &dbm::DBM<float>::save_dbm_to)
             .def("load_dbm", &dbm::DBM<float>::load_dbm_from)

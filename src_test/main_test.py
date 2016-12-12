@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
+import numpy as np
 import os
 import pandas as pd
 import sys
-
-import numpy as np
 
 sys.path.append(os.getcwd())
 
@@ -25,9 +24,19 @@ train_x = c.get_train_x()
 
 s = 'dbm_no_bunches_of_learners 41 dbm_portion_train_sample 0.85 dbm_no_cores 0 dbm_shrinkage 0.1 ' \
     'cart_portion_candidate_split_point 0.001 dbm_no_candidate_feature 5 dbm_loss_function p'
-
 params = dbm.Params()
 params.set_params(s)
+# =====================================
+
+auto_model = dbm.AUTO_DBM(params)
+auto_model.train(c)
+
+auto_predict = auto_model.predict(c.get_test_x())
+
+auto_result = pd.DataFrame(np.concatenate([auto_predict.to_np2darray(), c.get_test_y().to_np2darray()], 1))
+
+auto_model.save('auto_dbm.txt')
+# =====================================
 
 model = dbm.DBM(params)
 

@@ -68,7 +68,7 @@ namespace dbm {
 
         // CART
         int cart_max_depth = 5;
-        double cart_portion_candidate_split_point = 0.05;
+        double cart_portion_candidate_split_point = 0.01;
 
         // linear regression
         double lr_regularization = 0.1;
@@ -97,10 +97,11 @@ namespace dbm {
     // elapsed time measurer
     class Time_measurer {
     private:
+        int no_cores;
         std::time_t begin_time;
         std::time_t end_time;
     public:
-        Time_measurer();
+        Time_measurer(int no_cores = 1);
 
         ~Time_measurer();
     };

@@ -108,7 +108,7 @@ namespace dbm {
         int no_centroids;
         char loss_type;
 
-        int col_inds[no_predictors];
+        int *col_inds;
 
         T **centroids;
         T *predictions;
@@ -120,6 +120,7 @@ namespace dbm {
         T predict_for_row(const Matrix<T> &data_x,
                           int row_ind);
     public:
+
         Kmeans2d(int no_centroids, char loss_type);
         ~Kmeans2d();
 
@@ -166,7 +167,7 @@ namespace dbm {
         char loss_type;
         T hinge_coefficient;
 
-        int col_inds[no_predictors];
+        int *col_inds;
 
         T x_left_hinge(T &x, T &y, T &knot);
         T x_right_hinge(T &x, T &y, T &knot);

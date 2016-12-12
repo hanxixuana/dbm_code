@@ -824,8 +824,10 @@ namespace dbm {
             T feature_mins[kmeans2d->no_predictors],
                     feature_maxes[kmeans2d->no_predictors];
 
-            T dist, lowest_dist, standard_dev,
-                    largest_standard_dev = std::numeric_limits<T>::min();
+            T dist = 0,
+                    lowest_dist = 0,
+                    standard_dev = 0,
+                    largest_standard_dev = -1;
 
             int **sample_inds_for_each_centroid = new int*[no_centroids];
             for(int i = 0; i < no_centroids; ++i)
@@ -1075,8 +1077,10 @@ namespace dbm {
             T feature_mins[kmeans2d->no_predictors],
                     feature_maxes[kmeans2d->no_predictors];
 
-            T dist, lowest_dist, standard_dev,
-                    largest_standard_dev = std::numeric_limits<T>::min();
+            T dist = 0,
+                    lowest_dist = 0,
+                    standard_dev = 0,
+                    largest_standard_dev = -1;
 
             int **sample_inds_for_each_centroid = new int*[no_centroids];
             for(int i = 0; i < no_centroids; ++i)

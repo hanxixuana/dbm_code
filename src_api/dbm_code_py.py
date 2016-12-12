@@ -134,6 +134,31 @@ class DBM(object):
     def load(self, file_name):
         self.dbm.load_dbm(file_name)
 
+class AUTO_DBM(object):
+
+    def __init__(self, params):
+        self.dbm = dbm.AUTO_DBM(params.params)
+
+    def train(self, data_set):
+        self.dbm.train_val_no_const(data_set.data_set)
+
+    def predict(self, data_x):
+        data_y = Matrix(data_x.shape()[0], 1, 0)
+        self.dbm.predict_in_place(data_x.mat, data_y.mat)
+        return data_y
+
+    def pdp(self, data_x, feature_index):
+        return Matrix(mat = self.dbm.pdp_auto(data_x.mat, feature_index))
+
+    def ss(self, data_x):
+        return Matrix(mat = self.dbm.statistical_significance(data_x.mat))
+
+    def save(self, file_name):
+        self.dbm.save_dbm(file_name)
+
+    def load(self, file_name):
+        self.dbm.load_dbm(file_name)
+
 def np2darray_to_float_matrix(source):
     try:
         assert type(source) is np.ndarray

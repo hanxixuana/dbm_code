@@ -220,6 +220,10 @@ namespace dbm {
             no_centroids(no_centroids),
             loss_type(loss_type){
 
+        col_inds = new int[no_predictors];
+        col_inds[0] = -1;
+        col_inds[1] = -1;
+
         centroids = new T*[no_centroids];
         for(int i = 0; i < no_centroids; ++i)
             centroids[i] = new T[no_predictors];
@@ -229,6 +233,7 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d<T>::~Kmeans2d() {
+        delete[] col_inds;
         delete[] centroids;
         delete[] predictions;
         centroids = nullptr, predictions = nullptr;
@@ -338,6 +343,10 @@ namespace dbm {
             loss_type(loss_type),
             hinge_coefficient(hinge_coefficient){
 
+        col_inds = new int[no_predictors];
+        col_inds[0] = -1;
+        col_inds[0] = -1;
+
         x_knots = new T[no_knots];
 
         x_left_coefs = new T[no_knots];
@@ -352,6 +361,7 @@ namespace dbm {
 
     template <typename T>
     Splines<T>::~Splines() {
+        delete[] col_inds;
         delete[] x_knots;
         delete[] x_left_coefs;
         delete[] x_right_coefs;

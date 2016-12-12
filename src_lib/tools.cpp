@@ -8,7 +8,6 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
-#include <cmath>
 
 namespace dbm {
 
@@ -18,7 +17,8 @@ namespace dbm {
         std::getline(std::cin, stop_at_end);
     }
 
-    Time_measurer::Time_measurer() {
+    Time_measurer::Time_measurer(int no_cores):
+            no_cores(no_cores) {
         begin_time = std::clock();
         std::cout << std::endl
                   << "Timer at " << this
@@ -31,7 +31,7 @@ namespace dbm {
         std::cout << std::endl
                   << "Timer at " << this
                   << " ---> " << "Elapsed Time: "
-                  << double(end_time - begin_time) / CLOCKS_PER_SEC
+                  << double(end_time - begin_time) / CLOCKS_PER_SEC / no_cores
                   << " seconds"
                   << std::endl << std::endl;
     }

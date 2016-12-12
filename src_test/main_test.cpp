@@ -19,6 +19,7 @@ void prepare_data();
 int main() {
 
     prepare_data();
+//    train_test_save_load_dbm();
     train_test_save_load_auto_dbm();
 
     return 0;
@@ -51,10 +52,10 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 0 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 51 dbm_no_cores 8 dbm_loss_function b "
             "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
             "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
-            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2";
+            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2 cart_portion_candidate_split_point 0.0001";
     dbm::Params params = dbm::set_params(param_string);
     dbm::AUTO_DBM<float> auto_dbm(params);
 
@@ -66,11 +67,11 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> pred = auto_dbm.predict(data_set.get_test_x());
     pred.print_to_file("pred.txt");
 
-//    dbm::Matrix<float> pdp = dbm.partial_dependence_plot(data_set.get_train_x(), 6);
-//    pdp.print_to_file("pdp.txt");
+    dbm::Matrix<float> pdp = auto_dbm.partial_dependence_plot(data_set.get_train_x(), 6);
+    pdp.print_to_file("pdp.txt");
 
-//    dbm::Matrix<float> ss = dbm.statistical_significance(data_set.get_train_x());
-//    ss.print_to_file("ss.txt");
+    dbm::Matrix<float> ss = auto_dbm.statistical_significance(data_set.get_train_x());
+    ss.print_to_file("ss.txt");
 
     auto_dbm.save_auto_dbm_to("dbm.txt");
 
@@ -118,10 +119,10 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 0 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 51 dbm_no_cores 8 dbm_loss_function b "
             "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
             "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
-            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2";
+            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2 cart_portion_candidate_split_point 0.0001";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 
@@ -135,7 +136,7 @@ void train_test_save_load_dbm() {
 
 //    dbm::Matrix<float> pdp = dbm.partial_dependence_plot(data_set.get_train_x(), 6);
 //    pdp.print_to_file("pdp.txt");
-
+//
 //    dbm::Matrix<float> ss = dbm.statistical_significance(data_set.get_train_x());
 //    ss.print_to_file("ss.txt");
 
