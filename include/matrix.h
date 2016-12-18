@@ -13,7 +13,17 @@
 //#define _CD_INDICATOR
 //#endif
 
+#if defined(_BLAS) || defined(_MKL)
+#undef _PLAIN_MATRIX_OP
+#else
+#define _PLAIN_MATRIX_OP
+#endif
+
 #include <string>
+#include <cstring>
+#ifdef _MKL
+#include "mkl.h"
+#endif
 
 namespace dbm {
 
@@ -27,17 +37,35 @@ namespace dbm {
     template <typename T>
     Matrix<T> plus(const Matrix<T> &left, const Matrix<T> &right);
 
+#ifdef _MKL
+    template<> Matrix<float> plus(const Matrix<float> &left, const Matrix<float> &right);
+    template<> Matrix<double> plus(const Matrix<double> &left, const Matrix<double> &right);
+#endif
+
     template <typename T>
     Matrix<T> substract(const Matrix<T> &left, const Matrix<T> &right);
 
     template <typename T>
     Matrix<T> inner_product(const Matrix<T> &left, const Matrix<T> &right);
 
+#ifdef _MKL
+    template<> Matrix<float> inner_product(const Matrix<float> &lhs, const Matrix<float> &rhs);
+    template<> Matrix<double> inner_product(const Matrix<double> &lhs, const Matrix<double> &rhs);
+
+    float* inner_product(const Matrix<float> &lhs, const float *rhs);
+    double* inner_product(const Matrix<double> &lhs, const double *rhs);
+#endif
+
     template <typename T>
     T determinant(const Matrix<T> &matrix);
 
     template <typename T>
     Matrix<T> inverse(const Matrix<T> &matrix);
+
+#ifdef _MKL
+    template<> Matrix<float> inverse(const Matrix<float> &rhs);
+    template<> Matrix<double> inverse(const Matrix<double> &rhs);
+#endif
 
     template<typename T>
     Matrix<T> vert_merge(const Matrix<T> &upper, const Matrix<T> &lower);
@@ -50,6 +78,12 @@ namespace dbm {
 
     template<typename T>
     void copy(const Matrix<T> &target, Matrix<T> &to);
+
+    template <typename T>
+    Matrix<T> col_sort(Matrix<T> &data);
+
+    template <typename T>
+    Matrix<T> col_sorted_to(const Matrix<T> &sorted_from);
 
     // matrix class
     template<typename T>
@@ -207,16 +241,40 @@ namespace dbm {
 
         friend Matrix plus<>(const Matrix &left, const Matrix &right);
 
+#ifdef _MKL
+        friend Matrix<float> plus<>(const Matrix<float> &lhs, const Matrix<float> &rhs);
+        friend Matrix<double> plus<>(const Matrix<double> &lhs, const Matrix<double> &rhs);
+#endif
+
         friend Matrix substract<>(const Matrix &left, const Matrix &right);
 
         friend Matrix inner_product<>(const Matrix &left, const Matrix &right);
+#ifdef _MKL
+        friend Matrix<float> inner_product<>(const Matrix<float> &lhs, const Matrix<float> &rhs);
+        friend Matrix<double> inner_product<>(const Matrix<double> &lhs, const Matrix<double> &rhs);
+
+        friend float* inner_product(const Matrix<float> &lhs, const float *rhs);
+        friend double* inner_product(const Matrix<double> &lhs, const double *rhs);
+#endif
 
         friend T determinant<>(const Matrix &matrix);
 
         friend Matrix inverse<>(const Matrix &matrix);
 
+#ifdef _MKL
+        friend Matrix<float> inverse<>(const Matrix<float> &rhs);
+        friend Matrix<double> inverse<>(const Matrix<double> &rhs);
+#endif
+
         // in-place
         void inplace_elewise_prod_mat_with_row_vec(const Matrix &row);
+
+        //===================
+        // columnwise sorting
+        //===================
+        friend Matrix col_sort<>(Matrix &data);
+
+        friend Matrix col_sorted_to<>(const Matrix &sorted_from);
 
         //===========================================================================================
         // vertical merge of two Matrix<T>, row labels are combined and column labels are from upper

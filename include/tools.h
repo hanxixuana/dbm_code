@@ -80,6 +80,12 @@ namespace dbm {
         double pdp_ci_bandwidth = 4;
         int pdp_save_files = 1;
 
+        // two-way models
+        int twm_no_x_ticks = 5;
+        int twm_no_resamplings = 1;
+        double twm_resampling_portion = 0.1;
+        double twm_ci_bandwidth = 4;
+
     };
 
     Params set_params(const std::string &param_string, const char delimiter = ' ');

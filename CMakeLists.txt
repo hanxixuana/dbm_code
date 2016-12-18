@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(dbm_code)
 
+# MKL
+SET(MKL_OPT "-I$ENV{MKLROOT}/include")
+SET(MKL_LIB "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+
 SET(CMAKE_BUILD_TYPE DEBUG)
 #SET(CMAKE_BUILD_TYPE RELEASE)
 
@@ -29,7 +33,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall")
 #                                        -D_DEBUG_LOSS_FUNCTION          \
 #                                        -D_DEBUG_MATRIX                 \
 #                                        -D_DEBUG_MODEL                  \
-#                                        -D_CD_INDICATOR                  \
+#                                        -D_CD_INDICATOR                 \
 #                                        -D_DEBUG_TOOLS")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DEBUG_BASE_LEARNER           \
@@ -73,6 +77,9 @@ set(MODEL_LIB_FILES
         src_lib/base_learner_trainer.cpp
         src_lib/tools.cpp)
 add_library(_dbm_code SHARED ${MODEL_LIB_FILES})
+
+add_library(_dbm_code_mkl SHARED ${MODEL_LIB_FILES})
+target_compile_options(_dbm_code_mkl PRIVATE -D_MKL ${MKL_OPT})
 
 
 ################
@@ -131,6 +138,10 @@ add_executable(main_test ${TEST_SOURCE_FILES})
 
 TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
 #TARGET_LINK_LIBRARIES(main_test _dbm_code)
+
+add_executable(main_test_mkl ${TEST_SOURCE_FILES})
+target_compile_options(main_test_mkl PRIVATE -D_MKL ${MKL_OPT})
+TARGET_LINK_LIBRARIES(main_test_mkl _dbm_code_mkl ${MKL_LIB})
 
 
 ################

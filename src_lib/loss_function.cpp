@@ -286,6 +286,29 @@ namespace dbm {
     }
 
     template <typename T>
+    T Loss_function<T>::inversed_link_function(T value, const char &dist) {
+
+        switch (dist) {
+            case 'n': {
+                return value;
+            }
+            case 'p': {
+                return std::log(value);
+            }
+            case 'b': {
+                return value;
+            }
+            case 't': {
+                return std::log(value);
+            }
+            default: {
+                throw std::invalid_argument("Specified distribution does not exist.");
+            }
+        }
+
+    }
+
+    template <typename T>
     void Loss_function<T>::calculate_ind_delta(const Matrix<T> &train_y,
                                                const Matrix<T> &prediction,
                                                Matrix<T> &ind_delta,
@@ -428,6 +451,214 @@ namespace dbm {
                     throw std::invalid_argument("Specified distribution does not exist.");
                 }
             }
+        }
+
+    }
+
+    template <typename T>
+    Matrix<T> Loss_function<T>::first_comp(const Matrix<T> &train_y,
+                                           const Matrix<T> &prediction,
+                                           const char loss_function_type,
+                                           const int *row_inds,
+                                           int no_rows) {
+
+        if (row_inds == nullptr) {
+
+            int height = train_y.get_height();
+            Matrix<T> result(height, 1, 0);
+
+            #ifdef _DEBUG_LOSS_FUNCTION
+                assert(train_y.get_height() == prediction.get_height());
+            #endif
+
+            switch (loss_function_type) {
+                case 'n': {
+                    for(int i = 0; i < height; ++i) {
+                        result.assign(i, 0, 2 * (prediction.get(i, 0) - train_y.get(i, 0)));
+                    }
+                    return result;
+                }
+                case 'p': {
+                    for(int i = 0; i < height; ++i) {
+                        result.assign(i, 0, - train_y.get(i, 0));
+                    }
+                    return result;
+                }
+                case 'b': {
+                    T prob;
+                    for(int i = 0; i < height; ++i) {
+                        prob = 1.0 / (1.0 + std::exp(-prediction.get(i, 0)));
+                        result.assign(i, 0, - 0.5 * prob * (1.0 - prob) );
+                    }
+                    return result;
+                }
+                case 't': {
+                    for(int i = 0; i < height; ++i) {
+                        result.assign(i, 0,
+                                      2 * train_y.get(i, 0) / (1 - params.tweedie_p) *
+                                      std::exp(prediction.get(i, 0) * (1 - params.tweedie_p)) );
+                    }
+                    return result;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
+            }
+
+        }
+        else {
+
+            #ifdef _DEBUG_LOSS_FUNCTION
+                assert(no_rows > 0);
+            #endif
+
+            Matrix<T> result(no_rows, 1, 0);
+
+            switch (loss_function_type) {
+                case 'n': {
+                    for(int i = 0; i < no_rows; ++i) {
+                        result.assign(i, 0, 2 * (prediction.get(row_inds[i], 0) - train_y.get(row_inds[i], 0)));
+                    }
+                    return result;
+                }
+                case 'p': {
+                    for(int i = 0; i < no_rows; ++i) {
+                        result.assign(i, 0, - train_y.get(row_inds[i], 0));
+                    }
+                    return result;
+                }
+                case 'b': {
+                    T prob;
+                    for(int i = 0; i < no_rows; ++i) {
+                        prob = 1.0 / (1.0 + std::exp(-prediction.get(row_inds[i], 0)));
+                        result.assign(i, 0, - 0.5 * prob * (1.0 - prob) );
+                    }
+                    return result;
+                }
+                case 't': {
+                    for(int i = 0; i < no_rows; ++i) {
+                        result.assign(i, 0,
+                                      2 * train_y.get(row_inds[i], 0) / (1 - params.tweedie_p) *
+                                              std::exp(prediction.get(row_inds[i], 0) * (1 - params.tweedie_p)) );
+                    }
+                    return result;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
+            }
+
+        }
+
+    }
+
+    template <typename T>
+    Matrix<T> Loss_function<T>::second_comp(const Matrix<T> &train_y,
+                                            const Matrix<T> &prediction,
+                                            const char loss_function_type,
+                                            const int *row_inds,
+                                            int no_rows) {
+
+        if (row_inds == nullptr) {
+
+            int height = train_y.get_height();
+
+            #ifdef _DEBUG_LOSS_FUNCTION
+                assert(train_y.get_height() == prediction.get_height());
+            #endif
+
+            switch (loss_function_type) {
+                case 'n': {
+                    return Matrix<T> (height, 1, 1);
+                }
+                case 'p': {
+                    Matrix<T> result(height, 1, 0);
+                    for(int i = 0; i < height; ++i) {
+                        result.assign(i, 0, std::exp(prediction.get(i, 0)));
+                    }
+                    return result;
+                }
+                case 'b': {
+                    return Matrix<T> (height, 1, 0);
+                }
+                case 't': {
+                    Matrix<T> result(height, 1, 0);
+                    for(int i = 0; i < height; ++i) {
+                        result.assign(i, 0,
+                                      2 / (2 - params.tweedie_p) *
+                                      std::exp(prediction.get(i, 0) * (2 - params.tweedie_p)) );
+                    }
+                    return result;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
+            }
+
+        }
+        else {
+
+            #ifdef _DEBUG_LOSS_FUNCTION
+                assert(no_rows > 0);
+            #endif
+
+            switch (loss_function_type) {
+                case 'n': {
+                    return Matrix<T> (no_rows, 1, 1);
+                }
+                case 'p': {
+                    Matrix<T> result(no_rows, 1, 0);
+                    for(int i = 0; i < no_rows; ++i) {
+                        result.assign(i, 0, std::exp(prediction.get(row_inds[i], 0)));
+                    }
+                    return result;
+                }
+                case 'b': {
+                    return Matrix<T> (no_rows, 1, 0);
+                }
+                case 't': {
+                    Matrix<T> result(no_rows, 1, 0);
+                    for(int i = 0; i < no_rows; ++i) {
+                        result.assign(i, 0,
+                                      2 / (2 - params.tweedie_p) *
+                                      std::exp(prediction.get(row_inds[i], 0) * (2 - params.tweedie_p)) );
+                    }
+                    return result;
+                }
+                default: {
+                    throw std::invalid_argument("Specified distribution does not exist.");
+                }
+            }
+
+        }
+
+    }
+
+    template <typename T>
+    T Loss_function<T>::loss_reduction(const T first_comp_in_loss,
+                                       const T second_comp_in_loss,
+                                       const T beta,
+                                       const char loss_function_type) {
+
+        switch (loss_function_type) {
+
+            case 'n': {
+                return beta *(first_comp_in_loss + beta * second_comp_in_loss);
+            }
+            case 'p': {
+                return first_comp_in_loss * beta + second_comp_in_loss * (std::exp(beta) - 1);
+            }
+            case 'b': {
+                return first_comp_in_loss * beta * beta;
+            }
+            case 't': {
+                return first_comp_in_loss * (1.0 - std::exp(beta * (1.0 - params.tweedie_p))) +
+                        second_comp_in_loss * (std::exp(beta * (2.0 - params.tweedie_p)) - 1.0);
+            }
+            default: {
+                throw std::invalid_argument("Specified distribution does not exist.");
+            }
+
         }
 
     }

@@ -302,6 +302,16 @@ namespace dbm {
             else if (words[2 * i] == "pdp_save_files")
                 params.pdp_save_files = std::stoi(words[2 * i + 1]);
 
+            // two-way models
+            else if (words[2 * i] == "twm_no_x_ticks")
+                params.twm_no_x_ticks = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "twm_no_resamplings")
+                params.twm_no_resamplings = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "twm_resampling_portion")
+                params.twm_resampling_portion = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "twm_ci_bandwidth")
+                params.twm_ci_bandwidth = std::stod(words[2 * i + 1]);
+
             // throw an exception
             else {
                 throw std::invalid_argument("Specified parameter does not exist.");

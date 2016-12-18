@@ -322,8 +322,13 @@ namespace dbm {
 
     template<typename T>
     class Tree_node;
+
     template<typename T>
     class Tree_trainer;
+
+    template <typename T>
+    class Fast_tree_trainer;
+
     template<typename T>
     class Tree_info;
 
@@ -391,6 +396,7 @@ namespace dbm {
         friend void print_tree_info<>(const Tree_node<T> *tree);
 
         friend class Tree_trainer<T>;
+        friend class Fast_tree_trainer<T>;
 
         friend class Tree_info<T>;
 

@@ -49,6 +49,12 @@ namespace dbm {
     template
     class Tree_trainer<float>;
 
+    template
+    class Fast_tree_trainer<double>;
+
+    template
+    class Fast_tree_trainer<float>;
+
 }
 
 namespace dbm {
@@ -1487,6 +1493,8 @@ namespace dbm {
                              (no_uniques > threshold_using_all_split_point ?
                               threshold_using_all_split_point : no_uniques);
 
+                std::sort(uniques, uniques + no_uniques);
+
                 for (int j = 0; j < no_uniques; ++j) {
                     train_x.inds_split(i,
                                        uniques[j],
@@ -1763,6 +1771,290 @@ namespace dbm {
     }
 
 }
+
+namespace dbm {
+
+    template<typename T>
+    Fast_tree_trainer<T>::Fast_tree_trainer(const Params &params) :
+            max_depth(params.cart_max_depth),
+            portion_candidate_split_point(params.cart_portion_candidate_split_point),
+            loss_function(Loss_function<T>(params)) {};
+
+    template<typename T>
+    Fast_tree_trainer<T>::~Fast_tree_trainer() {};
+
+    template<typename T>
+    void Fast_tree_trainer<T>::train(Tree_node<T> *tree,
+
+                                     const Matrix<T> &train_x,
+                                     const Matrix<T> &train_x_sorted_to,
+
+                                     const Matrix<T> &train_y,
+                                     const Matrix<T> &ind_delta,
+                                     const Matrix<T> &prediction,
+
+                                     const Matrix<T> &monotonic_constraints,
+
+                                     char loss_function_type,
+
+                                     const int *row_inds,
+                                     int no_rows,
+                                     const int *col_inds,
+                                     int no_cols) {
+
+        if(row_inds == nullptr) {
+
+
+        }
+        else {
+
+            tree->no_training_samples = no_rows;
+
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+                assert(no_rows > 0 && no_cols > 0);
+            #endif
+
+            if(tree->depth == 0) {
+                tree->prediction = loss_function.estimate_mean(ind_delta,
+                                                               loss_function_type,
+                                                               row_inds,
+                                                               no_rows);
+            }
+            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
+                tree->last_node = true;
+                return;
+            }
+
+            int *left_inds = new int[no_rows],
+                    *right_inds = new int[no_rows];
+
+            T left_beta, right_beta,
+                    loss = std::numeric_limits<T>::max();
+            tree->loss = std::numeric_limits<T>::max();
+
+            T *uniques = new T[no_rows];
+
+            Matrix<T> sub_train_x_sorted_to = train_x_sorted_to.submatrix(row_inds, no_rows, col_inds, no_cols);
+            Matrix<T> sorted_row_inds(no_rows, no_cols, 0);
+            dbm::Matrix<T> sub_sorted_to_indices = dbm::col_sort(sub_train_x_sorted_to);
+            for(int j = 0; j < no_cols; ++j) {
+                for(int i = 0; i < no_rows; ++i) {
+                    sorted_row_inds.assign(i, j, (T)row_inds[(int)sub_sorted_to_indices.get(i, j)]);
+                }
+            }
+
+            T left_numerator, left_denominator, right_numerator, right_denominator;
+            T left_1st_comp_in_loss, left_2nd_comp_in_loss, right_1st_comp_in_loss, right_2nd_comp_in_loss;
+
+            Matrix<T> numerators(no_rows, 1, 0);
+            for(int i = 0; i < no_rows; ++i) {
+                numerators.assign(i, 0, ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1));
+            }
+            int denominator_col_index[] = {1};
+            Matrix<T> denominators = ind_delta.submatrix(row_inds,
+                                                         no_rows,
+                                                         denominator_col_index,
+                                                         1);
+            Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
+                                                                    prediction,
+                                                                    loss_function_type,
+                                                                    row_inds,
+                                                                    no_rows);
+            Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
+                                                                      prediction,
+                                                                      loss_function_type,
+                                                                      row_inds,
+                                                                      no_rows);
+
+            T sum_of_numerators = numerators.col_sum(0);
+            T sum_of_denominators = denominators.col_sum(0);
+            T sum_of_first_comp = first_comp_in_loss.col_sum(0);
+            T sum_of_second_comp = second_comp_in_loss.col_sum(0);
+
+            int best_k = -1, best_i = -1;
+            T best_left_beta, best_right_beta;
+
+            for (int i = 0; i < no_cols; ++i) {
+
+                int no_uniques = train_x.unique_vals_col(col_inds[i],
+                                                         uniques,
+                                                         row_inds,
+                                                         no_rows);
+                no_uniques = middles(uniques,
+                                     no_uniques);
+                shuffle(uniques,
+                        no_uniques);
+
+                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
+                             (int)(no_uniques * portion_candidate_split_point) :
+                             (no_uniques > threshold_using_all_split_point ?
+                              threshold_using_all_split_point : no_uniques);
+
+                std::sort(uniques, uniques + no_uniques);
+
+                left_numerator = 0;
+                left_denominator = 0;
+                left_1st_comp_in_loss = 0;
+                left_2nd_comp_in_loss = 0;
+
+                right_numerator = sum_of_numerators;
+                right_denominator = sum_of_denominators;
+                right_1st_comp_in_loss = sum_of_first_comp;
+                right_2nd_comp_in_loss = sum_of_second_comp;
+
+                T x, unique_value;
+                int k = 0, original_index_k;
+
+                for (int j = 0; j < no_uniques; ++j) {
+
+                    unique_value = uniques[j];
+                    x = train_x.get((int)sorted_row_inds.get(k, i), col_inds[i]);
+
+                    while(x < unique_value) {
+
+                        original_index_k = (int)sub_sorted_to_indices.get(k, i);
+
+                        left_numerator += numerators.get(original_index_k, 0);
+                        left_denominator += denominators.get(original_index_k, 0);
+                        left_1st_comp_in_loss += first_comp_in_loss.get(original_index_k, 0);
+                        left_2nd_comp_in_loss += second_comp_in_loss.get(original_index_k, 0);
+
+                        right_numerator -= numerators.get(original_index_k, 0);
+                        right_denominator -= denominators.get(original_index_k, 0);
+                        right_1st_comp_in_loss -= first_comp_in_loss.get(original_index_k, 0);
+                        right_2nd_comp_in_loss -= second_comp_in_loss.get(original_index_k, 0);
+
+                        ++k;
+                        x = train_x.get((int)sorted_row_inds.get(k, i), col_inds[i]);
+
+                    }
+
+                    #ifdef _DEBUG_BASE_LEARNER_TRAINER
+                        assert(k - 1 < no_rows);
+                    #endif
+
+                    left_beta = loss_function.inversed_link_function(left_numerator / left_denominator,
+                                                                     loss_function_type);
+                    right_beta = loss_function.inversed_link_function(right_numerator / right_denominator,
+                                                                      loss_function_type);
+
+                    if ( (left_beta - right_beta) * monotonic_constraints.get(col_inds[i], 0) < 0 )
+                        continue;
+
+                    loss = loss_function.loss_reduction(left_1st_comp_in_loss,
+                                                        left_2nd_comp_in_loss,
+                                                        left_beta,
+                                                        loss_function_type) +
+                           loss_function.loss_reduction(right_1st_comp_in_loss,
+                                                        right_2nd_comp_in_loss,
+                                                        right_beta,
+                                                        loss_function_type);
+
+                    if (loss < tree->loss) {
+                        tree->loss = loss;
+                        tree->column = col_inds[i];
+                        tree->split_value = uniques[j];
+                        best_k = k;
+                        best_i = i;
+                        best_left_beta = left_beta;
+                        best_right_beta = right_beta;
+                    }
+
+                }
+
+            }
+
+            if(tree->loss < std::numeric_limits<T>::max()) {
+
+                for(int i = 0; i < best_k; ++i) {
+                    left_inds[i] = (int)sorted_row_inds.get(i, best_i);
+                }
+                for(int i = best_k; i < no_rows; ++i) {
+                    right_inds[i - best_k] = (int)sorted_row_inds.get(i, best_i);
+                }
+
+                if (tree->larger != nullptr)
+                    delete tree->larger;
+                if (tree->smaller != nullptr)
+                    delete tree->smaller;
+
+                tree->larger = new Tree_node<T>(tree->depth + 1);
+                tree->larger->prediction = best_right_beta;
+                tree->smaller = new Tree_node<T>(tree->depth + 1);
+                tree->smaller->prediction = best_left_beta;
+
+                train(tree->larger,
+                      train_x,
+                      train_x_sorted_to,
+                      train_y,
+                      ind_delta,
+                      prediction,
+                      monotonic_constraints,
+                      loss_function_type,
+                      right_inds,
+                      no_rows - best_k,
+                      col_inds,
+                      no_cols);
+                train(tree->smaller,
+                      train_x,
+                      train_x_sorted_to,
+                      train_y,
+                      ind_delta,
+                      prediction,
+                      monotonic_constraints,
+                      loss_function_type,
+                      left_inds,
+                      best_k,
+                      col_inds,
+                      no_cols);
+                delete[] left_inds;
+                delete[] right_inds;
+                delete[] uniques;
+
+            }
+            else {
+                tree->last_node = true;
+                delete[] left_inds;
+                delete[] right_inds;
+                delete[] uniques;
+            }
+
+        }
+
+    }
+
+    template<typename T>
+    void Fast_tree_trainer<T>::prune(Tree_node<T> *tree) {
+
+        if (tree->last_node) return;
+#ifdef _DEBUG_BASE_LEARNER_TRAINER
+        assert(tree->larger != NULL && tree->smaller != NULL);
+#endif
+        if (tree->larger->loss > tree->smaller->loss) {
+            tree->larger->last_node = true;
+
+            delete_tree(tree->larger->larger);
+            delete_tree(tree->larger->smaller);
+
+            tree->larger->larger = nullptr,
+                    tree->larger->smaller = nullptr;
+
+            prune(tree->smaller);
+        } else {
+            tree->smaller->last_node = true;
+
+            delete_tree(tree->smaller->larger);
+            delete_tree(tree->smaller->smaller);
+
+            tree->smaller->larger = nullptr,
+                    tree->smaller->smaller = nullptr;
+
+            prune(tree->larger);
+        }
+    }
+
+}
+
 
 
 

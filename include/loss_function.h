@@ -48,12 +48,31 @@ namespace dbm {
         void mean_function(Matrix<T> &in_and_out,
                            char &dist);
 
+        T inversed_link_function(T value, const char &dist);
+
         void calculate_ind_delta(const Matrix<T> &train_y,
                                  const Matrix<T> &prediction,
                                  Matrix<T> &ind_delta,
                                  const char &dist,
                                  const int *row_inds = nullptr,
                                  int no_rows = 0);
+
+        Matrix<T> first_comp(const Matrix<T> &train_y,
+                             const Matrix<T> &prediction,
+                             const char loss_function_type,
+                             const int *row_inds = nullptr,
+                             int no_rows = 0);
+
+        Matrix<T> second_comp(const Matrix<T> &train_y,
+                             const Matrix<T> &prediction,
+                              const char loss_function_type,
+                              const int *row_inds = nullptr,
+                             int no_rows = 0);
+
+        T loss_reduction(const T first_comp_in_loss,
+                         const T second_comp_in_loss,
+                         const T beta,
+                         const char loss_function_type);
 
     };
 

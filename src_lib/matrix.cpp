@@ -7,9 +7,11 @@
 #include <iomanip>
 #include <limits>
 #include <iostream>
+#include <numeric>
 #include <algorithm>
 #include <fstream>
 #include <cassert>
+#include <cstdlib>
 #include <tgmath.h>
 
 // explicit instantiation of templated classes
@@ -39,12 +41,25 @@ namespace dbm {
 
         std::srand((unsigned int)(std::time(nullptr)));
         data = new T *[height];
+#ifdef _PLAIN_MATRIX_OP
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
             for (int j = 0; j < width; ++j) {
                 data[i][j] = T(std::rand()) / RAND_MAX * 2 - 1;
             }
         }
+#else
+        for (int i = 0; i < height; ++i) {
+            if (i > 0) {
+                data[i] = data[i - 1] + width;
+            } else {
+                data[i] = new T[width * height];
+            } 
+            for (int j = 0; j < width; ++j) {
+                data[i][j] = T(std::rand()) / RAND_MAX * 2 - 1;
+            }
+        }
+#endif
 
         #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
@@ -71,12 +86,23 @@ namespace dbm {
         #endif
 
         data = new T *[height];
+#ifdef _PLAIN_MATRIX_OP
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
             for (int j = 0; j < width; ++j) {
                 data[i][j] = value;
             }
         }
+#else
+        for (int i = 0; i < height; ++i) {
+            if (i > 0) {
+                data[i] = data[i - 1] + width;
+            } else {
+                data[i] = new T[width * height];
+            }
+        } // i
+        std::fill(data[0], data[0] + height * width, value);
+#endif
 
         #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
@@ -102,12 +128,22 @@ namespace dbm {
             std::cout << "Copying Matrix at " << this << "." << std::endl;
         #endif
 
+#ifdef _PLAIN_MATRIX_OP
 		if (data != nullptr) {
 			for (int i = 0; i < height; i ++) {
 				delete[] data[i];
 			} // i
 			delete[] data;
 		}
+#else
+        if (data != nullptr) {
+            delete[] data[0];
+            for (int i = 1; i < height; i ++) {
+                data[i] = nullptr;
+            } // i
+            delete[] data;
+        }
+#endif
         #ifdef _DEBUG_MATRIX
         if (col_labels != nullptr) delete[] col_labels;
         if (row_labels != nullptr) delete[] row_labels;
@@ -116,12 +152,23 @@ namespace dbm {
 		height = rhs.height;
 		width = rhs.width;
 		data = new T*[height];
+#ifdef _PLAIN_MATRIX_OP
 		for (int i = 0; i < height; i ++) {
 			data[i] = new T[width];
 			for (int j = 0; j < width; j ++) {
 				data[i][j] = rhs.data[i][j];
 			} // j	
 		} // i
+#else
+		for (int i = 0; i < height; i ++) {
+            if (i > 0) {
+                data[i] = data[i - 1] + width;
+            } else {
+                data[i] = new T[width * height];
+            }
+		} // i
+        std::copy(rhs.data[0], rhs.data[0] + width * height, data[0]);
+#endif
 		
         #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
@@ -147,11 +194,20 @@ namespace dbm {
 		#endif
 
 		if (data != nullptr) {
+#ifdef _PLAIN_MATRIX_OP
 			for (int i = 0; i < height; i ++) {
 				delete[] data[i];
 			} // i
 			delete[] data;
+#else
+            delete[] data[0];
+			for (int i = 1; i < height; i ++) {
+                data[i] = nullptr;
+			} // i
+			delete[] data;
+#endif
 		}
+
         #ifdef _DEBUG_MATRIX
         if (col_labels != nullptr) delete[] col_labels;
         if (row_labels != nullptr) delete[] row_labels;
@@ -160,12 +216,23 @@ namespace dbm {
 		height = rhs.height;
 		width = rhs.width;
 		data = new T*[height];
+#ifdef _PLAIN_MATRIX_OP
 		for (int i = 0; i < height; i ++) {
 			data[i] = new T[width];
 			for (int j = 0; j < width; j ++) {
 				data[i][j] = rhs.data[i][j];
 			} // j	
 		} // i
+#else
+		for (int i = 0; i < height; i ++) {
+            if (i > 0) {
+                data[i] = data[i - 1] + width;
+            } else {
+                data[i] = new T[width * height];
+            }
+		} // i
+        std::copy(rhs.data[0], rhs.data[0] + width * height, data[0]);
+#endif
 		
         #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
@@ -202,9 +269,20 @@ namespace dbm {
         #endif
 
         data = new T *[height];
+#ifdef _PLAIN_MATRIX_OP
         for (int i = 0; i < height; ++i) {
             data[i] = new T[width];
         }
+#else
+        for (int i = 0; i < height; ++i) {
+            if (i > 0) {
+                data[i] = data[i - 1] + width;
+            } else {
+                data[i] = new T[width * height];
+            } 
+            //data[i] = new T[width];
+        }
+#endif
         #ifdef _DEBUG_MATRIX
         col_labels = new int[width];
         row_labels = new int[height];
@@ -278,11 +356,18 @@ namespace dbm {
             std::cout << "Deleting Matrix at " << this << "." << std::endl;
         #endif
 
+#ifdef _PLAIN_MATRIX_OP
         for (int i = 0; i < height; ++i) {
             delete[] data[i];
         }
-
         delete[] data;
+#else
+        delete[] data[0];
+        for (int i = 1; i < height; i ++) {
+            data[i] = nullptr;
+        } //i
+        delete[] data;
+#endif
 
         #ifdef _DEBUG_MATRIX
         delete[] col_labels;
@@ -472,9 +557,13 @@ namespace dbm {
 
     template <typename T>
     void Matrix<T>::clear() {
+#ifdef _PLAIN_MATRIX_OP
         for(int i = 0; i < height; ++i)
             for(int j = 0; j < width; ++j)
                 data[i][j] = (T) 0;
+#else
+        std::fill(data[0], data[0] + width * height, (T)0);
+#endif
     }
 
 }
@@ -485,8 +574,24 @@ namespace dbm {
     // cannot shuffle row labels
     template<typename T>
     void Matrix<T>::row_shuffle() {
+#ifdef _PLAIN_MATRIX_OP
         std::random_shuffle(data, data + height);
-    };
+#else
+        // Implementation from bits/stl_algo.h
+        T *r = new T[width];
+        for (int i = 1; i < height; i ++) {
+            T *p = data[i];
+            // XXX rand() % N is not uniformly distributed
+            T *q = data[std::rand() % (i + 1)];
+            if (p != q) {
+                std::copy(p, p + width, r);
+                std::copy(q, q + width, p);
+                std::copy(r, r + width, q);
+            } // swap
+        } // p
+        delete[] r;
+#endif
+    }
 
     // both rows and row labels are shuffled, and return a new Matrix<T>
     template<typename T>
@@ -997,6 +1102,34 @@ namespace dbm {
         return result;
     }
 
+#ifdef _MKL
+    template<> Matrix<float> plus(const Matrix<float> &lhs, const Matrix<float> &rhs) {
+        #ifdef _DEBUG_MATRIX
+            assert(lhs.width == rhs.width && lhs.height == rhs.height);
+        #endif
+        Matrix<float> ans(rhs);
+        MKL_INT N = lhs.height * lhs.width;
+        float alpha = 1.;
+        MKL_INT inc = 1;
+
+        cblas_saxpy(N, alpha, lhs.data[0], inc, rhs.data[0], inc);
+        return ans;
+    } // plus_blas
+
+    template<> Matrix<double> plus(const Matrix<double> &lhs, const Matrix<double> &rhs) {
+        #ifdef _DEBUG_MATRIX
+            assert(lhs.width == rhs.width && lhs.height == rhs.height);
+        #endif
+        Matrix<double> ans(rhs);
+        MKL_INT N = lhs.height * lhs.width;
+        double alpha = 1.;
+        MKL_INT inc = 1;
+
+        cblas_daxpy(N, alpha, lhs.data[0], inc, rhs.data[0], inc);
+        return ans;
+    } // plus_blas
+#endif
+
     template <typename T>
     Matrix<T> substract(const Matrix<T> &left, const Matrix<T> &right) {
         #ifdef _DEBUG_MATRIX
@@ -1021,6 +1154,52 @@ namespace dbm {
                     result.data[i][j] += left.data[i][k] * right.data[k][j];
         return result;
     }
+
+#ifdef _MKL
+    template<> Matrix<float> inner_product(const Matrix<float> &lhs, const Matrix<float> &rhs) {
+        #ifdef _DEBUG_MATRIX
+            assert(lhs.width == rhs.height);
+        #endif
+        float f_one = 1.0, f_zero = 0.0;
+        Matrix<float> result(lhs.height, rhs.width, 0.);
+        cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+                    lhs.height, rhs.width, lhs.width, 
+                    f_one, lhs.data[0], lhs.width, rhs.data[0], rhs.width, 
+                    f_zero, result.data[0], result.width);
+        return result;
+    } // inner_product<float>
+
+    template<> Matrix<double> inner_product(const Matrix<double> &lhs, const Matrix<double> &rhs) {
+        #ifdef _DEBUG_MATRIX
+            assert(lhs.width == rhs.height);
+        #endif
+        double f_one = 1.0, f_zero = 0.0;
+        Matrix<double> result(lhs.height, rhs.width, 0.);
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+                    lhs.height, rhs.width, lhs.width, 
+                    f_one, lhs.data[0], lhs.width, rhs.data[0], rhs.width, 
+                    f_zero, result.data[0], result.width);
+        return result;
+    } // inner_product<double>
+
+    float* inner_product(const Matrix<float> &lhs, const float *rhs) {
+        float f_one = 1.0, f_zero = 0.0;
+        float *ans = new float[lhs.height];
+        cblas_sgemv(CblasRowMajor, CblasNoTrans, lhs.height, lhs.width,
+                    f_one, lhs.data[0], lhs.width, rhs, 1,
+                    f_zero, ans, 1);
+        return ans;
+    } // inner_product<sgemv>
+
+    double* inner_product(const Matrix<double> &lhs, const double *rhs) {
+        double f_one = 1.0, f_zero = 0.0;
+        double *ans = new double[lhs.height];
+        cblas_dgemv(CblasRowMajor, CblasNoTrans, lhs.height, lhs.width,
+                    f_one, lhs.data[0], lhs.width, rhs, 1,
+                    f_zero, ans, 1);
+        return ans;
+    } // inner_product<sgemv>
+#endif
 
     template <typename T>
     T determinant(const Matrix<T> &matrix) {
@@ -1115,6 +1294,66 @@ namespace dbm {
 
     }
 
+#ifdef _MKL
+    template<> Matrix<float> inverse(const Matrix<float> &rhs) {
+        Matrix<float> ans = rhs;
+        lapack_int m = rhs.height;
+        lapack_int n = rhs.width;
+#ifdef _DEBUG_MATRIX
+        assert(m == n);
+#endif
+        lapack_int lda = n;
+        lapack_int* ipiv = new lapack_int[n];
+        lapack_int istat;
+
+        istat = LAPACKE_sgetrf(LAPACK_ROW_MAJOR, m, n, ans.data[0], lda, ipiv);
+        if (istat != 0) {
+            fprintf(stderr, "LAPACKE_sgetrf fails with code: %d\n", istat);
+            fprintf(stderr, "The matrix has problems and is saved!");
+            rhs.print_to_file("matrix_fed_to_inverse.txt");
+            exit(1);
+        } 
+        istat = LAPACKE_sgetri(LAPACK_ROW_MAJOR, m, ans.data[0], lda, ipiv);
+        if (istat != 0) {
+            fprintf(stderr, "LAPACKE_sgetri fails with code: %d\n", istat);
+            fprintf(stderr, "The matrix has problems and is saved!");
+            rhs.print_to_file("matrix_fed_to_inverse.txt");
+            exit(1);
+        } 
+
+        return ans;
+    } //inverse_float
+
+    template<> Matrix<double> inverse(const Matrix<double> &rhs) {
+        Matrix<double> ans = rhs;
+        lapack_int m = rhs.height;
+        lapack_int n = rhs.width;
+#ifdef _DEBUG_MATRIX
+        assert(m == n);
+#endif
+        lapack_int lda = n;
+        lapack_int* ipiv = new lapack_int[n];
+        lapack_int istat;
+
+        istat = LAPACKE_dgetrf(LAPACK_ROW_MAJOR, m, n, ans.data[0], lda, ipiv);
+        if (istat != 0) {
+            fprintf(stderr, "LAPACKE_sgetrf fails with code: %d\n", istat);
+            fprintf(stderr, "The matrix has problems and is saved!");
+            rhs.print_to_file("matrix_fed_to_inverse.txt");
+            exit(1);
+        } 
+        istat = LAPACKE_dgetri(LAPACK_ROW_MAJOR, m, ans.data[0], lda, ipiv);
+        if (istat != 0) {
+            fprintf(stderr, "LAPACKE_sgetri fails with code: %d\n", istat);
+            fprintf(stderr, "The matrix has problems and is saved!");
+            rhs.print_to_file("matrix_fed_to_inverse.txt");
+            exit(1);
+        } 
+
+        return ans;
+    } //inverse_double
+#endif
+
     template <typename T>
     void Matrix<T>::inplace_elewise_prod_mat_with_row_vec(const Matrix<T> &row) {
         #ifdef _DEBUG_MATRIX
@@ -1124,6 +1363,52 @@ namespace dbm {
             for(int j = 0; j < width; ++j)
                 data[i][j] *= row.data[0][j];
     }
+}
+
+// columnwise sort
+namespace dbm {
+
+    template <typename T>
+    Matrix<T> col_sort(Matrix<T> &data) {
+
+        data = transpose(data);
+        Matrix<T> transposed_indices(data.get_height(), data.get_width(), 0);
+
+        for (int i = 0; i < data.get_height(); ++i) {
+            std::iota(transposed_indices[i], transposed_indices[i] + transposed_indices.get_width(), 0);
+            std::sort(transposed_indices[i],
+                      transposed_indices[i] + transposed_indices.get_width(),
+                      [&data, &i](T i1, T i2)
+                      {return data[i][(int)i1] < data[i][(int)i2];});
+        }
+
+        for (int i = 0; i < data.get_height(); ++i) {
+            std::sort(data[i], data[i] + data.get_width());
+        }
+
+        data = transpose(data);
+        Matrix<T> indices = transpose(transposed_indices);
+
+        return indices;
+    }
+
+    template <typename T>
+    Matrix<T> col_sorted_to(const Matrix<T> &sorted_from) {
+
+        Matrix<T> result(sorted_from.get_height(), sorted_from.get_width(), 0);
+        for(int i = 0; i < sorted_from.get_width(); ++i) {
+
+            for(int j = 0; j < sorted_from.get_height(); ++j) {
+
+                result.assign(sorted_from.get(j, i), i, j);
+
+            } // j
+
+        } // i
+
+        return result;
+    }
+
 }
 
 // merge horizontally, merge horizontally and deep copy
@@ -1215,25 +1500,39 @@ namespace dbm {
 
     template Matrix<float> transpose<float>(const Matrix<float> &matrix);
 
+#ifdef _PLAIN_MATRIX_OP
     template Matrix<double> plus<double>(const Matrix<double> &left, const Matrix<double> &right);
 
     template Matrix<float> plus<float>(const Matrix<float> &left, const Matrix<float> &right);
+#endif
 
     template Matrix<double> substract<double>(const Matrix<double> &left, const Matrix<double> &right);
 
     template Matrix<float> substract<float>(const Matrix<float> &left, const Matrix<float> &right);
 
+#ifdef _PLAIN_MATRIX_OP
     template Matrix<double> inner_product<double>(const Matrix<double> &left, const Matrix<double> &right);
 
     template Matrix<float> inner_product<float>(const Matrix<float> &left, const Matrix<float> &right);
+#endif
 
     template double determinant<double>(const Matrix<double> &matrix);
 
     template float determinant<float>(const Matrix<float> &matrix);
 
+#ifdef _PLAIN_MATRIX_OP
     template Matrix<double> inverse<double>(const Matrix<double> &matrix);
 
     template Matrix<float> inverse<float>(const Matrix<float> &matrix);
+#endif
+
+    template Matrix<double> col_sort<double>(Matrix<double> &matrix);
+
+    template Matrix<float> col_sort<float>(Matrix<float> &matrix);
+
+    template Matrix<double> col_sorted_to<double>(const Matrix<double> &sorted_from);
+
+    template Matrix<float> col_sorted_to<float>(const Matrix<float> &sorted_from);
 
     template Matrix<double> vert_merge<double>(const Matrix<double> &upper, const Matrix<double> &lower);
 

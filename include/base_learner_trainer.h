@@ -211,6 +211,45 @@ namespace dbm {
         void prune(Tree_node<T> *tree);
     };
 
+    template <typename T>
+    class Fast_tree_trainer {
+
+    private:
+
+        const int threshold_using_all_split_point = 10;
+        const int min_samples_in_a_node = 20;
+
+        int max_depth;
+        T portion_candidate_split_point;
+
+        Loss_function<T> loss_function;
+
+    public:
+        Fast_tree_trainer(const Params &params);
+        ~Fast_tree_trainer();
+
+        void train(Tree_node<T> *tree,
+
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &train_x_sorted_to,
+
+                   const Matrix<T> &train_y,
+                   const Matrix<T> &ind_delta,
+                   const Matrix<T> &prediction,
+
+                   const Matrix<T> &monotonic_constraints,
+
+                   char loss_function_type = 'n',
+
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
+
+        void prune(Tree_node<T> *tree);
+
+    };
+
 }
 
 #endif //DBM_CODE_BASE_LEARNER_TRAINER_H
