@@ -36,11 +36,12 @@ namespace dbm {
         double dbm_shrinkage = 0.25;
 
         // portions should be summed to 1
-        double dbm_portion_for_trees = 0.2;
-        double dbm_portion_for_lr = 0.2;
-        double dbm_portion_for_s = 0.2;
-        double dbm_portion_for_k = 0.2;
-        double dbm_portion_for_nn = 0.2;
+        double dbm_portion_for_trees = 0.167;
+        double dbm_portion_for_lr = 0.167;
+        double dbm_portion_for_s = 0.167;
+        double dbm_portion_for_k = 0.167;
+        double dbm_portion_for_nn = 0.167;
+        double dbm_portion_for_d = 0.167;
 
         double dbm_accumulated_portion_shrinkage_for_selected_bl = 1.05;
         double dbm_portion_shrinkage_for_unselected_bl = 3;
@@ -68,10 +69,14 @@ namespace dbm {
 
         // CART
         int cart_max_depth = 5;
-        double cart_portion_candidate_split_point = 0.01;
+        double cart_portion_candidate_split_point = 0.1;
 
         // linear regression
         double lr_regularization = 0.1;
+
+        // dpc stairs
+        int dpcs_no_ticks = 10;
+        double dpcs_range_shrinkage_of_ticks = 0.1;
 
         // partial dependence plot
         int pdp_no_x_ticks = 10;

@@ -293,13 +293,13 @@ namespace dbm {
                 return value;
             }
             case 'p': {
-                return std::log(value);
+                return std::log(value > TOLERANCE_INVERSE_LINK_FUNC ? value : TOLERANCE_INVERSE_LINK_FUNC);
             }
             case 'b': {
                 return value;
             }
             case 't': {
-                return std::log(value);
+                return std::log(value > TOLERANCE_INVERSE_LINK_FUNC ? value : TOLERANCE_INVERSE_LINK_FUNC);
             }
             default: {
                 throw std::invalid_argument("Specified distribution does not exist.");

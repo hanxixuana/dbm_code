@@ -27,6 +27,12 @@ namespace dbm {
     class Linear_regression<float>;
 
     template
+    class DPC_stairs<double>;
+
+    template
+    class DPC_stairs<float>;
+
+    template
     class Global_mean<float>;
 
     template
@@ -56,6 +62,8 @@ namespace dbm {
 
 }
 
+
+// global mean
 namespace dbm {
 
     template <typename T>
@@ -104,6 +112,7 @@ namespace dbm {
 
 }
 
+// neural networks
 namespace dbm {
 
     template <typename T>
@@ -211,6 +220,7 @@ namespace dbm {
 
 }
 
+// kmeans2d
 namespace dbm {
 
     template <typename T>
@@ -312,6 +322,7 @@ namespace dbm {
 
 }
 
+// splines
 namespace dbm {
 
     template <typename T>
@@ -431,6 +442,7 @@ namespace dbm {
 
 }
 
+// linear regression
 namespace dbm {
 
     template <typename T>
@@ -506,6 +518,96 @@ namespace dbm {
 
 }
 
+// dpc stairs
+namespace dbm {
+
+    template <typename T>
+    DPC_stairs<T>::DPC_stairs(int no_predictors,
+                              char loss_type,
+                              int no_ticks) :
+            Base_learner<T>('d'),
+            no_predictors(no_predictors),
+            loss_type(loss_type),
+            no_ticks(no_ticks){
+
+        col_inds = new int[no_predictors];
+
+        coefs = new T[no_predictors];
+        ticks = new T[no_ticks];
+        predictions = new T[no_ticks + 1];
+
+    }
+
+    template <typename T>
+    DPC_stairs<T>::~DPC_stairs() {
+        delete[] col_inds;
+        delete[] coefs;
+        delete[] ticks;
+        delete[] predictions;
+    };
+
+    template <typename T>
+    T DPC_stairs<T>::predict_for_row(const Matrix<T> &data,
+                                            int row_ind) {
+        T dpc_val = 0;
+        for(int i = 0; i < no_predictors; ++i) {
+            dpc_val += coefs[i] * data.get(row_ind, col_inds[i]);
+        }
+
+        int j = 0;
+        while (j < no_ticks && dpc_val > ticks[j]) {
+            ++j;
+        }
+
+        switch (loss_type) {
+            case 'n':
+                return predictions[j];
+            case 'p':
+                return std::log(predictions[j] > TOLERANCE ? predictions[j] : TOLERANCE);
+            case 'b':
+                return predictions[j];
+            case 't':
+                return std::log(predictions[j] > TOLERANCE ? predictions[j] : TOLERANCE);
+            default:
+                throw std::invalid_argument("Specified distribution does not exist.");
+        }
+    }
+
+    template <typename T>
+    void DPC_stairs<T>::predict(const Matrix<T> &data_x,
+                                       Matrix<T> &prediction,
+                                       const T shrinkage,
+                                       const int *row_inds,
+                                       int no_rows) {
+
+        if (row_inds == NULL) {
+            int data_height = data_x.get_height();
+            #ifdef _DEBUG_BASE_LEARNER
+                assert(data_height == prediction.get_height() && prediction.get_width() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < data_height; ++i) {
+                predicted_value = prediction.get(i, 0) +
+                                  shrinkage * predict_for_row(data_x, i);
+                prediction.assign(i, 0, predicted_value);
+            }
+        } else {
+            #ifdef _DEBUG_BASE_LEARNER
+                assert(no_rows > 0 && prediction.get_height() == 1);
+            #endif
+            T predicted_value;
+            for (int i = 0; i < no_rows; ++i) {
+                predicted_value = prediction.get(row_inds[i], 0) +
+                                  shrinkage * predict_for_row(data_x, row_inds[i]);
+                prediction.assign(row_inds[i], 0, predicted_value);
+            }
+        }
+
+    }
+
+}
+
+// trees
 namespace dbm {
 
     template<typename T>
@@ -985,8 +1087,90 @@ namespace dbm {
 
 }
 
-// for trees
+// for dpc stairs
+namespace dbm {
 
+    template <typename T>
+    void save_dpc_stairs(const DPC_stairs<T> *dpc_stairs,
+                         std::ofstream &out) {
+
+        out << dpc_stairs->no_predictors << ' '
+            << dpc_stairs->loss_type << ' '
+            << dpc_stairs->no_ticks
+            << std::endl;
+
+        for(int i = 0; i < dpc_stairs->no_predictors; ++i)
+            out << dpc_stairs->col_inds[i] << ' ';
+        out << std::endl;
+
+        for(int i = 0; i < dpc_stairs->no_predictors; ++i)
+            out << dpc_stairs->coefs[i] << ' ';
+        out << std::endl;
+
+        for(int i = 0; i < dpc_stairs->no_ticks; ++i)
+            out << dpc_stairs->ticks[i] << ' ';
+        out << std::endl;
+
+        for(int i = 0; i < dpc_stairs->no_ticks; ++i)
+            out << dpc_stairs->predictions[i] << ' ';
+        out << std::endl;
+    }
+
+    template <typename T>
+    void load_dpc_stairs(std::ifstream &in,
+                         DPC_stairs<T> *&dpc_stairs) {
+        std::string line;
+        std::string words[500];
+
+        std::getline(in, line);
+        int count = split_into_words(line, words);
+        #ifdef _DEBUG_BASE_LEARNER
+            assert(count == 3);
+        #endif
+        dpc_stairs = new DPC_stairs<T>(std::stoi(words[0]),
+                                       words[1].front(),
+                                       std::stoi(words[2]));
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #ifdef _DEBUG_BASE_LEARNER
+            assert(count == dpc_stairs->no_predictors);
+        #endif
+        for(int i = 0; i < count; ++i)
+            dpc_stairs->col_inds[i] = std::stoi(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #ifdef _DEBUG_BASE_LEARNER
+            assert(count == dpc_stairs->no_predictors);
+        #endif
+        for(int i = 0; i < count; ++i)
+            dpc_stairs->coefs[i] = std::stod(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #ifdef _DEBUG_BASE_LEARNER
+            assert(count == dpc_stairs->no_ticks);
+        #endif
+        for(int i = 0; i < count; ++i)
+            dpc_stairs->ticks[i] = std::stod(words[i]);
+
+        line.clear();
+        std::getline(in, line);
+        count = split_into_words(line, words);
+        #ifdef _DEBUG_BASE_LEARNER
+            assert(count == dpc_stairs->no_ticks);
+        #endif
+        for(int i = 0; i < count; ++i)
+            dpc_stairs->predictions[i] = std::stod(words[i]);
+    }
+
+}
+
+// for trees
 namespace dbm {
 
     template<typename T>
@@ -1246,6 +1430,15 @@ namespace dbm {
     template void load_linear_regression<double>(std::ifstream &in, Linear_regression<double> *&linear_regression);
 
     template void load_linear_regression<float>(std::ifstream &in, Linear_regression<float> *&linear_regression);
+
+
+    template void save_dpc_stairs<double>(const DPC_stairs<double> *dpc_stairs, std::ofstream &out);
+
+    template void save_dpc_stairs<float>(const DPC_stairs<float> *dpc_stairs, std::ofstream &out);
+
+    template void load_dpc_stairs<double>(std::ifstream &in, DPC_stairs<double> *&dpc_stairs);
+
+    template void load_dpc_stairs<float>(std::ifstream &in, DPC_stairs<float> *&dpc_stairs);
 
 
     template void save_tree_node<double>(const Tree_node<double> *node, std::ofstream &out);

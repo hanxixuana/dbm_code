@@ -1112,7 +1112,7 @@ namespace dbm {
         float alpha = 1.;
         MKL_INT inc = 1;
 
-        cblas_saxpy(N, alpha, lhs.data[0], inc, rhs.data[0], inc);
+        cblas_saxpy(N, alpha, lhs.data[0], inc, ans.data[0], inc);
         return ans;
     } // plus_blas
 
@@ -1125,7 +1125,7 @@ namespace dbm {
         double alpha = 1.;
         MKL_INT inc = 1;
 
-        cblas_daxpy(N, alpha, lhs.data[0], inc, rhs.data[0], inc);
+        cblas_daxpy(N, alpha, lhs.data[0], inc, ans.data[0], inc);
         return ans;
     } // plus_blas
 #endif
@@ -1353,6 +1353,99 @@ namespace dbm {
         return ans;
     } //inverse_double
 #endif
+
+    template <typename T>
+    T Matrix<T>::frobenius_norm() const {
+
+        T result = 0;
+        for(int i = 0; i < height; ++i)
+            for(int j = 0; j < width; ++j)
+                result += data[i][j] * data[i][j];
+
+        return std::sqrt(result);
+
+    }
+
+    template <typename T>
+    bool Matrix<T>::is_symmetric() const {
+
+        if(height != width) {
+            return false;
+        }
+        if(height == 1) {
+            return true;
+        }
+        T min_pos_val = std::numeric_limits<T>::min() * 1e10;
+        for(int i = 1; i < height; ++i) {
+            for(int j = i; j < width; ++j) {
+                if( (data[i][j] - data[j][i]) * (data[i][j] - data[j][i]) > min_pos_val)
+                    return false;
+            }
+        }
+        return true;
+
+    }
+
+    template <typename T>
+    T Matrix<T>::dominant_eigen_decomp(dbm::Matrix<T> &eigen_vector, int no_iterations) {
+        T eigen_value = 0, last_eigen_value = 0, tolerance = std::numeric_limits<T>::min() * 1e10;
+        eigen_vector = dbm::Matrix<T>(height, 1);
+
+        #ifdef _DEBUG_MATRIX
+            assert(height == width && is_symmetric());
+        #endif
+
+        for(int i = 0; i < no_iterations; ++i) {
+
+            eigen_vector = dbm::inner_product(*this, eigen_vector);
+
+            eigen_value = eigen_vector.frobenius_norm();
+
+            eigen_vector.scaling(1.0 / eigen_value);
+
+            if(std::abs(eigen_value - last_eigen_value) < tolerance)
+                break;
+
+            last_eigen_value = eigen_value;
+
+        }
+
+        return eigen_value;
+    }
+
+
+    // in-place operations
+    template <typename T>
+    void Matrix<T>::columnwise_centering() {
+
+        T column_average;
+        for(int i = 0; i < width; ++i) {
+
+            column_average = this->col_average(i);
+            for(int j = 0; j < height; ++j) {
+
+                data[j][i] -= column_average;
+
+            }
+
+        }
+
+    }
+
+    template <typename T>
+    void Matrix<T>::scaling(const T &scalar) {
+
+        for(int i = 0; i < height; ++i) {
+
+            for(int j = 0; j < width; ++j) {
+
+                data[i][j] *= scalar;
+
+            }
+
+        }
+
+    }
 
     template <typename T>
     void Matrix<T>::inplace_elewise_prod_mat_with_row_vec(const Matrix<T> &row) {

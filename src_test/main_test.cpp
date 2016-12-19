@@ -14,6 +14,8 @@ void train_test_save_load_dbm();
 
 void train_test_save_load_nn();
 
+void train_test_save_load_dpcs();
+
 void prepare_data();
 
 int main() {
@@ -28,11 +30,11 @@ int main() {
 
 void prepare_data() {
     string file_name = "train_data.txt";
-    dbm::make_data<float>(file_name, 100000, 30, 'b');
+    dbm::make_data<float>(file_name, 10000, 30, 'b');
 }
 
 void train_test_save_load_auto_dbm() {
-    int n_samples = 100000, n_features = 30, n_width = 31;
+    int n_samples = 10000, n_features = 30, n_width = 31;
 
     dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
 
@@ -54,15 +56,14 @@ void train_test_save_load_auto_dbm() {
     // ================
     string param_string = "dbm_no_bunches_of_learners 51 dbm_no_cores 8 dbm_loss_function b "
             "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
-            "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
-            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2 cart_portion_candidate_split_point 0.0001";
+            "cart_portion_candidate_split_point 0.1";
     dbm::Params params = dbm::set_params(param_string);
     dbm::AUTO_DBM<float> auto_dbm(params);
 
     auto_dbm.train(data_set);
 
-    auto_dbm.train_two_way_model(data_set.get_train_x());
-    dbm::Matrix<float> twm_pred = auto_dbm.predict_two_way_model(data_set.get_train_x());
+//    auto_dbm.train_two_way_model(data_set.get_train_x());
+//    dbm::Matrix<float> twm_pred = auto_dbm.predict_two_way_model(data_set.get_train_x());
 
     auto_dbm.predict(data_set.get_train_x(), train_prediction);
     auto_dbm.predict(data_set.get_test_x(), test_prediction);
@@ -70,8 +71,8 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> pred = auto_dbm.predict(data_set.get_test_x());
     pred.print_to_file("pred.txt");
 
-    dbm::Matrix<float> pdp = auto_dbm.partial_dependence_plot(data_set.get_train_x(), 6);
-    pdp.print_to_file("pdp.txt");
+//    dbm::Matrix<float> pdp = auto_dbm.partial_dependence_plot(data_set.get_train_x(), 6);
+//    pdp.print_to_file("pdp.txt");
 
 //    dbm::Matrix<float> ss = auto_dbm.statistical_significance(data_set.get_train_x());
 //    ss.print_to_file("ss.txt");
@@ -88,7 +89,8 @@ void train_test_save_load_auto_dbm() {
 
     re_auto_dbm.predict(data_set.get_test_x(), re_test_prediction);
 
-    dbm::Matrix<float> temp = dbm::hori_merge(*auto_dbm.get_prediction_on_train_data(), dbm::hori_merge(train_prediction, twm_pred));
+//    dbm::Matrix<float> temp = dbm::hori_merge(*auto_dbm.get_prediction_on_train_data(), dbm::hori_merge(train_prediction, twm_pred));
+    dbm::Matrix<float> temp = dbm::hori_merge(*auto_dbm.get_prediction_on_train_data(), train_prediction);
 //    dbm::Matrix<float> check = dbm::hori_merge(dbm::hori_merge(data_set.get_train_x(), data_set.get_train_y()), temp);
     dbm::Matrix<float> check = dbm::hori_merge(data_set.get_train_y(), temp);
     check.print_to_file("check_train_and_pred.txt");
@@ -102,7 +104,7 @@ void train_test_save_load_auto_dbm() {
 }
 
 void train_test_save_load_dbm() {
-    int n_samples = 100000, n_features = 30, n_width = 31;
+    int n_samples = 10000, n_features = 30, n_width = 31;
 
     dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
 
@@ -122,10 +124,10 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 8 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 8 dbm_loss_function n "
             "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
-            "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
-            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0.2 cart_portion_candidate_split_point 0.1";
+            "dbm_portion_for_trees 0.167 dbm_portion_for_lr 0.167 dbm_portion_for_s 0.167 "
+            "dbm_portion_for_k 0.167 dbm_portion_for_nn 0.167 dbm_portion_for_d 0.167";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 
@@ -245,4 +247,63 @@ void train_test_save_load_nn() {
     delete re_nn;
     delete nn;
     re_nn = nullptr, nn = nullptr;
+}
+
+void train_test_save_load_dpcs() {
+    int n_samples = 10000, n_features = 2, n_width = 3;
+
+    dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
+    dbm::Matrix<float> prediction(n_samples, 1, 0);
+    dbm::Matrix<float> ind_delta(n_samples, 2, 0);
+
+    int row_inds[n_samples], col_inds[n_features];
+
+    for (int i = 0; i < n_features; ++i)
+        col_inds[i] = i;
+    for (int i = 0; i < n_samples; ++i)
+        row_inds[i] = i;
+
+    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
+    dbm::Matrix<float> train_y = train_data.col(n_features);
+
+    // ========================================================
+
+    dbm::Params params = dbm::set_params("dbm_no_candidate_feature 2 dbm_loss_function n");
+
+    dbm::DPC_stairs<float> *dpc_stairs = new dbm::DPC_stairs<float>(params.dbm_no_candidate_feature,
+                                                                    params.dbm_loss_function,
+                                                                    params.dpcs_no_ticks);
+    dbm::DPC_stairs_trainer<float> trainer(params);
+
+    dbm::Loss_function<float> loss_function(params);
+    loss_function.calculate_ind_delta(train_y, prediction,
+                                      ind_delta, params.dbm_loss_function, row_inds, n_samples);
+
+    {
+        dbm::Time_measurer time_measurer;
+        trainer.train(dpc_stairs, train_x, ind_delta, row_inds, n_samples, col_inds, 2);
+    }
+
+    dpc_stairs->predict(train_x, prediction);
+
+    loss_function.mean_function(prediction, params.dbm_loss_function);
+    dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
+    result.print_to_file("result.txt");
+
+    {
+        ofstream out("save.txt");
+        dbm::save_dpc_stairs(dpc_stairs, out);
+    }
+
+
+    dbm::DPC_stairs<float> *re_dpc_stairs;
+    {
+        ifstream in("save.txt");
+        dbm::load_dpc_stairs(in, re_dpc_stairs);
+        ofstream out("re_save.txt");
+        dbm::save_dpc_stairs(re_dpc_stairs, out);
+    }
+
+    delete re_dpc_stairs;
+    delete dpc_stairs;
 }

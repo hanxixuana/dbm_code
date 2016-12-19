@@ -266,7 +266,17 @@ namespace dbm {
         friend Matrix<double> inverse<>(const Matrix<double> &rhs);
 #endif
 
+        T frobenius_norm() const;
+
+        bool is_symmetric() const;
+
+        T dominant_eigen_decomp(dbm::Matrix<T> &eigen_vector, int no_iterations = 1000);
+
         // in-place
+        void columnwise_centering();
+
+        void scaling(const T &scalar);
+
         void inplace_elewise_prod_mat_with_row_vec(const Matrix &row);
 
         //===================

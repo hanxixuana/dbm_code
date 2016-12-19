@@ -32,6 +32,12 @@ namespace dbm {
     class Linear_regression_trainer<float>;
 
     template
+    class DPC_stairs_trainer<double>;
+
+    template
+    class DPC_stairs_trainer<float>;
+
+    template
     class Kmeans2d_trainer<double>;
 
     template
@@ -57,6 +63,7 @@ namespace dbm {
 
 }
 
+// for means
 namespace dbm {
 
     template <typename T>
@@ -102,6 +109,7 @@ namespace dbm {
 
 }
 
+// for neural networks
 namespace dbm {
 
     template <typename T>
@@ -414,6 +422,7 @@ namespace dbm {
 
 }
 
+// for splines
 namespace dbm {
 
     template <typename T>
@@ -763,6 +772,7 @@ namespace dbm {
 
 }
 
+// for k-means-2d
 namespace dbm {
 
     template <typename T>
@@ -1321,6 +1331,7 @@ namespace dbm {
     }
 }
 
+// for linear regression
 namespace dbm {
 
     template <typename T>
@@ -1427,6 +1438,107 @@ namespace dbm {
 
 }
 
+// for dpc stairs
+namespace dbm {
+
+    template <typename T>
+    DPC_stairs_trainer<T>::DPC_stairs_trainer(const Params &params) :
+            range_shrinkage_of_ticks(params.dpcs_range_shrinkage_of_ticks) {}
+
+    template <typename T>
+    DPC_stairs_trainer<T>::~DPC_stairs_trainer() {}
+
+    template <typename T>
+    void DPC_stairs_trainer<T>::train(DPC_stairs<T> *dpc_stairs,
+                                      const Matrix<T> &train_x,
+                                      const Matrix<T> &ind_delta,
+                                      const int *row_inds,
+                                      int no_rows,
+                                      const int *col_inds,
+                                      int no_cols) {
+
+        if(row_inds == nullptr) {
+
+
+
+        }
+        else {
+            Matrix<T> w(1, no_rows, 0);
+            for(int i = 0; i < no_rows; ++i)
+                w.assign(0, i, ind_delta.get(row_inds[i], 1));
+
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+                assert(no_cols == dpc_stairs->no_predictors);
+            #endif
+
+            for(int i = 0; i < no_cols; ++i)
+                dpc_stairs->col_inds[i] = col_inds[i];
+
+            Matrix<T> data_x = train_x.submatrix(row_inds, no_rows, col_inds, no_cols);
+            Matrix<T> centered_data_x = data_x;
+            centered_data_x.columnwise_centering();
+            Matrix<T> covariance_mat = inner_product(transpose(data_x), data_x);
+            covariance_mat.scaling(1.0 / (no_rows - 1.0));
+
+            Matrix<T> eigen_vec;
+            covariance_mat.dominant_eigen_decomp(eigen_vec);
+            for(int i = 0; i < no_cols; ++i)
+                dpc_stairs->coefs[i] = eigen_vec.get(i, 0);
+
+            T *pc_scores = new T[no_rows];
+            T min_pc_score = std::numeric_limits<T>::max(), max_pc_score = std::numeric_limits<T>::lowest();
+
+            for(int i = 0; i < no_rows; ++i) {
+
+                pc_scores[i] = inner_product(data_x.row(i), eigen_vec).get(0, 0);
+
+                if(pc_scores[i] < min_pc_score)
+                    min_pc_score = pc_scores[i];
+
+                if(pc_scores[i] > max_pc_score)
+                    max_pc_score = pc_scores[i];
+
+            } // i < no_rows
+
+            min_pc_score += range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
+            max_pc_score -= range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
+
+            for(int i = 0; i < dpc_stairs->no_ticks; ++i)
+                dpc_stairs->ticks[i] = min_pc_score + (max_pc_score - min_pc_score) * i / (dpc_stairs->no_ticks - 1.0);
+
+            T *denominators = new T[dpc_stairs->no_ticks + 1];
+            for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i) {
+                dpc_stairs->predictions[i] = 0;
+                denominators[i] = 0;
+            }
+
+            for(int i = 0; i < no_rows; ++i) {
+
+                int j = 0;
+                while(j < dpc_stairs->no_ticks && pc_scores[i] > dpc_stairs->ticks[j]) {
+                    ++j;
+                }
+
+                dpc_stairs->predictions[j] += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
+                denominators[j] += ind_delta.get(row_inds[i], 1);
+
+            } // i < no_rows
+
+            for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i) {
+
+                dpc_stairs->predictions[i] /= denominators[i];
+
+            }
+
+            delete[] pc_scores;
+            delete[] denominators;
+
+        }
+    }
+
+}
+
+// for trees
 namespace dbm {
 
     template<typename T>
@@ -1772,6 +1884,7 @@ namespace dbm {
 
 }
 
+// for fast tree training
 namespace dbm {
 
     template<typename T>

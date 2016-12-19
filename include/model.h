@@ -73,6 +73,7 @@ namespace dbm {
         Neural_network_trainer<T> *neural_network_trainer = nullptr;
         Splines_trainer<T> *splines_trainer = nullptr;
         Kmeans2d_trainer<T> *kmeans2d_trainer = nullptr;
+        DPC_stairs_trainer<T> *dpc_stairs_trainer = nullptr;
 
         Params params;
         Loss_function<T> loss_function;
@@ -175,6 +176,7 @@ namespace dbm {
         Neural_network_trainer<T> *neural_network_trainer = nullptr;
         Splines_trainer<T> *splines_trainer = nullptr;
         Kmeans2d_trainer<T> *kmeans2d_trainer = nullptr;
+        DPC_stairs_trainer<T> *dpc_stairs_trainer = nullptr;
 
         Params params;
         Loss_function<T> loss_function;
@@ -188,7 +190,7 @@ namespace dbm {
 
         Matrix<T> *prediction = nullptr;
 
-        static const int no_base_learners = 5;
+        static const int no_base_learners = 6;
         char *names_base_learners = nullptr;
         Base_learner<T> **try_base_learners = nullptr;
 

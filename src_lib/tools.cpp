@@ -242,6 +242,8 @@ namespace dbm {
                 params.dbm_portion_for_s = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "dbm_portion_for_k")
                 params.dbm_portion_for_k = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_portion_for_d")
+                params.dbm_portion_for_d = std::stod(words[2 * i + 1]);
 
             else if (words[2 * i] == "dbm_accumulated_portion_shrinkage_for_selected_bl")
                 params.dbm_accumulated_portion_shrinkage_for_selected_bl = std::stod(words[2 * i + 1]);
@@ -289,6 +291,12 @@ namespace dbm {
             // linear regression
             else if (words[2 * i] == "lr_regularization")
                 params.lr_regularization = std::stod(words[2 * i + 1]);
+
+            // dpc stairs
+            else if (words[2 * i] == "dpcs_no_ticks")
+                params.dpcs_no_ticks = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dpcs_range_shrinkage_of_ticks")
+                params.dpcs_range_shrinkage_of_ticks = std::stod(words[2 * i + 1]);
 
             // partial dependence plot
             else if (words[2 * i] == "pdp_no_x_ticks")

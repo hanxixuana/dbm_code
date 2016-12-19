@@ -5,6 +5,8 @@
 #ifndef DBM_CODE_BASE_LEARNER_H
 #define DBM_CODE_BASE_LEARNER_H
 
+#define TOLERANCE 1e-30
+
 //#ifndef _DEBUG_BASE_LEARNER
 //#define _DEBUG_BASE_LEARNER
 //#endif
@@ -14,6 +16,9 @@
 #include <string>
 #include <functional>
 
+
+
+// base learner
 namespace dbm {
 
     template<typename T>
@@ -40,6 +45,7 @@ namespace dbm {
 
 }
 
+// global mean
 namespace dbm {
 
     template <typename T>
@@ -84,6 +90,7 @@ namespace dbm {
 
 }
 
+// kmeans2d
 namespace dbm {
 
     template <typename T>
@@ -142,6 +149,7 @@ namespace dbm {
 
 }
 
+// splines
 namespace dbm {
 
     template <typename T>
@@ -205,6 +213,7 @@ namespace dbm {
 
 }
 
+// neural networks
 namespace dbm {
 
     template <typename T>
@@ -266,6 +275,7 @@ namespace dbm {
 
 }
 
+// linear regression
 namespace dbm {
 
     template <typename T>
@@ -318,6 +328,63 @@ namespace dbm {
 
 }
 
+// dpc stairs
+namespace dbm {
+
+    template <typename T>
+    class DPC_stairs;
+
+    template <typename T>
+    class DPC_stairs_trainer;
+
+    template <typename T>
+    void save_dpc_stairs(const DPC_stairs<T> *dpc_stairs,
+                         std::ofstream &out);
+
+    template <typename T>
+    void load_dpc_stairs(std::ifstream &in,
+                         DPC_stairs<T> *&dpc_stairs);
+
+    template <typename T>
+    class DPC_stairs : public Base_learner<T> {
+    private:
+        int no_predictors;
+        char loss_type;
+        int no_ticks;
+
+        int *col_inds = nullptr;
+
+        T *coefs = nullptr;
+        T *ticks = nullptr;
+        T *predictions = nullptr;
+
+        T predict_for_row(const Matrix<T> &data_x,
+                          int row_ind);
+    public:
+        DPC_stairs(int no_predictors,
+                   char loss_type,
+                   int no_ticks);
+        ~DPC_stairs();
+
+        void predict(const Matrix<T> &data_x,
+                     Matrix<T> &prediction,
+                     const T shrinkage = 1,
+                     const int *row_inds = nullptr,
+                     int no_rows = 0);
+
+        friend void save_dpc_stairs<>(const DPC_stairs<T> *dpc_stairs,
+                                      std::ofstream &out);
+
+        friend void load_dpc_stairs<>(std::ifstream &in,
+                                      DPC_stairs<T> *&dpc_stairs);
+
+        friend class DPC_stairs_trainer<T>;
+
+    };
+
+}
+
+// trees
 namespace dbm {
 
     template<typename T>

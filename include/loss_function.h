@@ -20,6 +20,8 @@
 
 #define MIN_NUMERATOR_TWEEDIE 0.00001
 
+#define TOLERANCE_INVERSE_LINK_FUNC 1e-30
+
 namespace dbm {
 
     template<typename T>

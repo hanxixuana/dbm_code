@@ -176,6 +176,31 @@ namespace dbm {
 
 }
 
+// for dpc stairs
+namespace dbm {
+
+    template<typename T>
+    class DPC_stairs_trainer {
+    private:
+        T range_shrinkage_of_ticks;
+
+    public:
+        DPC_stairs_trainer(const Params &params);
+
+        ~DPC_stairs_trainer();
+
+        void train(DPC_stairs<T> *dpc_stairs,
+                   const Matrix<T> &train_x,
+                   const Matrix<T> &ind_delta,
+                   const int *row_inds = nullptr,
+                   int no_rows = 0,
+                   const int *col_inds = nullptr,
+                   int no_cols = 0);
+
+    };
+
+}
+
 // for trees
 namespace dbm {
 
