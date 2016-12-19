@@ -32,12 +32,6 @@ namespace dbm {
     class Linear_regression_trainer<float>;
 
     template
-    class DPC_stairs_trainer<double>;
-
-    template
-    class DPC_stairs_trainer<float>;
-
-    template
     class Kmeans2d_trainer<double>;
 
     template
@@ -55,15 +49,8 @@ namespace dbm {
     template
     class Tree_trainer<float>;
 
-    template
-    class Fast_tree_trainer<double>;
-
-    template
-    class Fast_tree_trainer<float>;
-
 }
 
-// for means
 namespace dbm {
 
     template <typename T>
@@ -109,7 +96,6 @@ namespace dbm {
 
 }
 
-// for neural networks
 namespace dbm {
 
     template <typename T>
@@ -422,7 +408,6 @@ namespace dbm {
 
 }
 
-// for splines
 namespace dbm {
 
     template <typename T>
@@ -772,7 +757,6 @@ namespace dbm {
 
 }
 
-// for k-means-2d
 namespace dbm {
 
     template <typename T>
@@ -1331,7 +1315,6 @@ namespace dbm {
     }
 }
 
-// for linear regression
 namespace dbm {
 
     template <typename T>
@@ -1366,30 +1349,63 @@ namespace dbm {
                 linear_regression->col_inds[j] = j;
 
             Matrix<T> intercept(height, 1, 1);
-            Matrix<T> x = hori_merge(intercept, train_x);
 
-            Matrix<T> left_in_left = transpose(x);
-            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-            Matrix<T> left = inner_product(left_in_left, x);
-
+            Matrix<T> x; /**< Now x has only intercept and x_{j} */
+            Matrix<T> left_in_left;
+            Matrix<T> left;
+            Matrix<T> eye(2, 2, 0);
+            eye.assign(0, 0, regularization);
+            eye.assign(1, 1, regularization);
             Matrix<T> y = ind_delta.col(0);
+            Matrix<T> coefs(width + 1, 1, 0.);
+            Matrix<T> coef(2, 1, 0.);
 
-            Matrix<T> eye(width + 1, width + 1, 0);
+            for (int j = 0; j < linear_regression->no_predictors; j ++) {
+                /** Loop over all features, fit \beta_{j} based on x_{j} */
+                x = hori_merge(intercept, train_x.col(j));
+                left_in_left = transpose(x);
+                left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+                left = inner_product(left_in_left, x);
 
-            for(int i = 0; i < width + 1; ++i)
-                eye.assign(i, i, regularization);
+                left = inverse(plus(left, eye));
 
-            left = inverse(plus(left, eye));
+                /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+                // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
+                coef = inner_product(left, inner_product(left_in_left, y));
+                coefs[0][0] += coef[0][0];
+                coefs.assign(j + 1, 0, coef.get(1, 0));
+            } // j
 
-            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
+            for (int j = 1; j < width + 1; j ++) {
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
+            } // j
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
-            #endif
-            linear_regression->intercept = coefs.get(0, 0);
-            for(int j = 1; j < width + 1; ++j)
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
-        }
+//            Matrix<T> x = hori_merge(intercept, train_x);
+//
+//            Matrix<T> left_in_left = transpose(x);
+//            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+//            Matrix<T> left = inner_product(left_in_left, x); /**< left = x^{T} w x */
+//
+//            Matrix<T> y = ind_delta.col(0);
+//
+//            Matrix<T> eye(width + 1, width + 1, 0);
+//
+//            for(int i = 0; i < width + 1; ++i)
+//                eye.assign(i, i, regularization);
+//
+//            left = inverse(plus(left, eye));
+//
+//            /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+//            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+//
+//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+//                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
+//            #endif
+//            linear_regression->intercept = coefs.get(0, 0);
+//            for(int j = 1; j < width + 1; ++j)
+//                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
+        } // if
         else {
             Matrix<T> w(1, no_rows, 0);
             for(int i = 0; i < no_rows; ++i)
@@ -1399,146 +1415,83 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols == linear_regression->no_predictors);
             #endif
 
+
             for(int j = 0; j < no_cols; ++j)
                 linear_regression->col_inds[j] = col_inds[j];
 
             Matrix<T> intercept(no_rows, 1, 1);
-            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds,
-                                                                  no_rows,
-                                                                  col_inds,
-                                                                  no_cols));
 
-            Matrix<T> left_in_left = transpose(x);
-            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-            Matrix<T> left = inner_product(left_in_left, x);
-
+            Matrix<T> eye(2, 2, 0);
+            eye.assign(0, 0, regularization);
+            eye.assign(1, 1, regularization);
             int y_ind[] = {0}, no_y_ind = 1;
-            Matrix<T> y = ind_delta.submatrix(row_inds,
-                                              no_rows,
-                                              y_ind,
-                                              no_y_ind);
+            Matrix<T> y = ind_delta.submatrix(row_inds, no_rows,
+                                              y_ind, no_y_ind);
+            Matrix<T> coefs(linear_regression->no_predictors + 1, 1, 0.);
+#ifdef _DEBUG_BASE_LEARNER_TRAINER
+            assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
+#endif
 
-            Matrix<T> eye(no_cols + 1, no_cols + 1, 0);
+            for (int j = 0; j < linear_regression->no_predictors; j ++) {
+                /** Loop over all features, fit \beta_{j} based on x_{j} */
+                /* Now x has only intercept and x_{j} */
+                Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds, no_rows, 
+                                                            col_inds + j, 1));
 
-            for(int i = 0; i < no_cols + 1; ++i)
-                eye.assign(i, i, regularization);
+                Matrix<T> left_in_left = transpose(x);
+                left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+                Matrix<T> left = inner_product(left_in_left, x);
 
-            left = inverse(plus(left, eye));
+                left = inverse(plus(left, eye));
 
-            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+                /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+                // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
+                Matrix<T> coef = inner_product(left, inner_product(left_in_left, y));
+                coefs[0][0] += coef[0][0];
+                coefs.assign(j + 1, 0, coef.get(1, 0));
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
-            #endif
-            linear_regression->intercept = coefs.get(0, 0);
-            for(int j = 1; j < no_cols + 1; ++j)
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
-        }
-    }
+            } // j
 
-}
+            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
+            for(int j = 1; j < no_cols + 1; j ++)
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
 
-// for dpc stairs
-namespace dbm {
+/////////////////////////////
+//            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds,
+//                                                                  no_rows,
+//                                                                  col_inds,
+//                                                                  no_cols));
+//
+//            Matrix<T> left_in_left = transpose(x);
+//            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+//            Matrix<T> left = inner_product(left_in_left, x);
+//
+//            int y_ind[] = {0}, no_y_ind = 1;
+//            Matrix<T> y = ind_delta.submatrix(row_inds,
+//                                              no_rows,
+//                                              y_ind,
+//                                              no_y_ind);
+//
+//            Matrix<T> eye(no_cols + 1, no_cols + 1, 0);
+//
+//            for(int i = 0; i < no_cols + 1; ++i)
+//                eye.assign(i, i, regularization);
+//
+//            left = inverse(plus(left, eye));
+//
+//            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+//
+//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+//                assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
+//            #endif
+//            linear_regression->intercept = coefs.get(0, 0);
+//            for(int j = 1; j < no_cols + 1; ++j)
+//                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
+        } // else row_ind != nullptr
+    } // END of void Linear_regression_trainer<T>::train()
 
-    template <typename T>
-    DPC_stairs_trainer<T>::DPC_stairs_trainer(const Params &params) :
-            range_shrinkage_of_ticks(params.dpcs_range_shrinkage_of_ticks) {}
+} // END of namespace dbm
 
-    template <typename T>
-    DPC_stairs_trainer<T>::~DPC_stairs_trainer() {}
-
-    template <typename T>
-    void DPC_stairs_trainer<T>::train(DPC_stairs<T> *dpc_stairs,
-                                      const Matrix<T> &train_x,
-                                      const Matrix<T> &ind_delta,
-                                      const int *row_inds,
-                                      int no_rows,
-                                      const int *col_inds,
-                                      int no_cols) {
-
-        if(row_inds == nullptr) {
-
-
-
-        }
-        else {
-            Matrix<T> w(1, no_rows, 0);
-            for(int i = 0; i < no_rows; ++i)
-                w.assign(0, i, ind_delta.get(row_inds[i], 1));
-
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(no_cols == dpc_stairs->no_predictors);
-            #endif
-
-            for(int i = 0; i < no_cols; ++i)
-                dpc_stairs->col_inds[i] = col_inds[i];
-
-            Matrix<T> data_x = train_x.submatrix(row_inds, no_rows, col_inds, no_cols);
-            Matrix<T> centered_data_x = data_x;
-            centered_data_x.columnwise_centering();
-            Matrix<T> covariance_mat = inner_product(transpose(data_x), data_x);
-            covariance_mat.scaling(1.0 / (no_rows - 1.0));
-
-            Matrix<T> eigen_vec;
-            covariance_mat.dominant_eigen_decomp(eigen_vec);
-            for(int i = 0; i < no_cols; ++i)
-                dpc_stairs->coefs[i] = eigen_vec.get(i, 0);
-
-            T *pc_scores = new T[no_rows];
-            T min_pc_score = std::numeric_limits<T>::max(), max_pc_score = std::numeric_limits<T>::lowest();
-
-            for(int i = 0; i < no_rows; ++i) {
-
-                pc_scores[i] = inner_product(data_x.row(i), eigen_vec).get(0, 0);
-
-                if(pc_scores[i] < min_pc_score)
-                    min_pc_score = pc_scores[i];
-
-                if(pc_scores[i] > max_pc_score)
-                    max_pc_score = pc_scores[i];
-
-            } // i < no_rows
-
-            min_pc_score += range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
-            max_pc_score -= range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
-
-            for(int i = 0; i < dpc_stairs->no_ticks; ++i)
-                dpc_stairs->ticks[i] = min_pc_score + (max_pc_score - min_pc_score) * i / (dpc_stairs->no_ticks - 1.0);
-
-            T *denominators = new T[dpc_stairs->no_ticks + 1];
-            for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i) {
-                dpc_stairs->predictions[i] = 0;
-                denominators[i] = 0;
-            }
-
-            for(int i = 0; i < no_rows; ++i) {
-
-                int j = 0;
-                while(j < dpc_stairs->no_ticks && pc_scores[i] > dpc_stairs->ticks[j]) {
-                    ++j;
-                }
-
-                dpc_stairs->predictions[j] += ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1);
-                denominators[j] += ind_delta.get(row_inds[i], 1);
-
-            } // i < no_rows
-
-            for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i) {
-
-                dpc_stairs->predictions[i] /= denominators[i];
-
-            }
-
-            delete[] pc_scores;
-            delete[] denominators;
-
-        }
-    }
-
-}
-
-// for trees
 namespace dbm {
 
     template<typename T>
@@ -1604,8 +1557,6 @@ namespace dbm {
                              (int)(no_uniques * portion_candidate_split_point) :
                              (no_uniques > threshold_using_all_split_point ?
                               threshold_using_all_split_point : no_uniques);
-
-                std::sort(uniques, uniques + no_uniques);
 
                 for (int j = 0; j < no_uniques; ++j) {
                     train_x.inds_split(i,
@@ -1883,291 +1834,6 @@ namespace dbm {
     }
 
 }
-
-// for fast tree training
-namespace dbm {
-
-    template<typename T>
-    Fast_tree_trainer<T>::Fast_tree_trainer(const Params &params) :
-            max_depth(params.cart_max_depth),
-            portion_candidate_split_point(params.cart_portion_candidate_split_point),
-            loss_function(Loss_function<T>(params)) {};
-
-    template<typename T>
-    Fast_tree_trainer<T>::~Fast_tree_trainer() {};
-
-    template<typename T>
-    void Fast_tree_trainer<T>::train(Tree_node<T> *tree,
-
-                                     const Matrix<T> &train_x,
-                                     const Matrix<T> &train_x_sorted_to,
-
-                                     const Matrix<T> &train_y,
-                                     const Matrix<T> &ind_delta,
-                                     const Matrix<T> &prediction,
-
-                                     const Matrix<T> &monotonic_constraints,
-
-                                     char loss_function_type,
-
-                                     const int *row_inds,
-                                     int no_rows,
-                                     const int *col_inds,
-                                     int no_cols) {
-
-        if(row_inds == nullptr) {
-
-
-        }
-        else {
-
-            tree->no_training_samples = no_rows;
-
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(no_rows > 0 && no_cols > 0);
-            #endif
-
-            if(tree->depth == 0) {
-                tree->prediction = loss_function.estimate_mean(ind_delta,
-                                                               loss_function_type,
-                                                               row_inds,
-                                                               no_rows);
-            }
-            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
-                tree->last_node = true;
-                return;
-            }
-
-            int *left_inds = new int[no_rows],
-                    *right_inds = new int[no_rows];
-
-            T left_beta, right_beta,
-                    loss = std::numeric_limits<T>::max();
-            tree->loss = std::numeric_limits<T>::max();
-
-            T *uniques = new T[no_rows];
-
-            Matrix<T> sub_train_x_sorted_to = train_x_sorted_to.submatrix(row_inds, no_rows, col_inds, no_cols);
-            Matrix<T> sorted_row_inds(no_rows, no_cols, 0);
-            dbm::Matrix<T> sub_sorted_to_indices = dbm::col_sort(sub_train_x_sorted_to);
-            for(int j = 0; j < no_cols; ++j) {
-                for(int i = 0; i < no_rows; ++i) {
-                    sorted_row_inds.assign(i, j, (T)row_inds[(int)sub_sorted_to_indices.get(i, j)]);
-                }
-            }
-
-            T left_numerator, left_denominator, right_numerator, right_denominator;
-            T left_1st_comp_in_loss, left_2nd_comp_in_loss, right_1st_comp_in_loss, right_2nd_comp_in_loss;
-
-            Matrix<T> numerators(no_rows, 1, 0);
-            for(int i = 0; i < no_rows; ++i) {
-                numerators.assign(i, 0, ind_delta.get(row_inds[i], 0) * ind_delta.get(row_inds[i], 1));
-            }
-            int denominator_col_index[] = {1};
-            Matrix<T> denominators = ind_delta.submatrix(row_inds,
-                                                         no_rows,
-                                                         denominator_col_index,
-                                                         1);
-            Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
-                                                                    prediction,
-                                                                    loss_function_type,
-                                                                    row_inds,
-                                                                    no_rows);
-            Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
-                                                                      prediction,
-                                                                      loss_function_type,
-                                                                      row_inds,
-                                                                      no_rows);
-
-            T sum_of_numerators = numerators.col_sum(0);
-            T sum_of_denominators = denominators.col_sum(0);
-            T sum_of_first_comp = first_comp_in_loss.col_sum(0);
-            T sum_of_second_comp = second_comp_in_loss.col_sum(0);
-
-            int best_k = -1, best_i = -1;
-            T best_left_beta, best_right_beta;
-
-            for (int i = 0; i < no_cols; ++i) {
-
-                int no_uniques = train_x.unique_vals_col(col_inds[i],
-                                                         uniques,
-                                                         row_inds,
-                                                         no_rows);
-                no_uniques = middles(uniques,
-                                     no_uniques);
-                shuffle(uniques,
-                        no_uniques);
-
-                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
-                             (int)(no_uniques * portion_candidate_split_point) :
-                             (no_uniques > threshold_using_all_split_point ?
-                              threshold_using_all_split_point : no_uniques);
-
-                std::sort(uniques, uniques + no_uniques);
-
-                left_numerator = 0;
-                left_denominator = 0;
-                left_1st_comp_in_loss = 0;
-                left_2nd_comp_in_loss = 0;
-
-                right_numerator = sum_of_numerators;
-                right_denominator = sum_of_denominators;
-                right_1st_comp_in_loss = sum_of_first_comp;
-                right_2nd_comp_in_loss = sum_of_second_comp;
-
-                T x, unique_value;
-                int k = 0, original_index_k;
-
-                for (int j = 0; j < no_uniques; ++j) {
-
-                    unique_value = uniques[j];
-                    x = train_x.get((int)sorted_row_inds.get(k, i), col_inds[i]);
-
-                    while(x < unique_value) {
-
-                        original_index_k = (int)sub_sorted_to_indices.get(k, i);
-
-                        left_numerator += numerators.get(original_index_k, 0);
-                        left_denominator += denominators.get(original_index_k, 0);
-                        left_1st_comp_in_loss += first_comp_in_loss.get(original_index_k, 0);
-                        left_2nd_comp_in_loss += second_comp_in_loss.get(original_index_k, 0);
-
-                        right_numerator -= numerators.get(original_index_k, 0);
-                        right_denominator -= denominators.get(original_index_k, 0);
-                        right_1st_comp_in_loss -= first_comp_in_loss.get(original_index_k, 0);
-                        right_2nd_comp_in_loss -= second_comp_in_loss.get(original_index_k, 0);
-
-                        ++k;
-                        x = train_x.get((int)sorted_row_inds.get(k, i), col_inds[i]);
-
-                    }
-
-                    #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                        assert(k - 1 < no_rows);
-                    #endif
-
-                    left_beta = loss_function.inversed_link_function(left_numerator / left_denominator,
-                                                                     loss_function_type);
-                    right_beta = loss_function.inversed_link_function(right_numerator / right_denominator,
-                                                                      loss_function_type);
-
-                    if ( (left_beta - right_beta) * monotonic_constraints.get(col_inds[i], 0) < 0 )
-                        continue;
-
-                    loss = loss_function.loss_reduction(left_1st_comp_in_loss,
-                                                        left_2nd_comp_in_loss,
-                                                        left_beta,
-                                                        loss_function_type) +
-                           loss_function.loss_reduction(right_1st_comp_in_loss,
-                                                        right_2nd_comp_in_loss,
-                                                        right_beta,
-                                                        loss_function_type);
-
-                    if (loss < tree->loss) {
-                        tree->loss = loss;
-                        tree->column = col_inds[i];
-                        tree->split_value = uniques[j];
-                        best_k = k;
-                        best_i = i;
-                        best_left_beta = left_beta;
-                        best_right_beta = right_beta;
-                    }
-
-                }
-
-            }
-
-            if(tree->loss < std::numeric_limits<T>::max()) {
-
-                for(int i = 0; i < best_k; ++i) {
-                    left_inds[i] = (int)sorted_row_inds.get(i, best_i);
-                }
-                for(int i = best_k; i < no_rows; ++i) {
-                    right_inds[i - best_k] = (int)sorted_row_inds.get(i, best_i);
-                }
-
-                if (tree->larger != nullptr)
-                    delete tree->larger;
-                if (tree->smaller != nullptr)
-                    delete tree->smaller;
-
-                tree->larger = new Tree_node<T>(tree->depth + 1);
-                tree->larger->prediction = best_right_beta;
-                tree->smaller = new Tree_node<T>(tree->depth + 1);
-                tree->smaller->prediction = best_left_beta;
-
-                train(tree->larger,
-                      train_x,
-                      train_x_sorted_to,
-                      train_y,
-                      ind_delta,
-                      prediction,
-                      monotonic_constraints,
-                      loss_function_type,
-                      right_inds,
-                      no_rows - best_k,
-                      col_inds,
-                      no_cols);
-                train(tree->smaller,
-                      train_x,
-                      train_x_sorted_to,
-                      train_y,
-                      ind_delta,
-                      prediction,
-                      monotonic_constraints,
-                      loss_function_type,
-                      left_inds,
-                      best_k,
-                      col_inds,
-                      no_cols);
-                delete[] left_inds;
-                delete[] right_inds;
-                delete[] uniques;
-
-            }
-            else {
-                tree->last_node = true;
-                delete[] left_inds;
-                delete[] right_inds;
-                delete[] uniques;
-            }
-
-        }
-
-    }
-
-    template<typename T>
-    void Fast_tree_trainer<T>::prune(Tree_node<T> *tree) {
-
-        if (tree->last_node) return;
-#ifdef _DEBUG_BASE_LEARNER_TRAINER
-        assert(tree->larger != NULL && tree->smaller != NULL);
-#endif
-        if (tree->larger->loss > tree->smaller->loss) {
-            tree->larger->last_node = true;
-
-            delete_tree(tree->larger->larger);
-            delete_tree(tree->larger->smaller);
-
-            tree->larger->larger = nullptr,
-                    tree->larger->smaller = nullptr;
-
-            prune(tree->smaller);
-        } else {
-            tree->smaller->last_node = true;
-
-            delete_tree(tree->smaller->larger);
-            delete_tree(tree->smaller->smaller);
-
-            tree->smaller->larger = nullptr,
-                    tree->smaller->smaller = nullptr;
-
-            prune(tree->larger);
-        }
-    }
-
-}
-
 
 
 
