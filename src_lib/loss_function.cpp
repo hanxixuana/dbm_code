@@ -50,7 +50,9 @@ namespace dbm {
                     // mean suared error
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        result += std::pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
+//                        result += std::pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
+                        T tmp = train_y.get(i, 0) - prediction.get(i, 0) - beta;
+                        result += tmp * tmp;
                     }
                     return result / T(train_y_height);
                 }

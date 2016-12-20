@@ -155,7 +155,8 @@ namespace dbm {
                     learners[no_cores * (i - 1) + j + 1] = new DPC_stairs<T>(no_candidate_feature,
                                                                              params.dbm_loss_function,
                                                                              params.dpcs_no_ticks);
-        }
+            /* END of choose base_learners */
+        } // i, 1, no_bunches_of_learners
 
 //        tree_trainer = new Tree_trainer<T>(params);
         tree_trainer = new Fast_tree_trainer<T>(params);
@@ -189,6 +190,7 @@ namespace dbm {
         delete prediction_train_data;
 
         delete test_loss_record;
+        if (train_loss_record != nullptr) delete train_loss_record;
 
         delete pdp_result;
         delete ss_result;
@@ -256,6 +258,11 @@ namespace dbm {
 
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
+        if (params.do_perf) {
+            // currently force dbm_freq_showing_loss_on_test = perf_freq_showing_loss_on_test
+            assert(params.dbm_freq_showing_loss_on_test == params.perf_freq_record_loss);
+            train_loss_record = new T[no_bunches_of_learners / params.perf_freq_record_loss + 1];
+        }
 
         /*
          * ind_delta:
@@ -303,6 +310,13 @@ namespace dbm {
                   << " Loss on test set: "
                   << test_loss_record[0]
                   << std::endl << std::endl;
+
+        if (params.do_perf) {
+            train_loss_record[0] = (T)0;
+            for (int i = 0; i < n_samples; i ++) {
+                train_loss_record[0] += ind_delta.get(i, 0) * ind_delta.get(i, 0);
+            }
+        }
 
         for (int i = 1; i < no_bunches_of_learners; ++i) {
 
@@ -791,6 +805,12 @@ namespace dbm {
                           << " Loss on test set: "
                           << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                           << std::endl << std::endl;
+                if (params.do_perf) {
+                    train_loss_record[i / params.perf_freq_record_loss] = (T)0;
+                    for (int k = 0; k < n_samples; k ++) {
+                        train_loss_record[i / params.perf_freq_record_loss] += ind_delta.get(k, 0) * ind_delta.get(k, 0);
+                    } // k
+                } //do_perf, record loss on train;
             }
 
         }
@@ -847,6 +867,11 @@ namespace dbm {
 
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
+        if (params.do_perf) {
+            // currently force dbm_freq_showing_loss_on_test = perf_freq_showing_loss_on_test
+            assert(params.dbm_freq_showing_loss_on_test == params.perf_freq_record_loss);
+            train_loss_record = new T[no_bunches_of_learners / params.perf_freq_record_loss + 1];
+        }
 
         /*
          * ind_delta:
@@ -883,6 +908,12 @@ namespace dbm {
                   << " Loss on test set: "
                   << test_loss_record[0]
                   << std::endl << std::endl;
+        if (params.do_perf) {
+            train_loss_record[0] = (T)0;
+            for (int i = 0; i < n_samples; i ++) {
+                train_loss_record[0] += ind_delta.get(i, 0) * ind_delta.get(i, 0);
+            }
+        }
 
         char type;
         for (int i = 1; i < no_bunches_of_learners; ++i) {
@@ -1376,6 +1407,12 @@ namespace dbm {
                           << " Loss on test set: "
                           << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                           << std::endl << std::endl;
+                if (params.do_perf) {
+                    train_loss_record[i / params.perf_freq_record_loss] = (T)0;
+                    for (int k = 0; k < n_samples; k ++) {
+                        train_loss_record[i / params.perf_freq_record_loss] += ind_delta.get(k, 0) * ind_delta.get(k, 0);
+                    } // k
+                } //do_perf, record loss on train;
             }
 
         }
@@ -1866,6 +1903,16 @@ namespace dbm {
 
     }
 
+    template <typename T>
+    void DBM<T>::save_perf_to(const std::string &file_name) {
+        std::ofstream fout(file_name);
+        for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; i ++) {
+            fout << (i * params.dbm_freq_showing_loss_on_test) << " "
+                 << train_loss_record[i] << " "
+                 << test_loss_record[i] << std::endl;
+        } // i
+        fout.close();
+    } // save_perf_to
 }
 
 namespace dbm {

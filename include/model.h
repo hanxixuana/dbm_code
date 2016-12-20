@@ -81,6 +81,7 @@ namespace dbm {
         Matrix<T> *prediction_train_data = nullptr;
 
         T *test_loss_record = nullptr;
+        T *train_loss_record = nullptr;
 
         Matrix<T> *pdp_result = nullptr;
         Matrix<T> *ss_result = nullptr;
@@ -136,6 +137,8 @@ namespace dbm {
                                           const T &x_tick_max);
 
         Matrix<T> &statistical_significance(const Matrix<T> &data);
+
+        void save_perf_to(const std::string &file_name);
 
         /*
          * two-way models
