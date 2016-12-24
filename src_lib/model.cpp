@@ -312,9 +312,7 @@ namespace dbm {
                   << std::endl << std::endl;
 
         if (params.do_perf) {
-            train_loss_record[0] = (T)0;
-            for (int i = 0; i < n_samples; i ++) {
-                train_loss_record[0] += ind_delta.get(i, 0) * ind_delta.get(i, 0);
+            train_loss_record[0] = loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
             }
         }
 
@@ -806,10 +804,8 @@ namespace dbm {
                           << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                           << std::endl << std::endl;
                 if (params.do_perf) {
-                    train_loss_record[i / params.perf_freq_record_loss] = (T)0;
-                    for (int k = 0; k < n_samples; k ++) {
-                        train_loss_record[i / params.perf_freq_record_loss] += ind_delta.get(k, 0) * ind_delta.get(k, 0);
-                    } // k
+                    train_loss_record[i / params.perf_freq_record_loss] =
+                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
                 } //do_perf, record loss on train;
             }
 
@@ -909,10 +905,7 @@ namespace dbm {
                   << test_loss_record[0]
                   << std::endl << std::endl;
         if (params.do_perf) {
-            train_loss_record[0] = (T)0;
-            for (int i = 0; i < n_samples; i ++) {
-                train_loss_record[0] += ind_delta.get(i, 0) * ind_delta.get(i, 0);
-            }
+            train_loss_record[0] = loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
         }
 
         char type;
@@ -1408,10 +1401,8 @@ namespace dbm {
                           << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                           << std::endl << std::endl;
                 if (params.do_perf) {
-                    train_loss_record[i / params.perf_freq_record_loss] = (T)0;
-                    for (int k = 0; k < n_samples; k ++) {
-                        train_loss_record[i / params.perf_freq_record_loss] += ind_delta.get(k, 0) * ind_delta.get(k, 0);
-                    } // k
+                    train_loss_record[i / params.perf_freq_record_loss] =
+                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
                 } //do_perf, record loss on train;
             }
 
