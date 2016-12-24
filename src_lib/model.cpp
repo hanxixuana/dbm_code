@@ -233,18 +233,18 @@ namespace dbm {
         no_train_sample = (int)(params.dbm_portion_train_sample * n_samples);
         total_no_feature = n_features;
 
-        #ifdef _DEBUG_MODEL
-            assert(no_train_sample <= n_samples && no_candidate_feature <= total_no_feature);
+#ifdef _DEBUG_MODEL
+        assert(no_train_sample <= n_samples && no_candidate_feature <= total_no_feature);
 
-            for (int i = 0; i < n_features; ++i) {
-                // serves as a check of whether the length of monotonic_constraints
-                // is equal to the length of features in some sense
+        for (int i = 0; i < n_features; ++i) {
+            // serves as a check of whether the length of monotonic_constraints
+            // is equal to the length of features in some sense
 
-                    assert(input_monotonic_constraints.get(i, 0) == 0 ||
-                                   input_monotonic_constraints.get(i, 0) == -1 ||
-                                   input_monotonic_constraints.get(i, 0) == 1);
-            }
-        #endif
+            assert(input_monotonic_constraints.get(i, 0) == 0 ||
+                    input_monotonic_constraints.get(i, 0) == -1 ||
+                    input_monotonic_constraints.get(i, 0) == 1);
+        }
+#endif
 
         int *row_inds = new int[n_samples], *col_inds = new int[n_features];
 
@@ -273,9 +273,9 @@ namespace dbm {
 
         Matrix<T> prediction_test_data(n_test_samples, 1, 0);
 
-        #ifdef _OMP
+#ifdef _OMP
         omp_set_num_threads(no_cores);
-        #endif
+#endif
 
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -313,7 +313,6 @@ namespace dbm {
 
         if (params.do_perf) {
             train_loss_record[0] = loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
-            }
         }
 
         for (int i = 1; i < no_bunches_of_learners; ++i) {
