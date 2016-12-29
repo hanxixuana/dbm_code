@@ -54,7 +54,7 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 51 dbm_no_cores 8 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 501 dbm_no_cores 8 dbm_loss_function b "
             "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
             "cart_portion_candidate_split_point 0.1";
     dbm::Params params = dbm::set_params(param_string);

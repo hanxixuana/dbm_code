@@ -189,7 +189,8 @@ namespace dbm {
         delete prediction_train_data;
 
         delete test_loss_record;
-        if (train_loss_record != nullptr) delete train_loss_record;
+        if (train_loss_record != nullptr)
+            delete train_loss_record;
 
         delete pdp_result;
         delete ss_result;
@@ -804,6 +805,11 @@ namespace dbm {
                         loss_function.loss(test_y,
                                            prediction_test_data,
                                            params.dbm_loss_function);
+                if (params.do_perf) {
+                    train_loss_record[i / params.perf_freq_record_loss] =
+                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
+                } //do_perf, record loss on train;
+
                 if (params.dbm_display_training_progress) {
                     std::cout << std::endl
                               << '(' << i / params.dbm_freq_showing_loss_on_test << ')'
@@ -811,20 +817,10 @@ namespace dbm {
                               << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                               << std::endl
                               << " \t\tLoss on train set: "
-                              << loss_function.loss(train_y,
-                                                    *prediction_train_data,
-                                                    params.dbm_loss_function)
+                              << train_loss_record[i / params.dbm_freq_showing_loss_on_test]
                               << std::endl << std::endl;
                 }
-                std::cout << std::endl
-                          << '(' << i / params.dbm_freq_showing_loss_on_test << ')'
-                          << " Loss on test set: "
-                          << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
-                          << std::endl << std::endl;
-                if (params.do_perf) {
-                    train_loss_record[i / params.perf_freq_record_loss] =
-                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
-                } //do_perf, record loss on train;
+
             }
 
         }
@@ -836,6 +832,13 @@ namespace dbm {
         for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
+
+        if (params.do_perf) {
+            std::cout << std::endl << "Losses on Test Set: " << std::endl;
+            for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
+                std::cout << "(" << i << ") " << train_loss_record[i] << ' ';
+            std::cout << std::endl;
+        }
 
         delete[] row_inds;
         delete[] col_inds;
@@ -1426,6 +1429,11 @@ namespace dbm {
                         loss_function.loss(test_y,
                                            prediction_test_data,
                                            params.dbm_loss_function);
+                if (params.do_perf) {
+                    train_loss_record[i / params.perf_freq_record_loss] =
+                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
+                } //do_perf, record loss on train;
+
                 if (params.dbm_display_training_progress) {
                     std::cout << std::endl
                               << '(' << i / params.dbm_freq_showing_loss_on_test << ')'
@@ -1433,20 +1441,10 @@ namespace dbm {
                               << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                               << std::endl
                               << " \t\tLoss on train set: "
-                              << loss_function.loss(train_y,
-                                                    *prediction_train_data,
-                                                    params.dbm_loss_function)
+                              << train_loss_record[i / params.dbm_freq_showing_loss_on_test]
                               << std::endl << std::endl;
                 }
-                std::cout << std::endl
-                          << '(' << i / params.dbm_freq_showing_loss_on_test << ')'
-                          << " Loss on test set: "
-                          << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
-                          << std::endl << std::endl;
-                if (params.do_perf) {
-                    train_loss_record[i / params.perf_freq_record_loss] =
-                            loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
-                } //do_perf, record loss on train;
+
             }
 
         }
@@ -1457,6 +1455,13 @@ namespace dbm {
         for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
+
+        if (params.do_perf) {
+            std::cout << std::endl << "Losses on Test Set: " << std::endl;
+            for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
+                std::cout << "(" << i << ") " << train_loss_record[i] << ' ';
+            std::cout << std::endl;
+        }
 
         delete[] row_inds;
         delete[] col_inds;
@@ -2701,6 +2706,8 @@ namespace dbm {
         delete ss_result;
 
         delete prediction;
+        if (train_loss_record != nullptr)
+            delete train_loss_record;
 
         delete[] names_base_learners;
         delete[] portions_base_learners;
@@ -2729,12 +2736,7 @@ namespace dbm {
                                          const Matrix<T> &ind_delta,
                                          const Matrix<T> &prediction_test_data,
                                          const Matrix<T> &input_monotonic_constraints,
-                                         const int &bunch_no,
-                                         const int *row_inds,
-                                         const int &n_samples,
-                                         const int *col_inds,
-                                         const int &n_features,
-                                         const unsigned int *seeds_select_bl) {
+                                         const int &bunch_no) {
 
         std::random_device rd;
         std::mt19937 mt(rd());
@@ -2746,7 +2748,7 @@ namespace dbm {
         // end of initialization
 
         if (params.dbm_display_training_progress) {
-            printf("\nSelecting base learner --> ");
+            printf("\nSelecting base learner (%f) --> ", type_choose);
         }
 
         if(bunch_no == 1) {
@@ -2900,6 +2902,11 @@ namespace dbm {
 
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
+        if (params.do_perf) {
+            // currently force dbm_freq_showing_loss_on_test = perf_freq_showing_loss_on_test
+            assert(params.dbm_freq_showing_loss_on_test == params.perf_freq_record_loss);
+            train_loss_record = new T[no_bunches_of_learners / params.perf_freq_record_loss + 1];
+        }
 
         portions_base_learners[0] = params.dbm_portion_for_trees;
         portions_base_learners[1] = params.dbm_portion_for_lr;
@@ -2926,10 +2933,6 @@ namespace dbm {
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
         for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
             seeds[i] = (unsigned int)dist(mt);
-
-        unsigned int *seeds_select_bl = new unsigned int[(no_bunches_of_learners - 1) * no_base_learners];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_base_learners; ++i)
-            seeds_select_bl[i] = (unsigned int)dist(mt);
 
         int chosen_bl_index;
         char chosen_bl_type;
@@ -2984,12 +2987,7 @@ namespace dbm {
                                                   ind_delta,
                                                   prediction_test_data,
                                                   input_monotonic_constraints,
-                                                  i,
-                                                  row_inds,
-                                                  n_samples,
-                                                  col_inds,
-                                                  n_features,
-                                                  seeds_select_bl);
+                                                  i);
             chosen_bl_type = names_base_learners[chosen_bl_index];
 
             if (params.dbm_display_training_progress) {
@@ -2997,6 +2995,14 @@ namespace dbm {
                 printf("Portions for base learners: ");
                 for(int j = 0; j < no_base_learners; ++j) {
                     printf("(%c) %.4f ", names_base_learners[j], portions_base_learners[j]);
+                }
+                printf("\n");
+            }
+
+            if (params.dbm_display_training_progress) {
+                printf("Loss Reductions for base learners: ");
+                for(int j = 0; j < no_base_learners; ++j) {
+                    printf("(%c) %.10f ", names_base_learners[j], new_losses_for_base_learners[j]);
                 }
                 printf("\n");
             }
@@ -3544,10 +3550,16 @@ namespace dbm {
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
 
+        if (params.do_perf) {
+            std::cout << std::endl << "Losses on Test Set: " << std::endl;
+            for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
+                std::cout << "(" << i << ") " << train_loss_record[i] << ' ';
+            std::cout << std::endl;
+        }
+
         delete[] row_inds;
         delete[] col_inds;
         delete[] seeds;
-        delete[] seeds_select_bl;
 
     }
 
@@ -3589,6 +3601,11 @@ namespace dbm {
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
 
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
+        if (params.do_perf) {
+            // currently force dbm_freq_showing_loss_on_test = perf_freq_showing_loss_on_test
+            assert(params.dbm_freq_showing_loss_on_test == params.perf_freq_record_loss);
+            train_loss_record = new T[no_bunches_of_learners / params.perf_freq_record_loss + 1];
+        }
 
         portions_base_learners[0] = params.dbm_portion_for_trees;
         portions_base_learners[1] = params.dbm_portion_for_lr;
@@ -3615,10 +3632,6 @@ namespace dbm {
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
         for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
             seeds[i] = (unsigned int)dist(mt);
-
-        unsigned int *seeds_select_bl = new unsigned int[(no_bunches_of_learners - 1) * no_base_learners];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_base_learners; ++i)
-            seeds_select_bl[i] = (unsigned int)dist(mt);
 
         int chosen_bl_index;
         char chosen_bl_type;
@@ -3682,12 +3695,7 @@ namespace dbm {
                                                   ind_delta,
                                                   prediction_test_data,
                                                   input_monotonic_constraints,
-                                                  i,
-                                                  row_inds,
-                                                  n_samples,
-                                                  col_inds,
-                                                  n_features,
-                                                  seeds_select_bl);
+                                                  i);
             chosen_bl_type = names_base_learners[chosen_bl_index];
 
             if (params.dbm_display_training_progress) {
@@ -3702,7 +3710,7 @@ namespace dbm {
             if (params.dbm_display_training_progress) {
                 printf("Loss Reductions for base learners: ");
                 for(int j = 0; j < no_base_learners; ++j) {
-                    printf("(%c) %.4f ", names_base_learners[j], new_losses_for_base_learners[j]);
+                    printf("(%c) %.10f ", names_base_learners[j], new_losses_for_base_learners[j]);
                 }
                 printf("\n");
             }
@@ -4251,10 +4259,16 @@ namespace dbm {
             std::cout << "(" << i << ") " << test_loss_record[i] << ' ';
         std::cout << std::endl;
 
+        if (params.do_perf) {
+            std::cout << std::endl << "Losses on Test Set: " << std::endl;
+            for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; ++i)
+                std::cout << "(" << i << ") " << train_loss_record[i] << ' ';
+            std::cout << std::endl;
+        }
+
         delete[] row_inds;
         delete[] col_inds;
         delete[] seeds;
-        delete[] seeds_select_bl;
 
     }
 
@@ -4730,6 +4744,17 @@ namespace dbm {
         return *ss_result;
 
     }
+
+    template <typename T>
+    void AUTO_DBM<T>::save_perf_to(const std::string &file_name) {
+        std::ofstream fout(file_name);
+        for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; i ++) {
+            fout << (i * params.dbm_freq_showing_loss_on_test) << " "
+                 << train_loss_record[i] << " "
+                 << test_loss_record[i] << std::endl;
+        } // i
+        fout.close();
+    } // save_perf_to
 
 }
 

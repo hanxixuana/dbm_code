@@ -187,6 +187,7 @@ namespace dbm {
         Matrix<T> *prediction_train_data = nullptr;
 
         T *test_loss_record = nullptr;
+        T *train_loss_record = nullptr;
 
         Matrix<T> *pdp_result = nullptr;
         Matrix<T> *ss_result = nullptr;
@@ -212,12 +213,7 @@ namespace dbm {
                                 const Matrix<T> &ind_delta,
                                 const Matrix<T> &prediction_test_data,
                                 const Matrix<T> &input_monotonic_constraints,
-                                const int &bunch_no,
-                                const int *row_inds,
-                                const int &n_samples,
-                                const int *col_inds,
-                                const int &n_features,
-                                const unsigned int *seeds_select_bl);
+                                const int &bunch_no);
 
         void update_new_losses_for_bl(const Matrix<T> &train_y, int bl_no);
 
@@ -259,6 +255,8 @@ namespace dbm {
                                            const T &x_tick_max);
 
         Matrix<T> &statistical_significance(const Matrix<T> &data);
+
+        void save_perf_to(const std::string &file_name);
 
         /*
          * two-way models
