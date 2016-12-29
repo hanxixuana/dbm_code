@@ -1366,30 +1366,63 @@ namespace dbm {
                 linear_regression->col_inds[j] = j;
 
             Matrix<T> intercept(height, 1, 1);
-            Matrix<T> x = hori_merge(intercept, train_x);
 
-            Matrix<T> left_in_left = transpose(x);
-            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-            Matrix<T> left = inner_product(left_in_left, x);
-
+            Matrix<T> x; /**< Now x has only intercept and x_{j} */
+            Matrix<T> left_in_left;
+            Matrix<T> left;
+            Matrix<T> eye(2, 2, 0);
+            eye.assign(0, 0, regularization);
+            eye.assign(1, 1, regularization);
             Matrix<T> y = ind_delta.col(0);
+            Matrix<T> coefs(width + 1, 1, 0.);
+            Matrix<T> coef(2, 1, 0.);
 
-            Matrix<T> eye(width + 1, width + 1, 0);
+            for (int j = 0; j < linear_regression->no_predictors; j ++) {
+                /** Loop over all features, fit \beta_{j} based on x_{j} */
+                x = hori_merge(intercept, train_x.col(j));
+                left_in_left = transpose(x);
+                left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+                left = inner_product(left_in_left, x);
 
-            for(int i = 0; i < width + 1; ++i)
-                eye.assign(i, i, regularization);
+                left = inverse(plus(left, eye));
 
-            left = inverse(plus(left, eye));
+                /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+                // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
+                coef = inner_product(left, inner_product(left_in_left, y));
+                coefs[0][0] += coef[0][0];
+                coefs.assign(j + 1, 0, coef.get(1, 0));
+            } // j
 
-            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
+            for (int j = 1; j < width + 1; j ++) {
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
+            } // j
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
-            #endif
-            linear_regression->intercept = coefs.get(0, 0);
-            for(int j = 1; j < width + 1; ++j)
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
-        }
+//            Matrix<T> x = hori_merge(intercept, train_x);
+//
+//            Matrix<T> left_in_left = transpose(x);
+//            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+//            Matrix<T> left = inner_product(left_in_left, x); /**< left = x^{T} w x */
+//
+//            Matrix<T> y = ind_delta.col(0);
+//
+//            Matrix<T> eye(width + 1, width + 1, 0);
+//
+//            for(int i = 0; i < width + 1; ++i)
+//                eye.assign(i, i, regularization);
+//
+//            left = inverse(plus(left, eye));
+//
+//            /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+//            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+//
+//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+//                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
+//            #endif
+//            linear_regression->intercept = coefs.get(0, 0);
+//            for(int j = 1; j < width + 1; ++j)
+//                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
+        } // if
         else {
             Matrix<T> w(1, no_rows, 0);
             for(int i = 0; i < no_rows; ++i)
@@ -1399,44 +1432,82 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols == linear_regression->no_predictors);
             #endif
 
+
             for(int j = 0; j < no_cols; ++j)
                 linear_regression->col_inds[j] = col_inds[j];
 
             Matrix<T> intercept(no_rows, 1, 1);
-            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds,
-                                                                  no_rows,
-                                                                  col_inds,
-                                                                  no_cols));
 
-            Matrix<T> left_in_left = transpose(x);
-            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-            Matrix<T> left = inner_product(left_in_left, x);
-
+            Matrix<T> eye(2, 2, 0);
+            eye.assign(0, 0, regularization);
+            eye.assign(1, 1, regularization);
             int y_ind[] = {0}, no_y_ind = 1;
-            Matrix<T> y = ind_delta.submatrix(row_inds,
-                                              no_rows,
-                                              y_ind,
-                                              no_y_ind);
+            Matrix<T> y = ind_delta.submatrix(row_inds, no_rows,
+                                              y_ind, no_y_ind);
+            Matrix<T> coefs(linear_regression->no_predictors + 1, 1, 0.);
+#ifdef _DEBUG_BASE_LEARNER_TRAINER
+            assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
+#endif
 
-            Matrix<T> eye(no_cols + 1, no_cols + 1, 0);
+            for (int j = 0; j < linear_regression->no_predictors; j ++) {
+                /** Loop over all features, fit \beta_{j} based on x_{j} */
+                /* Now x has only intercept and x_{j} */
+                Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds, no_rows,
+                                                            col_inds + j, 1));
 
-            for(int i = 0; i < no_cols + 1; ++i)
-                eye.assign(i, i, regularization);
+                Matrix<T> left_in_left = transpose(x);
+                left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+                Matrix<T> left = inner_product(left_in_left, x);
 
-            left = inverse(plus(left, eye));
+                left = inverse(plus(left, eye));
 
-            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+                /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
+                // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
+                Matrix<T> coef = inner_product(left, inner_product(left_in_left, y));
+                coefs[0][0] += coef[0][0];
+                coefs.assign(j + 1, 0, coef.get(1, 0));
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
-            #endif
-            linear_regression->intercept = coefs.get(0, 0);
-            for(int j = 1; j < no_cols + 1; ++j)
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
-        }
-    }
+            } // j
 
-}
+            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
+            for(int j = 1; j < no_cols + 1; j ++)
+                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
+
+/////////////////////////////
+//            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds,
+//                                                                  no_rows,
+//                                                                  col_inds,
+//                                                                  no_cols));
+//
+//            Matrix<T> left_in_left = transpose(x);
+//            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
+//            Matrix<T> left = inner_product(left_in_left, x);
+//
+//            int y_ind[] = {0}, no_y_ind = 1;
+//            Matrix<T> y = ind_delta.submatrix(row_inds,
+//                                              no_rows,
+//                                              y_ind,
+//                                              no_y_ind);
+//
+//            Matrix<T> eye(no_cols + 1, no_cols + 1, 0);
+//
+//            for(int i = 0; i < no_cols + 1; ++i)
+//                eye.assign(i, i, regularization);
+//
+//            left = inverse(plus(left, eye));
+//
+//            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
+//
+//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+//                assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
+//            #endif
+//            linear_regression->intercept = coefs.get(0, 0);
+//            for(int j = 1; j < no_cols + 1; ++j)
+//                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
+        } // else row_ind != nullptr
+    } // END of void Linear_regression_trainer<T>::train()
+
+} // END of namespace dbm
 
 // for dpc stairs
 namespace dbm {
@@ -2167,7 +2238,6 @@ namespace dbm {
     }
 
 }
-
 
 
 

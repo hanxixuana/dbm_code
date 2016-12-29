@@ -78,6 +78,11 @@ namespace dbm {
         int dpcs_no_ticks = 10;
         double dpcs_range_shrinkage_of_ticks = 0.1;
 
+        /* Switch for output */
+        // performance
+        bool do_perf = false;
+        int perf_freq_record_loss = 10;
+
         // partial dependence plot
         int pdp_no_x_ticks = 10;
         int pdp_no_resamplings = 3;
