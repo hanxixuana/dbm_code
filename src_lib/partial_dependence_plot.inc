@@ -2,9 +2,6 @@
 // Created by yizhou on 28/12/16.
 //
 
-#include "model.h"
-#include "partial_dependent_plot.h"
-
 namespace dbm {
 
     void gen_tick_inc_list(int total_index, int no_predictor, int no_tick,
