@@ -170,7 +170,7 @@ namespace dbm {
 
         Base_learner<T> **learners = nullptr;
 
-        Tree_trainer<T> *tree_trainer = nullptr;
+        Fast_tree_trainer<T> *tree_trainer = nullptr;
         Mean_trainer<T> *mean_trainer = nullptr;
         Linear_regression_trainer<T> *linear_regression_trainer = nullptr;
         Neural_network_trainer<T> *neural_network_trainer = nullptr;
@@ -192,7 +192,7 @@ namespace dbm {
 
         static const int no_base_learners = 6;
         char *names_base_learners = nullptr;
-        Base_learner<T> **try_base_learners = nullptr;
+        T loss_on_train_set;
 
         T *portions_base_learners = nullptr;
         T *new_losses_for_base_learners = nullptr;
@@ -202,33 +202,21 @@ namespace dbm {
         Matrix<T> *prediction_two_way = nullptr;
         Matrix<T> *predictor_x_ticks = nullptr;
 
-        int base_learner_choose_xixuan(const Matrix<T> &train_x,
-                                       const Matrix<T> &train_y,
-                                       const Matrix<T> &test_x,
-                                       const Matrix<T> &test_y,
-                                       const Matrix<T> &ind_delta,
-                                       const Matrix<T> &prediction_test_data,
-                                       const Matrix<T> &input_monotonic_constraints,
-                                       const int &bunch_no,
-                                       const int *row_inds,
-                                       const int &n_samples,
-                                       const int *col_inds,
-                                       const int &n_features,
-                                       const unsigned int *seeds_select_bl);
+        int base_learner_choose(const Matrix<T> &train_x,
+                                const Matrix<T> &train_y,
+                                const Matrix<T> &test_x,
+                                const Matrix<T> &test_y,
+                                const Matrix<T> &ind_delta,
+                                const Matrix<T> &prediction_test_data,
+                                const Matrix<T> &input_monotonic_constraints,
+                                const int &bunch_no,
+                                const int *row_inds,
+                                const int &n_samples,
+                                const int *col_inds,
+                                const int &n_features,
+                                const unsigned int *seeds_select_bl);
 
-        int base_learner_choose_simon(const Matrix<T> &train_x,
-                                       const Matrix<T> &train_y,
-                                       const Matrix<T> &test_x,
-                                       const Matrix<T> &test_y,
-                                       const Matrix<T> &ind_delta,
-                                       const Matrix<T> &prediction_test_data,
-                                       const Matrix<T> &input_monotonic_constraints,
-                                       const int &bunch_no,
-                                       const int *row_inds,
-                                       const int &n_samples,
-                                       const int *col_inds,
-                                       const int &n_features,
-                                       const unsigned int *seeds_select_bl);
+        void update_new_losses_for_bl(const Matrix<T> &train_y, int bl_no);
 
     public:
 

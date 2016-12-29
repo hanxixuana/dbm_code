@@ -38,7 +38,6 @@ namespace dbm {
             assert(train_y_width == 1);
         #endif
 
-
         /*
          *  1. Remember that a link function may be needed when calculating losses
          *  2. Also remember to put beta in it
@@ -52,7 +51,7 @@ namespace dbm {
                     for (int i = 0; i < train_y_height; ++i) {
                         result += std::pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
                     }
-                    return result / T(train_y_height);
+                    return result / (T) train_y_height;
                 }
                 case 'p': {
                     // negative log likelihood of poission distribution
@@ -61,7 +60,7 @@ namespace dbm {
                         result += std::exp(prediction.get(i, 0) + beta) -
                                   train_y.get(i, 0) * (prediction.get(i, 0) + beta);
                     }
-                    return result;
+                    return result / (T) train_y_height;
                 }
                 case 'b': {
                     // negative log likelihood of bernoulli distribution
@@ -78,7 +77,7 @@ namespace dbm {
                     for (int i = 0; i < train_y_height; ++i) {
                         result += nll(train_y.get(i, 0), prediction.get(i, 0), beta);
                     }
-                    return result;
+                    return result / (T) train_y_height;
                 }
                 case 't': {
                     T result = 0;
@@ -88,7 +87,7 @@ namespace dbm {
                                 train_y.get(i, 0) * std::pow(std::exp(prediction.get(i, 0)),
                                                              1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
                     }
-                    return result;
+                    return result / (T) train_y_height;
                 }
                 default: {
                     throw std::invalid_argument("Specified distribution does not exist.");
@@ -102,7 +101,7 @@ namespace dbm {
                         result += std::pow(train_y.get(row_inds[i], 0) -
                                            prediction.get(row_inds[i], 0) - beta, 2.0);
                     }
-                    return result / T(no_rows);
+                    return result / (T) no_rows;
                 }
                 case 'p': {
                     T result = 0;
@@ -110,7 +109,7 @@ namespace dbm {
                         result += std::exp(prediction.get(row_inds[i], 0) + beta) -
                                   train_y.get(row_inds[i], 0) * (prediction.get(row_inds[i], 0) + beta);
                     }
-                    return result;
+                    return result / (T) no_rows;
                 }
                 case 'b': {
                     auto prob = [](auto &&f, auto &&b) {
@@ -126,7 +125,7 @@ namespace dbm {
                     for (int i = 0; i < no_rows; ++i) {
                         result += nll(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0), beta);
                     }
-                    return result;
+                    return result / (T) no_rows;
                 }
                 case 't': {
                     T result = 0;
@@ -138,7 +137,7 @@ namespace dbm {
                                           std::pow(std::exp(prediction.get(row_inds[i], 0)),
                                                    1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
                     }
-                    return result;
+                    return result / (T) no_rows;
                 }
                 default: {
                     throw std::invalid_argument("Specified distribution does not exist.");
