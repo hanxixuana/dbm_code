@@ -2,8 +2,6 @@
 // Created by yizhou on 28/12/16.
 //
 
-#include "interact.h"
-
 namespace dbm{
 
     void gen_predictor_list(int choose_index, const int* predictor_ind,
@@ -75,8 +73,12 @@ namespace dbm{
             for (int i = 0; i < data_height; i ++) {
                 total_prediction.assign(i, 0, sgn * (tmp_prediction.get(i, 0) - average));
             } // i
+            if (combination == (1 << no_predictor) - 1) {
+                for (int i = 0; i < data_height; i ++) {
+                    full_prediction.assign(i, 0, tmp_prediction.get(i, 0) - average);
+                } // i
+            } // if
         } // combination
-        full_prediction = tmp_prediction;
 
         T top = 0, btm = 0;
         for (int i = 0; i < data_height; i ++) {
