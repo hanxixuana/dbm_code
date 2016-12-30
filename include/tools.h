@@ -11,6 +11,7 @@
 
 #include <string>
 #include <ctime>
+#include <limits>
 
 /*
  * tools for parameters
@@ -152,6 +153,18 @@ namespace dbm {
                    const int *sig_quad_inds = NULL, const T *coef_sig_quad = NULL, int n_sig_quad_feats = 0);
 
 }
+
+/** tools for calibrate.plot
+ *  used to store averaged observe value
+ */
+namespace dbm {
+    template<typename T>
+    struct AveragedObservation{
+        T sum = (T)0;
+        T sum2 = (T)0;
+        int N;
+    };
+} // namespace dbm::calibrate.plot
 
 #endif //DBM_CODE_TOOLS_H
 

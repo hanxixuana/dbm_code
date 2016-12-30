@@ -17,6 +17,9 @@
 
 #include <string>
 #include <fstream>
+#include <cmath>
+#include <map>
+#include <algorithm>
 
 namespace dbm {
 
@@ -136,10 +139,22 @@ namespace dbm {
                                           const T &x_tick_min,
                                           const T &x_tick_max);
 
+        Matrix<T> &partial_dependence_plot(const Matrix<T> &data,
+                                           const int *predictor_ind,
+                                           int no_predictor);
+
         Matrix<T> &statistical_significance(const Matrix<T> &data);
+
+        Matrix<T> &calibrate_plot(const Matrix<T> &observation,
+                                  const Matrix<T> &prediction,
+                                  int resolution,
+                                  const std::string& file_name = "");
 
         void save_perf_to(const std::string &file_name);
 
+        T interact(const Matrix<T>& data,
+                   const int* predictor_ind,
+                   int no_predictor);
         /*
          * two-way models
          */

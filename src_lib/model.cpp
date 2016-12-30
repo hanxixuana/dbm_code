@@ -1536,237 +1536,237 @@ namespace dbm {
 
     }
 
-    template <typename T>
-    Matrix<T> &DBM<T>::partial_dependence_plot(const Matrix<T> &data,
-                                              const int &predictor_ind) {
-        #ifdef _DEBUG_MODEL
-            assert(total_no_feature == data.get_width());
-        #endif
-
-        Matrix<T> modified_data = copy(data);
-
-        int data_height = data.get_height(),
-                *row_inds = new int[data_height],
-                resampling_size = int(data_height * params.pdp_resampling_portion);
-        for(int i = 0; i < data_height; ++i)
-            row_inds[i] = i;
-
-        if(pdp_result != nullptr)
-            delete pdp_result;
-        pdp_result = new Matrix<T>(params.pdp_no_x_ticks, 4, 0);
-        T predictor_min, predictor_max, standard_dev;
-
-        int total_no_resamplings = params.pdp_no_resamplings * no_cores;
-        Matrix<T> bootstraping(params.pdp_no_x_ticks, total_no_resamplings, 0);
-
-        #ifdef _OMP
-
-            omp_set_num_threads(no_cores);
-
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
-
-        #else
-
-            Matrix<T> resampling_prediction(resampling_size, 1, 0);
-
-        #endif
-
-        Time_measurer timer(no_cores);
-        std::cout << std::endl
-                  << "Started bootstraping..."
-                  << std::endl;
-
-        predictor_min = data.get_col_min(predictor_ind),
-                predictor_max = data.get_col_max(predictor_ind);
-
-        for(int i = 0; i < params.pdp_no_x_ticks; ++i) {
-
-            pdp_result->assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.pdp_no_x_ticks - 1));
-
-            for(int j = 0; j < data_height; ++j)
-                modified_data.assign(j, predictor_ind, pdp_result->get(i, 0));
-
-            for(int j = 0; j < params.pdp_no_resamplings; ++j) {
-
-                #ifdef _OMP
-                #pragma omp parallel default(shared)
-                {
-
-                    int resampling_id = no_cores * j + omp_get_thread_num();
-
-                #else
-                {
-                #endif
-
-                    #ifdef _OMP
-
-                        int *thread_row_inds = new int[data_height];
-                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
-                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
-
-                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
-                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
-
-                        bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
-
-                        delete[] thread_row_inds;
-                        delete resampling_prediction;
-
-                    #else
-
-                        shuffle(row_inds, data_height);
-
-                        resampling_prediction.clear();
-                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
-
-                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
-
-                    #endif
-
-                }
-
-            }
-
-            pdp_result->assign(i, 1, bootstraping.row_average(i));
-
-            standard_dev = bootstraping.row_std(i);
-
-            pdp_result->assign(i, 2, pdp_result->get(i, 1) - params.pdp_ci_bandwidth / 2.0 * standard_dev);
-            pdp_result->assign(i, 3, pdp_result->get(i, 1) + params.pdp_ci_bandwidth / 2.0 * standard_dev);
-
-        }
-
-        #ifdef _OMP
-            delete[] seeds;
-        #endif
-
-        delete[] row_inds;
-
-        return *pdp_result;
-
-    }
-
-    template <typename T>
-    Matrix<T> &DBM<T>::partial_dependence_plot(const Matrix<T> &data,
-                                              const int &predictor_ind,
-                                              const T &x_tick_min,
-                                              const T &x_tick_max) {
-        #ifdef _DEBUG_MODEL
-            assert(total_no_feature == data.get_width());
-        #endif
-
-        Matrix<T> modified_data = copy(data);
-
-        int data_height = data.get_height(),
-                *row_inds = new int[data_height],
-                resampling_size = int(data_height * params.pdp_resampling_portion);
-        for(int i = 0; i < data_height; ++i)
-            row_inds[i] = i;
-
-        if(pdp_result != nullptr)
-            delete pdp_result;
-        pdp_result = new Matrix<T>(params.pdp_no_x_ticks, 4, 0);
-        T predictor_min, predictor_max, standard_dev;
-
-        int total_no_resamplings = params.pdp_no_resamplings * no_cores;
-        Matrix<T> bootstraping(params.pdp_no_x_ticks, total_no_resamplings, 0);
-
-        #ifdef _OMP
-
-            omp_set_num_threads(no_cores);
-
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
-
-        #else
-
-            Matrix<T> resampling_prediction(resampling_size, 1, 0);
-
-        #endif
-
-        Time_measurer timer(no_cores);
-        std::cout << std::endl
-                  << "Started bootstraping..."
-                  << std::endl;
-
-        predictor_min = x_tick_min,
-                predictor_max = x_tick_max;
-
-        for(int i = 0; i < params.pdp_no_x_ticks; ++i) {
-
-            pdp_result->assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.pdp_no_x_ticks - 1));
-
-            for(int j = 0; j < data_height; ++j)
-                modified_data.assign(j, predictor_ind, pdp_result->get(i, 0));
-
-            for(int j = 0; j < params.pdp_no_resamplings; ++j) {
-
-                #ifdef _OMP
-                #pragma omp parallel default(shared)
-                {
-
-                    int resampling_id = no_cores * j + omp_get_thread_num();
-
-                #else
-                {
-                #endif
-
-                    #ifdef _OMP
-
-                        int *thread_row_inds = new int[data_height];
-                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
-                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
-
-                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
-                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
-
-                        bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
-
-                        delete[] thread_row_inds;
-                        delete resampling_prediction;
-
-                    #else
-
-                        shuffle(row_inds, data_height);
-
-                        resampling_prediction.clear();
-                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
-
-                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
-
-                    #endif
-
-                }
-
-            }
-
-            pdp_result->assign(i, 1, bootstraping.row_average(i));
-
-            standard_dev = bootstraping.row_std(i);
-
-            pdp_result->assign(i, 2, pdp_result->get(i, 1) - params.pdp_ci_bandwidth / 2.0 * standard_dev);
-            pdp_result->assign(i, 3, pdp_result->get(i, 1) + params.pdp_ci_bandwidth / 2.0 * standard_dev);
-
-        }
-
-        #ifdef _OMP
-            delete[] seeds;
-        #endif
-
-        delete[] row_inds;
-
-        return *pdp_result;
-
-    }
+//    template <typename T>
+//    Matrix<T> &DBM<T>::partial_dependence_plot(const Matrix<T> &data,
+//                                              const int &predictor_ind) {
+//        #ifdef _DEBUG_MODEL
+//            assert(total_no_feature == data.get_width());
+//        #endif
+//
+//        Matrix<T> modified_data = copy(data);
+//
+//        int data_height = data.get_height(),
+//                *row_inds = new int[data_height],
+//                resampling_size = int(data_height * params.pdp_resampling_portion);
+//        for(int i = 0; i < data_height; ++i)
+//            row_inds[i] = i;
+//
+//        if(pdp_result != nullptr)
+//            delete pdp_result;
+//        pdp_result = new Matrix<T>(params.pdp_no_x_ticks, 4, 0);
+//        T predictor_min, predictor_max, standard_dev;
+//
+//        int total_no_resamplings = params.pdp_no_resamplings * no_cores;
+//        Matrix<T> bootstraping(params.pdp_no_x_ticks, total_no_resamplings, 0);
+//
+//        #ifdef _OMP
+//
+//            omp_set_num_threads(no_cores);
+//
+//            std::random_device rd;
+//            std::mt19937 mt(rd());
+//            std::uniform_real_distribution<T> dist(0, 1000);
+//            unsigned int *seeds = new unsigned int[total_no_resamplings];
+//            for(int i = 0; i < total_no_resamplings; ++i)
+//                seeds[i] = (unsigned int)dist(mt);
+//
+//        #else
+//
+//            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+//
+//        #endif
+//
+//        Time_measurer timer(no_cores);
+//        std::cout << std::endl
+//                  << "Started bootstraping..."
+//                  << std::endl;
+//
+//        predictor_min = data.get_col_min(predictor_ind),
+//                predictor_max = data.get_col_max(predictor_ind);
+//
+//        for(int i = 0; i < params.pdp_no_x_ticks; ++i) {
+//
+//            pdp_result->assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.pdp_no_x_ticks - 1));
+//
+//            for(int j = 0; j < data_height; ++j)
+//                modified_data.assign(j, predictor_ind, pdp_result->get(i, 0));
+//
+//            for(int j = 0; j < params.pdp_no_resamplings; ++j) {
+//
+//                #ifdef _OMP
+//                #pragma omp parallel default(shared)
+//                {
+//
+//                    int resampling_id = no_cores * j + omp_get_thread_num();
+//
+//                #else
+//                {
+//                #endif
+//
+//                    #ifdef _OMP
+//
+//                        int *thread_row_inds = new int[data_height];
+//                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
+//                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
+//
+//                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+//                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
+//
+//                        bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
+//
+//                        delete[] thread_row_inds;
+//                        delete resampling_prediction;
+//
+//                    #else
+//
+//                        shuffle(row_inds, data_height);
+//
+//                        resampling_prediction.clear();
+//                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
+//
+//                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
+//
+//                    #endif
+//
+//                }
+//
+//            }
+//
+//            pdp_result->assign(i, 1, bootstraping.row_average(i));
+//
+//            standard_dev = bootstraping.row_std(i);
+//
+//            pdp_result->assign(i, 2, pdp_result->get(i, 1) - params.pdp_ci_bandwidth / 2.0 * standard_dev);
+//            pdp_result->assign(i, 3, pdp_result->get(i, 1) + params.pdp_ci_bandwidth / 2.0 * standard_dev);
+//
+//        }
+//
+//        #ifdef _OMP
+//            delete[] seeds;
+//        #endif
+//
+//        delete[] row_inds;
+//
+//        return *pdp_result;
+//
+//    }
+//
+//    template <typename T>
+//    Matrix<T> &DBM<T>::partial_dependence_plot(const Matrix<T> &data,
+//                                              const int &predictor_ind,
+//                                              const T &x_tick_min,
+//                                              const T &x_tick_max) {
+//        #ifdef _DEBUG_MODEL
+//            assert(total_no_feature == data.get_width());
+//        #endif
+//
+//        Matrix<T> modified_data = copy(data);
+//
+//        int data_height = data.get_height(),
+//                *row_inds = new int[data_height],
+//                resampling_size = int(data_height * params.pdp_resampling_portion);
+//        for(int i = 0; i < data_height; ++i)
+//            row_inds[i] = i;
+//
+//        if(pdp_result != nullptr)
+//            delete pdp_result;
+//        pdp_result = new Matrix<T>(params.pdp_no_x_ticks, 4, 0);
+//        T predictor_min, predictor_max, standard_dev;
+//
+//        int total_no_resamplings = params.pdp_no_resamplings * no_cores;
+//        Matrix<T> bootstraping(params.pdp_no_x_ticks, total_no_resamplings, 0);
+//
+//        #ifdef _OMP
+//
+//            omp_set_num_threads(no_cores);
+//
+//            std::random_device rd;
+//            std::mt19937 mt(rd());
+//            std::uniform_real_distribution<T> dist(0, 1000);
+//            unsigned int *seeds = new unsigned int[total_no_resamplings];
+//            for(int i = 0; i < total_no_resamplings; ++i)
+//                seeds[i] = (unsigned int)dist(mt);
+//
+//        #else
+//
+//            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+//
+//        #endif
+//
+//        Time_measurer timer(no_cores);
+//        std::cout << std::endl
+//                  << "Started bootstraping..."
+//                  << std::endl;
+//
+//        predictor_min = x_tick_min,
+//                predictor_max = x_tick_max;
+//
+//        for(int i = 0; i < params.pdp_no_x_ticks; ++i) {
+//
+//            pdp_result->assign(i, 0, predictor_min + i * (predictor_max - predictor_min) / (params.pdp_no_x_ticks - 1));
+//
+//            for(int j = 0; j < data_height; ++j)
+//                modified_data.assign(j, predictor_ind, pdp_result->get(i, 0));
+//
+//            for(int j = 0; j < params.pdp_no_resamplings; ++j) {
+//
+//                #ifdef _OMP
+//                #pragma omp parallel default(shared)
+//                {
+//
+//                    int resampling_id = no_cores * j + omp_get_thread_num();
+//
+//                #else
+//                {
+//                #endif
+//
+//                    #ifdef _OMP
+//
+//                        int *thread_row_inds = new int[data_height];
+//                        std::copy(row_inds, row_inds + data_height, thread_row_inds);
+//                        shuffle(thread_row_inds, data_height, seeds[resampling_id]);
+//
+//                        Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+//                        predict(modified_data.rows(thread_row_inds, resampling_size), *resampling_prediction);
+//
+//                        bootstraping.assign(i, resampling_id, resampling_prediction->col_average(0));
+//
+//                        delete[] thread_row_inds;
+//                        delete resampling_prediction;
+//
+//                    #else
+//
+//                        shuffle(row_inds, data_height);
+//
+//                        resampling_prediction.clear();
+//                        predict(modified_data.rows(row_inds, resampling_size), resampling_prediction);
+//
+//                        bootstraping.assign(i, j, resampling_prediction.col_average(0));
+//
+//                    #endif
+//
+//                }
+//
+//            }
+//
+//            pdp_result->assign(i, 1, bootstraping.row_average(i));
+//
+//            standard_dev = bootstraping.row_std(i);
+//
+//            pdp_result->assign(i, 2, pdp_result->get(i, 1) - params.pdp_ci_bandwidth / 2.0 * standard_dev);
+//            pdp_result->assign(i, 3, pdp_result->get(i, 1) + params.pdp_ci_bandwidth / 2.0 * standard_dev);
+//
+//        }
+//
+//        #ifdef _OMP
+//            delete[] seeds;
+//        #endif
+//
+//        delete[] row_inds;
+//
+//        return *pdp_result;
+//
+//    }
 
     template <typename T>
     Matrix<T> &DBM<T>::statistical_significance(const Matrix<T> &data) {
@@ -1942,6 +1942,82 @@ namespace dbm {
 
     }
 
+    template<typename T>
+    Matrix<T> &DBM<T>::calibrate_plot(const Matrix<T> &observation,
+                              const Matrix<T> &prediction,
+                              int resolution,
+                              const std::string& file_name) {
+        /**
+         * Generate data for calibrate plot, containing a pointwise 95 band
+         * @param observation the outcome 0-1 variables
+         * @param prediction the predictions estimating E(y|x)
+         * @param resolution number of significant digits
+         * @param file_name (optional) file name to record data of calibrate plot
+         */
+
+
+#ifdef _DEBUG_MODEL
+        assert(prediction.get_height() == observation.get_height());
+#endif
+        std::map<T, dbm::AveragedObservation<T> > plot_data;
+        typename std::map<T, dbm::AveragedObservation<T> >::iterator it;
+        AveragedObservation<T> avg_obs;
+        T x_pos, obs, magnitude = 1.;
+        int height = prediction.get_height();
+
+        for (int i = 0; i < resolution; i ++) magnitude *= (T)10.;
+        for (int i = 0; i < height; i ++) {
+            x_pos = round(prediction.get(i, 0) * magnitude) / magnitude;
+            it = plot_data.find(x_pos);
+            if (it == plot_data.end()) {
+                avg_obs.N = 1;
+                avg_obs.sum = observation.get(i, 0);
+                avg_obs.sum2 = avg_obs.sum * avg_obs.sum;
+                plot_data[x_pos] = avg_obs;
+            } else {
+                avg_obs = it->second;
+                obs = observation.get(i, 0);
+                avg_obs.N ++;
+                avg_obs.sum += obs;
+                avg_obs.sum2 += obs * obs;
+                plot_data[x_pos] = avg_obs;
+            } // it ?= plot_data.end()
+        } // i
+
+        Matrix<T> *mat_plot_dat = new Matrix<T>((int)plot_data.size(), 3, 0.);
+        T sd, avg;
+        int i = 0;
+        for (it = plot_data.begin(); it != plot_data.end(); ++ it) {
+            mat_plot_dat->assign(i, 0, it->first);
+            avg_obs = it->second;
+
+            avg = avg_obs.sum / (T)avg_obs.N;
+            mat_plot_dat->assign(i, 1, avg);
+
+            sd = avg_obs.sum2 - (T)avg_obs.N * avg * avg;
+            if (avg_obs.N == 1) {
+                sd = (T)0.;
+            } else {
+                sd = sqrt(sd / (T)(avg_obs.N - 1));
+            }
+            mat_plot_dat->assign(i, 2, sd);
+            i ++;
+        } // it
+
+        std::ofstream fout(file_name);
+        if (fout.is_open()) {
+            for (i = 0; i < mat_plot_dat->get_height(); i ++) {
+                fout << mat_plot_dat->get(i, 0) << " "
+                     << mat_plot_dat->get(i, 1) << " "
+                     << mat_plot_dat->get(i, 2) << std::endl;
+            } // i
+            fout.close();
+        } // output calibrate.plot to file
+
+        return *mat_plot_dat;
+        /* END of Matrix<T>& calibrate_plot()*/
+    } // calibrate_plot
+
     template <typename T>
     void DBM<T>::save_perf_to(const std::string &file_name) {
         std::ofstream fout(file_name);
@@ -1952,7 +2028,8 @@ namespace dbm {
         } // i
         fout.close();
     } // save_perf_to
-}
+
+} // namespace dbm
 
 namespace dbm {
 
@@ -5315,6 +5392,9 @@ namespace dbm {
     template void save_auto_dbm<float>(const AUTO_DBM<float> *auto_dbm, std::ofstream &out);
 
 }
+
+#include "interact.inc"
+#include "partial_dependence_plot.inc"
 
 
 
