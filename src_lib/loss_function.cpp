@@ -49,9 +49,8 @@ namespace dbm {
                     // mean suared error
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-//                        result += std::pow(train_y.get(i, 0) - prediction.get(i, 0) - beta, 2.0);
-                        T tmp = train_y.get(i, 0) - prediction.get(i, 0) - beta;
-                        result += tmp * tmp;
+                        result += (train_y.get(i, 0) - prediction.get(i, 0) - beta) *
+                                (train_y.get(i, 0) - prediction.get(i, 0) - beta);
                     }
                     return result / (T) train_y_height;
                 }
@@ -67,13 +66,13 @@ namespace dbm {
                 case 'b': {
                     // negative log likelihood of bernoulli distribution
                     auto prob = [](auto &&f, auto &&b) {
-                        auto temp = 1 / (1 + std::exp( - f - b));
+                        auto temp = 1.0 / (1.0 + std::exp( - f - b));
                         return temp < MAX_PROB_BERNOULLI ?
                                (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
                     auto nll = [&prob](auto &&y, auto &&f, auto &&b) {
                         auto p = prob(f, b);
-                        return -y * std::log(p) - (1 - y) * std::log(1 - p);
+                        return - y * std::log(p) - (1 - y) * std::log(1 - p);
                     };
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
@@ -84,10 +83,10 @@ namespace dbm {
                 case 't': {
                     T result = 0;
                     for (int i = 0; i < train_y_height; ++i) {
-                        result += std::pow(std::exp(prediction.get(i, 0) + beta), 2 - T(params.tweedie_p)) /
-                                          (2 - params.tweedie_p) -
+                        result += std::pow(std::exp(prediction.get(i, 0) + beta), 2.0 - params.tweedie_p) /
+                                          (2.0 - params.tweedie_p) -
                                 train_y.get(i, 0) * std::pow(std::exp(prediction.get(i, 0)),
-                                                             1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
+                                                             1.0 - params.tweedie_p) / (1.0 - params.tweedie_p);
                     }
                     return result / (T) train_y_height;
                 }
@@ -100,8 +99,8 @@ namespace dbm {
                 case 'n': {
                     T result = 0;
                     for (int i = 0; i < no_rows; ++i) {
-                        result += std::pow(train_y.get(row_inds[i], 0) -
-                                           prediction.get(row_inds[i], 0) - beta, 2.0);
+                        result += (train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0) - beta) *
+                                (train_y.get(row_inds[i], 0) - prediction.get(row_inds[i], 0) - beta);
                     }
                     return result / (T) no_rows;
                 }
@@ -115,7 +114,7 @@ namespace dbm {
                 }
                 case 'b': {
                     auto prob = [](auto &&f, auto &&b) {
-                        auto temp = 1 / (1 + std::exp( - f - b));
+                        auto temp = 1.0 / (1.0 + std::exp( - f - b));
                         return temp < MAX_PROB_BERNOULLI ?
                                (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
@@ -133,11 +132,9 @@ namespace dbm {
                     T result = 0;
                     for (int i = 0; i < no_rows; ++i) {
                         result += std::pow(std::exp(prediction.get(row_inds[i], 0) + beta),
-                                           2 - T(params.tweedie_p)) /
-                                  (2 - params.tweedie_p) -
-                                train_y.get(row_inds[i], 0) *
-                                          std::pow(std::exp(prediction.get(row_inds[i], 0)),
-                                                   1 - T(params.tweedie_p)) / (1 - params.tweedie_p);
+                                           2.0 - params.tweedie_p) / (2.0 - params.tweedie_p) -
+                                train_y.get(row_inds[i], 0) * std::pow(std::exp(prediction.get(row_inds[i], 0)),
+                                                   1.0 - params.tweedie_p) / (1.0 - params.tweedie_p);
                     }
                     return result / (T) no_rows;
                 }
@@ -242,7 +239,7 @@ namespace dbm {
     }
 
     template <typename T>
-    void Loss_function<T>::mean_function(Matrix<T> &in_and_out,
+    void Loss_function<T>::link_function(Matrix<T> &in_and_out,
                                          char &dist) {
 
         int lpp_height = in_and_out.get_height(),
@@ -267,8 +264,8 @@ namespace dbm {
             }
             case 'b': {
                 for(int i = 0; i < lpp_height; ++i) {
-                    temp = 1 + std::exp(-in_and_out.get(i, 0));
-                    in_and_out.assign(i, 0, 1 / temp);
+                    temp = 1.0 / ( 1.0 + std::exp(-in_and_out.get(i, 0)) );
+                    in_and_out.assign(i, 0, temp);
                 }
                 break;
             }
@@ -348,25 +345,25 @@ namespace dbm {
                 }
                 case 'b': {
                     auto prob = [](auto &&f) {
-                        auto temp = 1 / (1 + std::exp( - f));
+                        auto temp = 1.0 / (1.0 + std::exp( - f));
                         return temp < MAX_PROB_BERNOULLI ?
                                (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
                     auto delta = [&prob](auto &&y, auto &&f) {
                         auto p = prob(f);
-                        return (y - p) / p / (1 - p);
+                        return (y - p) / p / (1.0 - p);
                     };
-                    auto result = [&delta](auto &&y, auto &&f) {
-                        auto little_delta = delta(y, f);
-                        return little_delta < MAX_IND_DELTA ?
-                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
-                    };
+//                    auto result = [&delta](auto &&y, auto &&f) {
+//                        auto little_delta = delta(y, f);
+//                        return little_delta < MAX_IND_DELTA ?
+//                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
+//                    };
                     auto denominator = [&prob](auto &&f) {
                         auto p = prob(f);
-                        return p * (1 - p);
+                        return p * (1.0 - p);
                     };
                     for(int i = 0; i < y_height; ++i) {
-                        ind_delta.assign(i, 0, result(train_y.get(i, 0), prediction.get(i, 0)));
+                        ind_delta.assign(i, 0, delta(train_y.get(i, 0), prediction.get(i, 0)));
                         ind_delta.assign(i, 1, denominator(prediction.get(i, 0)));
                     }
                     break;
@@ -413,7 +410,7 @@ namespace dbm {
                 }
                 case 'b': {
                     auto prob = [](auto &&f) {
-                        auto temp = 1 / (1 + std::exp( - f));
+                        auto temp = 1.0 / (1.0 + std::exp( - f));
                         return temp < MAX_PROB_BERNOULLI ?
                                (temp > MIN_PROB_BERNOULLI ? temp : MIN_PROB_BERNOULLI) : MAX_PROB_BERNOULLI;
                     };
@@ -421,17 +418,17 @@ namespace dbm {
                         auto p = prob(f);
                         return (y - p) / p / (1 - p);
                     };
-                    auto result = [&delta](auto &&y, auto &&f) {
-                        auto little_delta = delta(y, f);
-                        return little_delta < MAX_IND_DELTA ?
-                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
-                    };
+//                    auto result = [&delta](auto &&y, auto &&f) {
+//                        auto little_delta = delta(y, f);
+//                        return little_delta < MAX_IND_DELTA ?
+//                               (little_delta > MIN_IND_DELTA ? little_delta : MIN_IND_DELTA) : MAX_IND_DELTA;
+//                    };
                     auto denominator = [&prob](auto &&f) {
                         auto p = prob(f);
-                        return p * (1 - p);
+                        return p * (1.0 - p);
                     };
                     for(int i = 0; i < no_rows; ++i) {
-                        ind_delta.assign(row_inds[i], 0, result(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
+                        ind_delta.assign(row_inds[i], 0, delta(train_y.get(row_inds[i], 0), prediction.get(row_inds[i], 0)));
                         ind_delta.assign(row_inds[i], 1, denominator(prediction.get(row_inds[i], 0)));
                     }
                     break;

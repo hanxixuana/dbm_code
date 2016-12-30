@@ -81,8 +81,7 @@ namespace dbm {
 
         /* Switch for output */
         // performance
-        bool do_perf = false;
-        int perf_freq_record_loss = 10;
+        bool dbm_do_perf = true;
 
         // partial dependence plot
         int pdp_no_x_ticks = 10;

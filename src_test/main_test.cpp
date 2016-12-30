@@ -226,7 +226,7 @@ void train_test_save_load_nn() {
 
     nn->predict(train_x, prediction);
 
-    loss_function.mean_function(prediction, params.dbm_loss_function);
+    loss_function.link_function(prediction, params.dbm_loss_function);
     dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
     result.print_to_file("result.txt");
 
@@ -286,7 +286,7 @@ void train_test_save_load_dpcs() {
 
     dpc_stairs->predict(train_x, prediction);
 
-    loss_function.mean_function(prediction, params.dbm_loss_function);
+    loss_function.link_function(prediction, params.dbm_loss_function);
     dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
     result.print_to_file("result.txt");
 

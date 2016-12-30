@@ -298,13 +298,11 @@ namespace dbm {
             else if (words[2 * i] == "dpcs_range_shrinkage_of_ticks")
                 params.dpcs_range_shrinkage_of_ticks = std::stod(words[2 * i + 1]);
 
-            else if (words[2 * i] == "do_perf") {
+            else if (words[2 * i] == "dbm_do_perf") {
                 std::string opt = words[2 * i + 1];
                 std::transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
-                if (opt == "yes") params.do_perf = true;
+                if (opt == "yes") params.dbm_do_perf = true;
             }
-            else if (words[2 * i + 1] == "perf_freq_showing_loss") 
-                params.perf_freq_record_loss = std::stoi(words[2 * i + 1]);
 
             // partial dependence plot
             else if (words[2 * i] == "pdp_no_x_ticks")

@@ -12,15 +12,15 @@
 #include "matrix.h"
 #include "tools.h"
 
-#define MAX_PROB_BERNOULLI 0.99999
-#define MIN_PROB_BERNOULLI 0.00001
+#define MAX_PROB_BERNOULLI 0.99999999999999
+#define MIN_PROB_BERNOULLI 0.00000000000001
 
-#define MAX_IND_DELTA 999
-#define MIN_IND_DELTA -999
+#define MAX_IND_DELTA 99999999999999
+#define MIN_IND_DELTA -99999999999999
 
-#define MIN_NUMERATOR_TWEEDIE 0.00001
+#define MIN_NUMERATOR_TWEEDIE 1e-20
 
-#define TOLERANCE_INVERSE_LINK_FUNC 1e-30
+#define TOLERANCE_INVERSE_LINK_FUNC 1e-20
 
 namespace dbm {
 
@@ -47,7 +47,7 @@ namespace dbm {
                         const int *row_inds = nullptr,
                         int no_rows = 0) const;
 
-        void mean_function(Matrix<T> &in_and_out,
+        void link_function(Matrix<T> &in_and_out,
                            char &dist);
 
         T inversed_link_function(T value, const char &dist);
