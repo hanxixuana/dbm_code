@@ -415,14 +415,14 @@ namespace dbm {
     class Tree_node : public Base_learner<T> {
     private:
 
-        Tree_node *larger;
-        Tree_node *smaller;
+        Tree_node *right = nullptr;
+        Tree_node *left = nullptr;
 
         int depth;
 
         int column;
         T split_value;
-        T loss;
+        T loss_reduction;
 
         bool last_node;
         T prediction;

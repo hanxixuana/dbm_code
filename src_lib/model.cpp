@@ -6,8 +6,6 @@
 
 #include <cassert>
 #include <iostream>
-#include <limits>
-#include <random>
 
 #ifdef _OMP
 #include <omp.h>
@@ -255,10 +253,14 @@ namespace dbm {
 
         if (prediction_train_data != nullptr)
             delete prediction_train_data;
-
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
+
+        if (test_loss_record != nullptr)
+            delete[] test_loss_record;
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         if (params.dbm_do_perf) {
+            if (train_loss_record != nullptr)
+                delete[] train_loss_record;
             train_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         }
 
@@ -315,9 +317,7 @@ namespace dbm {
                       << test_loss_record[0]
                       << std::endl
                       << " \t\tLoss on train set: "
-                      << loss_function.loss(train_y,
-                                            *prediction_train_data,
-                                            params.dbm_loss_function)
+                      << train_loss_record[0]
                       << std::endl << std::endl;
         }
 
@@ -379,19 +379,30 @@ namespace dbm {
                                 n_features,
                                 seeds[learner_id - 1]);
 
+                        Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
+                                                                                *prediction_train_data,
+                                                                                params.dbm_loss_function);
+                        Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
+                                                                                  *prediction_train_data,
+                                                                                  params.dbm_loss_function);
+
                         tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
                                             train_x,
-                                            train_x_sorted_to,
+                                            sorted_train_x_from,
                                             train_y,
                                             ind_delta,
                                             *prediction_train_data,
+                                            first_comp_in_loss,
+                                            second_comp_in_loss,
                                             input_monotonic_constraints,
                                             params.dbm_loss_function,
                                             thread_row_inds,
                                             no_train_sample,
                                             thread_col_inds,
                                             no_candidate_feature);
-                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
                         #ifdef _OMP
                         #pragma omp barrier
                         #endif
@@ -853,6 +864,12 @@ namespace dbm {
     template<typename T>
     void DBM<T>::train(const Data_set<T> &data_set) {
 
+        std::cout << "dbm_no_bunches_of_learners: " << params.dbm_no_bunches_of_learners << std::endl
+                  << "dbm_no_cores: " << params.dbm_no_cores << std::endl
+                  << "dbm_portion_train_sample: " << params.dbm_portion_train_sample << std::endl
+                  << "dbm_no_candidate_feature: " << params.dbm_no_candidate_feature << std::endl
+                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl;
+
         Time_measurer timer(no_cores);
 
         Matrix<T> const &train_x = data_set.get_train_x();
@@ -862,7 +879,7 @@ namespace dbm {
 
         Matrix<T> sorted_train_x = copy(train_x);
         const Matrix<T> sorted_train_x_from = col_sort(sorted_train_x);
-        const Matrix<T> train_x_sorted_to = col_sorted_to(sorted_train_x_from);
+//        const Matrix<T> train_x_sorted_to = col_sorted_to(sorted_train_x_from);
 
         int n_samples = train_x.get_height(), n_features = train_x.get_width();
         int n_test_samples = test_x.get_height();
@@ -886,11 +903,17 @@ namespace dbm {
         if (prediction_train_data != nullptr)
             delete prediction_train_data;
 
+        if (test_loss_record != nullptr)
+            delete[] test_loss_record;
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         if (params.dbm_do_perf) {
+            if (train_loss_record != nullptr)
+                delete[] train_loss_record;
             train_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         }
+
+        T lowest_test_loss = std::numeric_limits<T>::max();
 
         /*
          * ind_delta:
@@ -920,7 +943,8 @@ namespace dbm {
                                           ind_delta,
                                           params.dbm_loss_function);
         mean_trainer->train(dynamic_cast<Global_mean<T> *>(learners[0]),
-                            train_x, ind_delta,
+                            train_x,
+                            ind_delta,
                             *prediction_train_data,
                             params.dbm_loss_function);
         learners[0]->predict(train_x,
@@ -935,23 +959,23 @@ namespace dbm {
                                                   *prediction_train_data,
                                                   params.dbm_loss_function);
 
+        if(test_loss_record[0] < lowest_test_loss)
+            lowest_test_loss = test_loss_record[0];
+
         if (params.dbm_display_training_progress) {
             std::cout << std::endl
                       << '(' << 0 << ')'
-                      << " \tLoss on test set: "
+                      << " \tLowest loss on test set: "
+                      << lowest_test_loss
+                      << std::endl
+                      << " \t\tLoss on test set: "
                       << test_loss_record[0]
                       << std::endl
                       << " \t\tLoss on train set: "
-                      << loss_function.loss(train_y,
-                                            *prediction_train_data,
-                                            params.dbm_loss_function)
+                      << train_loss_record[0]
                       << std::endl << std::endl;
         }
-        std::cout << std::endl
-                  << '(' << 0 << ')'
-                  << " Loss on test set: "
-                  << test_loss_record[0]
-                  << std::endl << std::endl;
+
         if (params.dbm_do_perf) {
             train_loss_record[0] = loss_function.loss(train_y,
                                                       *prediction_train_data,
@@ -1014,19 +1038,30 @@ namespace dbm {
                                 n_features,
                                 seeds[learner_id - 1]);
 
+                        Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
+                                                                                *prediction_train_data,
+                                                                                params.dbm_loss_function);
+                        Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
+                                                                                  *prediction_train_data,
+                                                                                  params.dbm_loss_function);
+
                         tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
                                             train_x,
-                                            train_x_sorted_to,
+                                            sorted_train_x_from,
                                             train_y,
                                             ind_delta,
                                             *prediction_train_data,
+                                            first_comp_in_loss,
+                                            second_comp_in_loss,
                                             input_monotonic_constraints,
                                             params.dbm_loss_function,
                                             thread_row_inds,
                                             no_train_sample,
                                             thread_col_inds,
                                             no_candidate_feature);
-                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
                         #ifdef _OMP
                         #pragma omp barrier
                         #endif
@@ -1452,10 +1487,16 @@ namespace dbm {
                             loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
                 } //dbm_do_perf, record loss on train;
 
+                if(test_loss_record[i / params.dbm_freq_showing_loss_on_test] < lowest_test_loss)
+                    lowest_test_loss = test_loss_record[i / params.dbm_freq_showing_loss_on_test];
+
                 if (params.dbm_display_training_progress) {
                     std::cout << std::endl
                               << '(' << i / params.dbm_freq_showing_loss_on_test << ')'
-                              << " \tLoss on test set: "
+                              << " \tLowest loss on test set: "
+                              << lowest_test_loss
+                              << std::endl
+                              << " \t\tLoss on test set: "
                               << test_loss_record[i / params.dbm_freq_showing_loss_on_test]
                               << std::endl
                               << " \t\tLoss on train set: "
@@ -2222,11 +2263,10 @@ namespace dbm {
 
         }
 
-        int data_height = data_x.get_height(),
-                data_width = data_x.get_width();
+        int data_height = data_x.get_height();
 
         #ifdef _DEBUG_MODEL
-            assert(data_width == total_no_feature);
+            assert(data_x.get_width() == total_no_feature);
         #endif
 
         prediction_two_way = new Matrix<T>(data_height, 1, 0);
@@ -2408,9 +2448,7 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        #ifdef _DEBUG_MODEL
-            assert(count == 7);
-        #endif
+        assert(count == 7);
 
         dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]), std::stoi(words[3]), std::stoi(words[6]));
         dbm->set_loss_function_and_shrinkage(words[4].front(), T(std::stod(words[5])));
@@ -2567,9 +2605,7 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        #ifdef _DEBUG_MODEL
-            assert(count == 7);
-        #endif
+        assert(count == 7);
 
         no_bunches_of_learners = std::stoi(words[0]);
         no_cores = std::stoi(words[1]);
@@ -2846,9 +2882,11 @@ namespace dbm {
             printf("\nSelecting base learner (%f) --> ", type_choose);
         }
 
-        if(bunch_no == 1) {
+        loss_on_train_set = loss_function.loss(train_y,
+                                               *prediction_train_data,
+                                               params.dbm_loss_function);
 
-            loss_on_train_set = loss_function.loss(train_y, *prediction_train_data, params.dbm_loss_function);
+        if(bunch_no == 1) {
 
             for(int i = 0; i < no_base_learners; ++i) {
 
@@ -2859,7 +2897,9 @@ namespace dbm {
 
             for(int i = 0; i < no_base_learners; ++i) {
 
-                portions_base_learners[i] = new_losses_for_base_learners[i] / sum_of_bl_losses;
+                portions_base_learners[i] =
+                        (new_losses_for_base_learners[i] + 0.01 * sum_of_bl_losses) /
+                        (1.01 * sum_of_bl_losses + std::numeric_limits<T>::min());
 
             } // i
 
@@ -2875,20 +2915,20 @@ namespace dbm {
 
             } // i
 
-            sum_of_bl_losses = 0;
-            for(int j = 0; j < no_base_learners; ++j) {
+//            sum_of_bl_losses = 0;
+//            for(int j = 0; j < no_base_learners; ++j) {
+//
+//                sum_of_bl_losses += new_losses_for_base_learners[j];
+//
+//            }
+//
+//            for(int j = 0; j < no_base_learners; ++j) {
+//
+//                new_losses_for_base_learners[j] += sum_of_bl_losses * 0.01;
+//
+//            }
 
-                sum_of_bl_losses += new_losses_for_base_learners[j];
-
-            }
-
-            for(int j = 0; j < no_base_learners; ++j) {
-
-                new_losses_for_base_learners[j] += sum_of_bl_losses * 0.01;
-
-            }
-
-            return i;
+            return 0;
 
         }
         else {
@@ -2901,7 +2941,9 @@ namespace dbm {
 
             for(int i = 0; i < no_base_learners; ++i) {
 
-                portions_base_learners[i] = new_losses_for_base_learners[i] / sum_of_bl_losses;
+                portions_base_learners[i] =
+                        (new_losses_for_base_learners[i] + 0.01 * sum_of_bl_losses + std::numeric_limits<T>::min()) /
+                        (1.01 * sum_of_bl_losses + no_base_learners * std::numeric_limits<T>::min());
 
             } // i
 
@@ -2917,7 +2959,7 @@ namespace dbm {
 
             } // i
 
-            return i;
+            return 0;
 
         }
 
@@ -2931,23 +2973,8 @@ namespace dbm {
                                                         params.dbm_loss_function);
         new_losses_for_base_learners[bl_no] = loss_on_train_set - latest_loss_on_train_set;
 
-        loss_on_train_set = latest_loss_on_train_set;
-
         new_losses_for_base_learners[bl_no] =
                 new_losses_for_base_learners[bl_no] > 0 ? new_losses_for_base_learners[bl_no] : 0;
-
-        T sum_of_bl_losses = 0;
-        for(int j = 0; j < no_base_learners; ++j) {
-
-            sum_of_bl_losses += new_losses_for_base_learners[j];
-
-        }
-
-        for(int j = 0; j < no_base_learners; ++j) {
-
-            new_losses_for_base_learners[j] += sum_of_bl_losses * 0.01;
-
-        }
 
     }
 
@@ -2994,10 +3021,14 @@ namespace dbm {
 
         if (prediction_train_data != nullptr)
             delete prediction_train_data;
-
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
+
+        if (test_loss_record != nullptr)
+            delete[] test_loss_record;
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         if (params.dbm_do_perf) {
+            if (train_loss_record != nullptr)
+                delete[] train_loss_record;
             train_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         }
 
@@ -3067,9 +3098,7 @@ namespace dbm {
                       << test_loss_record[0]
                       << std::endl
                       << " \t\tLoss on train set: "
-                      << loss_function.loss(train_y,
-                                            *prediction_train_data,
-                                            params.dbm_loss_function)
+                      << train_loss_record[0]
                       << std::endl << std::endl;
         }
         else {
@@ -3163,12 +3192,21 @@ namespace dbm {
                                 n_features,
                                 seeds[learner_id - 1]);
 
+                        Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
+                                                                                *prediction_train_data,
+                                                                                params.dbm_loss_function);
+                        Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
+                                                                                  *prediction_train_data,
+                                                                                  params.dbm_loss_function);
+
                         tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
                                             train_x,
-                                            train_x_sorted_to,
+                                            sorted_train_x_from,
                                             train_y,
                                             ind_delta,
                                             *prediction_train_data,
+                                            first_comp_in_loss,
+                                            second_comp_in_loss,
                                             input_monotonic_constraints,
                                             params.dbm_loss_function,
                                             thread_row_inds,
@@ -3176,7 +3214,7 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
 
                         #ifdef _OMP
                         #pragma omp barrier
@@ -3711,8 +3749,13 @@ namespace dbm {
             delete prediction_train_data;
         prediction_train_data = new Matrix<T>(n_samples, 1, 0);
 
+        if (test_loss_record != nullptr)
+            delete[] test_loss_record;
         test_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
+
         if (params.dbm_do_perf) {
+            if (train_loss_record != nullptr)
+                delete[] train_loss_record;
             train_loss_record = new T[no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1];
         }
 
@@ -3783,9 +3826,7 @@ namespace dbm {
                       << test_loss_record[0]
                       << std::endl
                       << " \t\tLoss on train set: "
-                      << loss_function.loss(train_y,
-                                            *prediction_train_data,
-                                            params.dbm_loss_function)
+                      << train_loss_record[0]
                       << std::endl << std::endl;
         }
         else {
@@ -3879,12 +3920,21 @@ namespace dbm {
                                 n_features,
                                 seeds[learner_id - 1]);
 
+                        Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
+                                                                                *prediction_train_data,
+                                                                                params.dbm_loss_function);
+                        Matrix<T> second_comp_in_loss = loss_function.second_comp(train_y,
+                                                                                  *prediction_train_data,
+                                                                                  params.dbm_loss_function);
+
                         tree_trainer->train(dynamic_cast<Tree_node<T> *>(learners[learner_id]),
                                             train_x,
-                                            train_x_sorted_to,
+                                            sorted_train_x_from,
                                             train_y,
                                             ind_delta,
                                             *prediction_train_data,
+                                            first_comp_in_loss,
+                                            second_comp_in_loss,
                                             input_monotonic_constraints,
                                             params.dbm_loss_function,
                                             thread_row_inds,
@@ -3892,7 +3942,7 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
 
                         #ifdef _OMP
                         #pragma omp barrier
@@ -4392,7 +4442,8 @@ namespace dbm {
     }
 
     template<typename T>
-    void AUTO_DBM<T>::predict(const Matrix<T> &data_x, Matrix<T> &predict_y) {
+    void AUTO_DBM<T>::predict(const Matrix<T> &data_x,
+                              Matrix<T> &predict_y) {
 
         int data_height = data_x.get_height();
 
@@ -5050,12 +5101,11 @@ namespace dbm {
 
         }
 
-        int data_height = data_x.get_height(),
-                data_width = data_x.get_width();
+        int data_height = data_x.get_height();
 
-#ifdef _DEBUG_MODEL
-        assert(data_width == total_no_feature);
-#endif
+        #ifdef _DEBUG_MODEL
+            assert(data_x.get_width() == total_no_feature);
+        #endif
 
         prediction_two_way = new Matrix<T>(data_height, 1, 0);
 
@@ -5274,9 +5324,7 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        #ifdef _DEBUG_MODEL
-            assert(count == 7);
-        #endif
+        assert(count == 7);
 
         no_bunches_of_learners = std::stoi(words[0]);
         no_cores = std::stoi(words[1]);
@@ -5435,7 +5483,7 @@ namespace dbm {
 
 }
 
-#include "interact.inc"
+
 #include "partial_dependence_plot.inc"
 
 

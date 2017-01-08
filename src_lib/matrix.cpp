@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <fstream>
 #include <cassert>
-#include <cstdlib>
 #include <tgmath.h>
 
 // explicit instantiation of templated classes
@@ -362,7 +361,9 @@ namespace dbm {
         }
         delete[] data;
 #else
-        delete[] data[0];
+        if(height > 0) {
+            delete[] data[0];
+        }
         for (int i = 1; i < height; i ++) {
             data[i] = nullptr;
         } //i
@@ -672,7 +673,7 @@ namespace dbm {
 namespace dbm {
 
     template<typename T>
-    T Matrix<T>::get(int i, int j) const {
+    inline T Matrix<T>::get(int i, int j) const {
         #ifdef _DEBUG_MATRIX
         assert(i < height && j < width);
         #endif
@@ -950,7 +951,7 @@ namespace dbm {
     template<typename T>
     T Matrix<T>::average_col_for_rows(int col_index, const int *row_inds, int no_rows) const {
         if (row_inds == nullptr) {
-            T result = 0;
+            double result = 0;
             for (int i = 0; i < height; ++i) {
                 result += data[i][col_index];
             }
@@ -959,7 +960,7 @@ namespace dbm {
             #ifdef _DEBUG_MATRIX
             assert(no_rows > 0);
             #endif
-            T result = 0;
+            double result = 0;
             for (int i = 0; i < no_rows; ++i) {
                 result += data[row_inds[i]][col_index];
             }
@@ -1016,7 +1017,7 @@ namespace dbm {
     template <typename T>
     T Matrix<T>::row_sum(const int &row_ind) const {
 
-        T result = 0;
+        double result = 0;
         for(int i = 0; i < width; ++i)
             result += data[row_ind][i];
 
@@ -1027,7 +1028,7 @@ namespace dbm {
     template <typename T>
     T Matrix<T>::col_sum(const int &col_ind) const {
 
-        T result = 0;
+        double result = 0;
         for(int i = 0; i < height; ++i)
             result += data[i][col_ind];
 
@@ -1052,7 +1053,7 @@ namespace dbm {
     template <typename T>
     T Matrix<T>::row_std(const int &row_ind) const {
 
-        T average = row_average(row_ind),
+        double average = row_average(row_ind),
                 result = 0;
         for(int i = 0; i < width; ++i)
             result += (data[row_ind][i] - average) * (data[row_ind][i] - average);
@@ -1064,7 +1065,7 @@ namespace dbm {
     template <typename T>
     T Matrix<T>::col_std(const int &col_ind) const {
 
-        T average = col_average(col_ind),
+        double average = col_average(col_ind),
                 result = 0;
         for(int i = 0; i < height; ++i)
             result += (data[i][col_ind] - average) * (data[i][col_ind] - average);
@@ -1229,8 +1230,6 @@ namespace dbm {
     template <typename T>
     Matrix<T> inverse(const Matrix<T> &matrix) {
 
-        T abs_det = std::abs(determinant(matrix));
-
 //        if(std::isnan(abs_det) || std::isinf(abs_det) || abs_det < std::numeric_limits<T>::min() * 1e2) {
 //            std::cout << "The matrix has problems and is saved!"
 //                      << std::endl;
@@ -1239,7 +1238,7 @@ namespace dbm {
 
         #ifdef _DEBUG_MATRIX
             assert(matrix.width > 0 && matrix.width == matrix.height &&
-                           abs_det > std::numeric_limits<T>::min() * 1e2);
+                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e2);
         #endif
         Matrix<T> result(matrix.height, matrix.width, 0);
         if(matrix.width == 1) {
@@ -1357,7 +1356,7 @@ namespace dbm {
     template <typename T>
     T Matrix<T>::frobenius_norm() const {
 
-        T result = 0;
+        double result = 0;
         for(int i = 0; i < height; ++i)
             for(int j = 0; j < width; ++j)
                 result += data[i][j] * data[i][j];
@@ -1375,7 +1374,7 @@ namespace dbm {
         if(height == 1) {
             return true;
         }
-        T min_pos_val = std::numeric_limits<T>::min() * 1e10;
+        T min_pos_val = std::numeric_limits<T>::min() * 1e0;
         for(int i = 1; i < height; ++i) {
             for(int j = i; j < width; ++j) {
                 if( (data[i][j] - data[j][i]) * (data[i][j] - data[j][i]) > min_pos_val)
@@ -1463,6 +1462,13 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> col_sort(Matrix<T> &data) {
+        /*
+         * output: i'th element was from where in the original array
+         * e.g.:    s_f ... 6 ...
+         *          ...
+         *          2   ... 8 ...   // original 8'th row is sorted to the 2'nd row according to 6'th column
+         *          ...
+         */
 
         data = transpose(data);
         Matrix<T> transposed_indices(data.get_height(), data.get_width(), 0);
@@ -1487,6 +1493,13 @@ namespace dbm {
 
     template <typename T>
     Matrix<T> col_sorted_to(const Matrix<T> &sorted_from) {
+        /*
+         * output: i'th element was from where in the original array
+         * e.g.:    s_f ... 6 ...
+         *          ...
+         *          2   ... 8 ...   // 2'th row is sorted to the 8'nd row in the sorted order according to 6'th column
+         *          ...
+         */
 
         Matrix<T> result(sorted_from.get_height(), sorted_from.get_width(), 0);
         for(int i = 0; i < sorted_from.get_width(); ++i) {

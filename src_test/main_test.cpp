@@ -20,9 +20,8 @@ void prepare_data();
 
 int main() {
 
-    prepare_data();
-//    train_test_save_load_dbm();
-    train_test_save_load_auto_dbm();
+    train_test_save_load_dbm();
+//    train_test_save_load_auto_dbm();
 
     return 0;
 
@@ -34,9 +33,9 @@ void prepare_data() {
 }
 
 void train_test_save_load_auto_dbm() {
-    int n_samples = 10000, n_features = 30, n_width = 31;
+    int n_samples = 136573, n_features = 50, n_width = 51;
 
-    dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
+    dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
     int *col_inds = new int[n_features];
 
@@ -48,15 +47,14 @@ void train_test_save_load_auto_dbm() {
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.25);
-    dbm::Matrix<float> train_prediction(int(0.75 * n_samples), 1, 0);
-    dbm::Matrix<float> test_prediction(int(0.25 * n_samples), 1, 0);
-    dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.2);
+    dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
+    dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
+    dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 501 dbm_no_cores 8 dbm_loss_function b "
-            "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
-            "cart_portion_candidate_split_point 0.1";
+    string param_string = "dbm_no_bunches_of_learners 1001 dbm_no_cores 1 dbm_loss_function b "
+            "dbm_portion_train_sample 1 dbm_no_candidate_feature 5 dbm_shrinkage 0.02";
     dbm::Params params = dbm::set_params(param_string);
     dbm::AUTO_DBM<float> auto_dbm(params);
 
@@ -100,34 +98,57 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> result = dbm::hori_merge(data_set.get_test_y(), combined);
     result.print_to_file("whole_result.txt");
 
+    dbm::Matrix<float> oos_data(13512, 50, "numerai_tournament_data.csv", ',');
+    dbm::Matrix<float> oos_prediction = oos_data.col(0);
+    oos_prediction.clear();
+    auto_dbm.predict(oos_data, oos_prediction);
+
+
+    oos_prediction.print_to_file("oos_prediction.txt");
+
     delete[] col_inds;
 }
 
 void train_test_save_load_dbm() {
-    int n_samples = 10000, n_features = 30, n_width = 31;
+    int n_samples = 136573, n_features = 50, n_width = 51;
 
-    dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
+    dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
     int *col_inds = new int[n_features];
 
     for (int i = 0; i < n_features; ++i)
         col_inds[i] = i;
 
-    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
-    dbm::Matrix<float> train_y = train_data.col(n_features);
+//    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
+//    dbm::Matrix<float> train_y = train_data.col(n_features);
+
+    int no_rows = 120000;
+    int *row_inds = new int[no_rows];
+    for(int i = 0; i < no_rows; ++i)
+        row_inds[i] = i;
+
+    dbm::Matrix<float> train_x = train_data.submatrix(row_inds, no_rows, col_inds, n_features);
+    dbm::Matrix<float> train_y = train_data.col(n_features).rows(row_inds, no_rows);
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.25);
-    dbm::Matrix<float> train_prediction(int(0.75 * n_samples), 1, 0);
-    dbm::Matrix<float> test_prediction(int(0.25 * n_samples), 1, 0);
-    dbm::Matrix<float> re_test_prediction(int(0.25 * n_samples), 1, 0);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.2);
+    dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
+    dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
+    dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 8 dbm_loss_function n "
-            "dbm_portion_train_sample 0.75 dbm_no_candidate_feature 5 dbm_shrinkage 0.25 "
-            "dbm_portion_for_trees 0.167 dbm_portion_for_lr 0.167 dbm_portion_for_s 0.167 "
-            "dbm_portion_for_k 0.167 dbm_portion_for_nn 0.167 dbm_portion_for_d 0.167";
+    /*
+     * no_rows = 30000
+     * best: 1 0.7 50 0.1
+     *
+     * no_rows = 60000
+     * best: 1 0.7 40 0.1
+     */
+    string param_string = "dbm_no_bunches_of_learners 1500 dbm_no_cores 1 dbm_loss_function b "
+            "dbm_portion_train_sample 0.5 dbm_no_candidate_feature 40 dbm_shrinkage 0.02 "
+            "dbm_portion_for_trees 1 dbm_portion_for_lr 0 dbm_portion_for_s 0 "
+            "dbm_portion_for_k 0 dbm_portion_for_nn 0 dbm_portion_for_d 0";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 
@@ -186,7 +207,15 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> result = dbm::hori_merge(data_set.get_test_y(), combined);
     result.print_to_file("whole_result.txt");
 
+    dbm::Matrix<float> oos_data(13512, 50, "numerai_tournament_data.csv", ',');
+    dbm::Matrix<float> oos_prediction = oos_data.col(0);
+    oos_prediction.clear();
+    dbm.predict(oos_data, oos_prediction);
+
+    oos_prediction.print_to_file("oos_prediction.txt");
+
     delete[] col_inds;
+    delete[] row_inds;
 }
 
 void train_test_save_load_nn() {

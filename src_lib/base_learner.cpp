@@ -6,7 +6,6 @@
 #include "tools.h"
 
 #include <cassert>
-#include <limits>
 #include <cmath>
 #include <iostream>
 #include <fstream>
@@ -31,6 +30,12 @@ namespace dbm {
 
     template
     class DPC_stairs<float>;
+
+    template
+    class Kmeans2d<double>;
+
+    template
+    class Kmeans2d<float>;
 
     template
     class Global_mean<float>;
@@ -146,7 +151,7 @@ namespace dbm {
 
     template <typename T>
     void Neural_network<T>::forward(const Matrix<T> &input_output, Matrix<T> &hidden_output, T &output_output) {
-        T ip = 0;
+        double ip = 0;
         for(int i = 0; i < no_hidden_neurons; ++i) {
             for(int j = 0; j < no_predictors + 1; ++j)
                 ip += input_weight->get(i, j) * input_output.get(j, 0);
@@ -172,15 +177,19 @@ namespace dbm {
         input_output.assign(no_predictors, 0, 1);
         forward(input_output, hidden_output, output_output);
 
+        /*
+         * @TODO check with Simon what to do if base learner predicts negative values
+         */
+
         switch (loss_type) {
             case 'n':
                 return output_output;
             case 'p':
-                return std::log(output_output <= 0.0001 ? 0.0001 : output_output);
+                return std::log(output_output > TOLERANCE ?  output_output : TOLERANCE);
             case 'b':
                 return output_output;
             case 't':
-                return std::log(output_output <= 0.0001 ? 0.0001 : output_output);
+                return std::log(output_output > TOLERANCE ?  output_output : TOLERANCE);
             default:
                 throw std::invalid_argument("Specified distribution does not exist.");
         }
@@ -254,7 +263,7 @@ namespace dbm {
                           const int &row_ind,
                           const int &centroid_ind) {
 
-        T result = 0;
+        double result = 0;
         for(int i = 0; i < no_predictors; ++i)
             result += std::pow(centroids[centroid_ind][i] - data.get(row_ind, col_inds[i]),
                                2.0);
@@ -278,11 +287,11 @@ namespace dbm {
             case 'n':
                 return result;
             case 'p':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             case 'b':
                 return result;
             case 't':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             default:
                 throw std::invalid_argument("Specified distribution does not exist.");
         }
@@ -386,7 +395,7 @@ namespace dbm {
     template <typename T>
     T Splines<T>::predict_for_row(const Matrix<T> &data,
                                   int row_ind) {
-        T result = 0;
+        double result = 0;
         T x = data.get(row_ind, col_inds[0]), y = data.get(row_ind, col_inds[1]);
         for(int i = 0; i < no_knots; ++i) {
             result += x_left_hinge(x, y, x_knots[i]) * x_left_coefs[i];
@@ -398,11 +407,11 @@ namespace dbm {
             case 'n':
                 return result;
             case 'p':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             case 'b':
                 return result;
             case 't':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             default:
                 throw std::invalid_argument("Specified distribution does not exist.");
         }
@@ -465,7 +474,7 @@ namespace dbm {
     template <typename T>
     T Linear_regression<T>::predict_for_row(const Matrix<T> &data,
                                             int row_ind) {
-        T result = 0;
+        double result = 0;
         for(int i = 0; i < no_predictors; ++i) {
             result += data.get(row_ind, col_inds[i]) * coefs_no_intercept[i];
         }
@@ -474,11 +483,11 @@ namespace dbm {
             case 'n':
                 return result;
             case 'p':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             case 'b':
                 return result;
             case 't':
-                return std::log(result <= 0.0001 ? 0.0001 : result);
+                return std::log(result > TOLERANCE ?  result : TOLERANCE);
             default:
                 throw std::invalid_argument("Specified distribution does not exist.");
         }
@@ -549,7 +558,7 @@ namespace dbm {
     template <typename T>
     T DPC_stairs<T>::predict_for_row(const Matrix<T> &data,
                                             int row_ind) {
-        T dpc_val = 0;
+        double dpc_val = 0;
         for(int i = 0; i < no_predictors; ++i) {
             dpc_val += coefs[i] * data.get(row_ind, col_inds[i]);
         }
@@ -613,12 +622,10 @@ namespace dbm {
     template<typename T>
     Tree_node<T>::Tree_node(int depth) :
             Base_learner<T>('t'),
-            larger(nullptr),
-            smaller(nullptr),
             depth(depth),
             column(-1),
             split_value(0),
-            loss(std::numeric_limits<T>::max()),
+            loss_reduction(std::numeric_limits<T>::max()),
             last_node(false),
             prediction(0),
             no_training_samples(0){}
@@ -632,12 +639,10 @@ namespace dbm {
                             T prediction,
                             int no_tr_samples) :
             Base_learner<T>('t'),
-            larger(nullptr),
-            smaller(nullptr),
             depth(depth),
             column(column),
             split_value(split_value),
-            loss(loss),
+            loss_reduction(loss),
             last_node(last_node),
             prediction(prediction),
             no_training_samples(no_tr_samples) {}
@@ -647,11 +652,11 @@ namespace dbm {
 
         if (this == nullptr) return;
 
-        delete larger;
-        larger = nullptr;
+        delete right;
+        right = nullptr;
 
-        delete smaller;
-        smaller = nullptr;
+        delete left;
+        left = nullptr;
 
     }
 
@@ -662,14 +667,14 @@ namespace dbm {
             return prediction;
         if (data_x.get(row_ind, column) > split_value) {
             #ifdef _DEBUG_BASE_LEARNER
-            assert(larger != NULL);
+            assert(right != NULL);
             #endif
-            return larger->predict_for_row(data_x, row_ind);
+            return right->predict_for_row(data_x, row_ind);
         } else {
             #ifdef _DEBUG_BASE_LEARNER
-            assert(larger != NULL);
+            assert(left != NULL);
             #endif
-            return smaller->predict_for_row(data_x, row_ind);
+            return left->predict_for_row(data_x, row_ind);
         }
     }
 
@@ -734,9 +739,8 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        #ifdef _DEBUG_BASE_LEARNER
         assert(count == 1);
-        #endif
+
         mean = new Global_mean<T>;
         mean->mean = T(std::stod(words[0]));
     }
@@ -1182,12 +1186,12 @@ namespace dbm {
                 << node->column << ' '
                 << node->last_node << ' '
                 << node->split_value << ' '
-                << node->loss << ' '
+                << node->loss_reduction << ' '
                 << node->prediction << ' '
                 << node->no_training_samples << ' '
                 << std::endl;
-            save_tree_node(node->larger, out);
-            save_tree_node(node->smaller, out);
+            save_tree_node(node->right, out);
+            save_tree_node(node->left, out);
         }
     }
 
@@ -1252,8 +1256,8 @@ namespace dbm {
                                     loss,
                                     prediction,
                                     no_tr_samples);
-            load_tree_node(in, node->larger);
-            load_tree_node(in, node->smaller);
+            load_tree_node(in, node->right);
+            load_tree_node(in, node->left);
         }
     }
 
@@ -1269,7 +1273,7 @@ namespace dbm {
             std::cout << "depth: " << tree->depth << ' '
                       << "column: " << tree->column << ' '
                       << "split_value: " << tree->split_value << ' '
-                      << "loss: " << tree->loss << ' '
+                      << "loss: " << tree->loss_reduction << ' '
                       << "last_node: " << tree->last_node << ' '
                       << "prediction: " << tree->prediction << ' '
                       << "no_training_sample: " << tree->no_training_samples
@@ -1280,14 +1284,14 @@ namespace dbm {
         std::cout << "depth: " << tree->depth << ' '
                   << "column: " << tree->column << ' '
                   << "split_value: " << tree->split_value << ' '
-                  << "loss: " << tree->loss << ' '
+                  << "loss: " << tree->loss_reduction << ' '
                   << "last_node: " << tree->last_node << ' '
                   << "prediction: " << tree->prediction << ' '
                   << "no_training_sample: " << tree->no_training_samples
                   << std::endl;
         std::cout << "==========" << std::endl;
-        print_tree_info(tree->larger);
-        print_tree_info(tree->smaller);
+        print_tree_info(tree->right);
+        print_tree_info(tree->left);
     }
 
     template<typename T>
@@ -1296,8 +1300,8 @@ namespace dbm {
             depth = std::max(depth, tree->depth);
             return;
         }
-        get_depth(tree->larger);
-        get_depth(tree->smaller);
+        get_depth(tree->right);
+        get_depth(tree->left);
     }
 
     template<typename T>
@@ -1313,14 +1317,15 @@ namespace dbm {
             return;
         }
 
-        temporary << " l:" << tree->loss
+        temporary << " n:" << tree->no_training_samples
+                  << " l:" << tree->loss_reduction
                   << " c:" << tree->column
                   << " v:" << tree->split_value;
         tree_nodes[h][tree->depth] = temporary.str();
         int next_higher = h - std::max(1, int(height / std::pow(2.0, tree->depth + 2))),
                 next_lower = h + int(height / std::pow(2.0, tree->depth + 2));
-        fill(tree->larger, next_higher);
-        fill(tree->smaller, next_lower);
+        fill(tree->right, next_higher);
+        fill(tree->left, next_lower);
     }
 
     template<typename T>

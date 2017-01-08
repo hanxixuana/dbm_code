@@ -242,7 +242,7 @@ namespace dbm {
     private:
 
         const int threshold_using_all_split_point = 10;
-        const int min_samples_in_a_node = 20;
+        const int min_samples_in_a_node = 2;
 
         int max_depth;
         T portion_candidate_split_point;
@@ -256,11 +256,14 @@ namespace dbm {
         void train(Tree_node<T> *tree,
 
                    const Matrix<T> &train_x,
-                   const Matrix<T> &train_x_sorted_to,
+                   const Matrix<T> &sorted_train_x_from,
 
                    const Matrix<T> &train_y,
                    const Matrix<T> &ind_delta,
                    const Matrix<T> &prediction,
+
+                   const Matrix<T> &first_comp_in_loss,
+                   const Matrix<T> &second_comp_in_loss,
 
                    const Matrix<T> &monotonic_constraints,
 
@@ -269,7 +272,8 @@ namespace dbm {
                    const int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
-                   int no_cols = 0);
+                   int no_cols = 0
+        );
 
         void prune(Tree_node<T> *tree);
 

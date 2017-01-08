@@ -31,8 +31,8 @@ namespace dbm {
         char dbm_loss_function = 'n';
 
         bool dbm_display_training_progress = true;
-        bool dbm_record_every_tree = true;
-        int dbm_freq_showing_loss_on_test = 10;
+        bool dbm_record_every_tree = false;
+        int dbm_freq_showing_loss_on_test = 1;
 
         double dbm_shrinkage = 0.25;
 
@@ -41,8 +41,8 @@ namespace dbm {
         double dbm_portion_for_lr = 0.167;
         double dbm_portion_for_s = 0.167;
         double dbm_portion_for_k = 0.167;
-        double dbm_portion_for_nn = 0.167;
-        double dbm_portion_for_d = 0.167;
+        double dbm_portion_for_nn = 0;
+        double dbm_portion_for_d = 0.2;
 
         double dbm_accumulated_portion_shrinkage_for_selected_bl = 1.05;
         double dbm_portion_shrinkage_for_unselected_bl = 3;
@@ -56,7 +56,7 @@ namespace dbm {
         double splines_hinge_coefficient = 2;
 
         // kmeans
-        int kmeans_no_centroids = 15;
+        int kmeans_no_centroids = 5;
         int kmeans_max_iteration = 50;
         double kmeans_tolerance = 1e-2;
 
@@ -70,7 +70,7 @@ namespace dbm {
 
         // CART
         int cart_max_depth = 5;
-        double cart_portion_candidate_split_point = 0.1;
+        double cart_portion_candidate_split_point = 1;
 
         // linear regression
         double lr_regularization = 0.1;
@@ -99,6 +99,7 @@ namespace dbm {
     };
 
     Params set_params(const std::string &param_string, const char delimiter = ' ');
+
 }
 
 /*
@@ -153,8 +154,9 @@ namespace dbm {
 
 }
 
-/** tools for calibrate.plot
- *  used to store averaged observe value
+/*
+ * tools for calibrate.plot
+ * used to store averaged observe value
  */
 namespace dbm {
     template<typename T>

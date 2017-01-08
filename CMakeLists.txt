@@ -5,8 +5,8 @@ project(dbm_code)
 SET(MKL_OPT "-I$ENV{MKLROOT}/include")
 SET(MKL_LIB "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
 
-SET(CMAKE_BUILD_TYPE DEBUG)
-#SET(CMAKE_BUILD_TYPE RELEASE)
+#SET(CMAKE_BUILD_TYPE DEBUG)
+SET(CMAKE_BUILD_TYPE RELEASE)
 
 # version
 
@@ -24,8 +24,10 @@ set(DBM_CODE_VERSION
 #set(CMAKE_CXX_COMPILER /usr/local/bin/g++-6)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -D_OMP")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -fopenmp -D_OMP")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_DEBUG_BASE_LEARNER           \
 #                                        -D_DEBUG_BASE_LEARNER_TRAINER   \
@@ -135,6 +137,9 @@ target_link_libraries(_dbm_code_py _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARI
 set(TEST_SOURCE_FILES
         src_test/main_test.cpp)
 add_executable(main_test ${TEST_SOURCE_FILES})
+#add_executable(main_test ${TEST_SOURCE_FILES} ${MODEL_LIB_FILES})
+#TARGET_LINK_LIBRARIES(main_test -pg)
+
 
 TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
 #TARGET_LINK_LIBRARIES(main_test _dbm_code)
@@ -177,3 +182,16 @@ configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.R"
 add_custom_command(TARGET _dbm_code_py
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_code_py> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)
+
+
+################
+#     Copy     #
+################
+
+configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
+            "${CMAKE_HOME_DIRECTORY}/build/numerai_training_data.csv"
+            COPYONLY)
+
+configure_file("${CMAKE_HOME_DIRECTORY}/numerai_tournament_data.csv"
+        "${CMAKE_HOME_DIRECTORY}/build/numerai_tournament_data.csv"
+        COPYONLY)
