@@ -140,10 +140,10 @@ void train_test_save_load_dbm() {
     // ================
     /*
      * no_rows = 136573
-     * best: 1200 1 0.5 50 0.02 1
+     * best: 800 1 0.5 50 0.02 1
      */
-    string param_string = "dbm_no_bunches_of_learners 1200 dbm_no_cores 1 dbm_loss_function b "
-            "dbm_portion_train_sample 0.5 dbm_no_candidate_feature 50 dbm_shrinkage 0.02 "
+    string param_string = "dbm_no_bunches_of_learners 800 dbm_no_cores 1 dbm_loss_function b "
+            "dbm_portion_train_sample 0.6 dbm_no_candidate_feature 50 dbm_shrinkage 0.02 "
             "dbm_portion_for_trees 1 dbm_portion_for_lr 0 dbm_portion_for_s 0 "
             "dbm_portion_for_k 0 dbm_portion_for_nn 0 dbm_portion_for_d 0 "
             "cart_prune 1";
