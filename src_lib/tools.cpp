@@ -285,6 +285,8 @@ namespace dbm {
             // CART
             else if (words[2 * i] == "cart_max_depth")
                 params.cart_max_depth = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "cart_prune")
+                params.cart_prune = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "cart_portion_candidate_split_point")
                 params.cart_portion_candidate_split_point = std::stod(words[2 * i + 1]);
 

@@ -122,7 +122,7 @@ void train_test_save_load_dbm() {
 //    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
 //    dbm::Matrix<float> train_y = train_data.col(n_features);
 
-    int no_rows = 120000;
+    int no_rows = 136573;
     int *row_inds = new int[no_rows];
     for(int i = 0; i < no_rows; ++i)
         row_inds[i] = i;
@@ -132,23 +132,21 @@ void train_test_save_load_dbm() {
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.2);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.1);
     dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
     dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
     dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
 
     // ================
     /*
-     * no_rows = 30000
-     * best: 1 0.7 50 0.1
-     *
-     * no_rows = 60000
-     * best: 1 0.7 40 0.1
+     * no_rows = 136573
+     * best: 1200 1 0.5 50 0.02 1
      */
-    string param_string = "dbm_no_bunches_of_learners 1500 dbm_no_cores 1 dbm_loss_function b "
-            "dbm_portion_train_sample 0.5 dbm_no_candidate_feature 40 dbm_shrinkage 0.02 "
+    string param_string = "dbm_no_bunches_of_learners 1200 dbm_no_cores 1 dbm_loss_function b "
+            "dbm_portion_train_sample 0.5 dbm_no_candidate_feature 50 dbm_shrinkage 0.02 "
             "dbm_portion_for_trees 1 dbm_portion_for_lr 0 dbm_portion_for_s 0 "
-            "dbm_portion_for_k 0 dbm_portion_for_nn 0 dbm_portion_for_d 0";
+            "dbm_portion_for_k 0 dbm_portion_for_nn 0 dbm_portion_for_d 0 "
+            "cart_prune 1";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 

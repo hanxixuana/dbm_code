@@ -401,7 +401,11 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        tree_trainer->update_loss_reduction(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+                        if(params.cart_prune) {
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        }
 
                         #ifdef _OMP
                         #pragma omp barrier
@@ -1060,7 +1064,11 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        tree_trainer->update_loss_reduction(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+                        if(params.cart_prune) {
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        }
 
                         #ifdef _OMP
                         #pragma omp barrier
@@ -3214,7 +3222,11 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        tree_trainer->update_loss_reduction(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+                        if(params.cart_prune) {
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        }
 
                         #ifdef _OMP
                         #pragma omp barrier
@@ -3942,7 +3954,11 @@ namespace dbm {
                                             thread_col_inds,
                                             no_candidate_feature);
 
-//                        tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        tree_trainer->update_loss_reduction(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+
+                        if(params.cart_prune) {
+                            tree_trainer->prune(dynamic_cast<Tree_node<T> *>(learners[learner_id]));
+                        }
 
                         #ifdef _OMP
                         #pragma omp barrier

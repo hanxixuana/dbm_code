@@ -1848,8 +1848,6 @@ namespace dbm {
              *  @TODO (BUG?)-0.5p_i(1 - p_i) p_i may be needed to be updated in each node
              */
 
-//            Time_measurer first;
-
             tree->no_training_samples = no_rows;
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
@@ -2000,8 +1998,6 @@ namespace dbm {
                 } // j < train_x_height
             } // i < no_cols
 
-//            first.~Time_measurer();
-
             if(tree->loss_reduction < 0) {
 
                 for(int k = best_split_row_ind_in_sorted_array + 1; k <= best_last_chosen_ind_in_sorted_array; ++k) {
@@ -2088,6 +2084,22 @@ namespace dbm {
             }
 
         }
+
+    }
+
+    template <typename T>
+    T Fast_tree_trainer<T>::update_loss_reduction(Tree_node<T> *tree) {
+
+        if(tree->left->last_node || tree->right->last_node)
+            return tree->loss_reduction;
+
+        T left_loss_reduction, right_loss_reduction;
+        right_loss_reduction = update_loss_reduction(tree->right);
+        left_loss_reduction = update_loss_reduction(tree->left);
+
+        tree->loss_reduction = left_loss_reduction + right_loss_reduction;
+
+        return tree->loss_reduction;
 
     }
 

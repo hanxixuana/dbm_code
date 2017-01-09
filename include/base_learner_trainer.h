@@ -242,7 +242,7 @@ namespace dbm {
     private:
 
         const int threshold_using_all_split_point = 10;
-        const int min_samples_in_a_node = 2;
+        const int min_samples_in_a_node = 100;
 
         int max_depth;
         T portion_candidate_split_point;
@@ -274,6 +274,8 @@ namespace dbm {
                    const int *col_inds = nullptr,
                    int no_cols = 0
         );
+
+        T update_loss_reduction(Tree_node<T> *tree);
 
         void prune(Tree_node<T> *tree);
 

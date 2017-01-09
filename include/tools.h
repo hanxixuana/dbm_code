@@ -69,7 +69,8 @@ namespace dbm {
         int nn_no_rise_of_loss_on_validate = 20;
 
         // CART
-        int cart_max_depth = 5;
+        int cart_max_depth = 4;
+        int cart_prune = 0;
         double cart_portion_candidate_split_point = 1;
 
         // linear regression
