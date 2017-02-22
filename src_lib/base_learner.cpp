@@ -177,10 +177,12 @@ namespace dbm {
         input_output.assign(no_predictors, 0, 1);
         forward(input_output, hidden_output, output_output);
 
+        if(std::isnan(output_output))
+            return 0.0;
+
         /*
          * @TODO check with Simon what to do if base learner predicts negative values
          */
-
         switch (loss_type) {
             case 'n':
                 return output_output;
@@ -253,6 +255,8 @@ namespace dbm {
     template <typename T>
     Kmeans2d<T>::~Kmeans2d() {
         delete[] col_inds;
+        for(int i = 0; i < no_centroids; ++i)
+            delete[] centroids[i];
         delete[] centroids;
         delete[] predictions;
         centroids = nullptr, predictions = nullptr;
@@ -265,8 +269,8 @@ namespace dbm {
 
         double result = 0;
         for(int i = 0; i < no_predictors; ++i)
-            result += std::pow(centroids[centroid_ind][i] - data.get(row_ind, col_inds[i]),
-                               2.0);
+            result += (centroids[centroid_ind][i] - data.get(row_ind, col_inds[i])) *
+                    (centroids[centroid_ind][i] - data.get(row_ind, col_inds[i]));
         return std::sqrt(result);
 
     }
@@ -275,7 +279,7 @@ namespace dbm {
     T Kmeans2d<T>::predict_for_row(const Matrix<T> &data,
                                  int row_ind) {
         T lowest_dist = std::numeric_limits<T>::max(),
-                result = 0, dist;
+                result = NAN, dist;
         for(int i = 0; i < no_centroids; ++i) {
             dist = distance(data, row_ind, i);
             if(dist < lowest_dist) {
@@ -283,6 +287,10 @@ namespace dbm {
                 result = predictions[i];
             }
         }
+
+        if(std::isnan(result))
+            return 0.0;
+
         switch (loss_type) {
             case 'n':
                 return result;
@@ -403,6 +411,10 @@ namespace dbm {
             result += y_left_hinge(x, y, y_knots[i]) * y_left_coefs[i];
             result += y_right_hinge(x, y, y_knots[i]) * y_right_coefs[i];
         }
+
+        if(std::isnan(result))
+            return 0.0;
+
         switch (loss_type) {
             case 'n':
                 return result;
@@ -479,6 +491,10 @@ namespace dbm {
             result += data.get(row_ind, col_inds[i]) * coefs_no_intercept[i];
         }
         result += intercept;
+
+        if(std::isnan(result))
+            return 0.0;
+
         switch (loss_type) {
             case 'n':
                 return result;
@@ -561,6 +577,10 @@ namespace dbm {
         double dpc_val = 0;
         for(int i = 0; i < no_predictors; ++i) {
             dpc_val += coefs[i] * data.get(row_ind, col_inds[i]);
+        }
+
+        if(std::isnan(dpc_val)) {
+            return 0.0;
         }
 
         int j = 0;
@@ -665,6 +685,8 @@ namespace dbm {
                                     int row_ind) {
         if (last_node)
             return prediction;
+        if(std::isnan(data_x.get(row_ind, column)))
+            return 0.0;
         if (data_x.get(row_ind, column) > split_value) {
             #ifdef _DEBUG_BASE_LEARNER
             assert(right != NULL);

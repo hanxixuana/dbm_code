@@ -42,19 +42,27 @@ void train_test_save_load_auto_dbm() {
     for (int i = 0; i < n_features; ++i)
         col_inds[i] = i;
 
-    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
-    dbm::Matrix<float> train_y = train_data.col(n_features);
+//    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
+//    dbm::Matrix<float> train_y = train_data.col(n_features);
+
+    int no_rows = 136573;
+    int *row_inds = new int[no_rows];
+    for(int i = 0; i < no_rows; ++i)
+        row_inds[i] = i;
+
+    dbm::Matrix<float> train_x = train_data.submatrix(row_inds, no_rows, col_inds, n_features);
+    dbm::Matrix<float> train_y = train_data.col(n_features).rows(row_inds, no_rows);
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.2);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.1);
     dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
     dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
     dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
 
     // ================
-    string param_string = "dbm_no_bunches_of_learners 1001 dbm_no_cores 1 dbm_loss_function b "
-            "dbm_portion_train_sample 1 dbm_no_candidate_feature 5 dbm_shrinkage 0.02";
+    string param_string = "dbm_no_bunches_of_learners 20000 dbm_no_cores 3 dbm_loss_function n "
+            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.001";
     dbm::Params params = dbm::set_params(param_string);
     dbm::AUTO_DBM<float> auto_dbm(params);
 
@@ -114,6 +122,8 @@ void train_test_save_load_dbm() {
 
     dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
+    dbm::add_nans_to_mat(train_data, 2);
+
     int *col_inds = new int[n_features];
 
     for (int i = 0; i < n_features; ++i)
@@ -138,15 +148,11 @@ void train_test_save_load_dbm() {
     dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
 
     // ================
-    /*
-     * no_rows = 136573
-     * best: 800 1 0.5 50 0.02 1
-     */
-    string param_string = "dbm_no_bunches_of_learners 800 dbm_no_cores 1 dbm_loss_function b "
-            "dbm_portion_train_sample 0.6 dbm_no_candidate_feature 50 dbm_shrinkage 0.02 "
-            "dbm_portion_for_trees 1 dbm_portion_for_lr 0 dbm_portion_for_s 0 "
-            "dbm_portion_for_k 0 dbm_portion_for_nn 0 dbm_portion_for_d 0 "
-            "cart_prune 1";
+
+    string param_string = "dbm_no_bunches_of_learners 25000 dbm_no_cores 3 dbm_loss_function n "
+            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.0005 "
+            "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
+            "dbm_portion_for_k 0.2 dbm_portion_for_nn 0 dbm_portion_for_d 0.2 ";
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
 
@@ -274,63 +280,4 @@ void train_test_save_load_nn() {
     delete re_nn;
     delete nn;
     re_nn = nullptr, nn = nullptr;
-}
-
-void train_test_save_load_dpcs() {
-    int n_samples = 10000, n_features = 2, n_width = 3;
-
-    dbm::Matrix<float> train_data(n_samples, n_width, "train_data.txt");
-    dbm::Matrix<float> prediction(n_samples, 1, 0);
-    dbm::Matrix<float> ind_delta(n_samples, 2, 0);
-
-    int row_inds[n_samples], col_inds[n_features];
-
-    for (int i = 0; i < n_features; ++i)
-        col_inds[i] = i;
-    for (int i = 0; i < n_samples; ++i)
-        row_inds[i] = i;
-
-    dbm::Matrix<float> train_x = train_data.cols(col_inds, n_features);
-    dbm::Matrix<float> train_y = train_data.col(n_features);
-
-    // ========================================================
-
-    dbm::Params params = dbm::set_params("dbm_no_candidate_feature 2 dbm_loss_function n");
-
-    dbm::DPC_stairs<float> *dpc_stairs = new dbm::DPC_stairs<float>(params.dbm_no_candidate_feature,
-                                                                    params.dbm_loss_function,
-                                                                    params.dpcs_no_ticks);
-    dbm::DPC_stairs_trainer<float> trainer(params);
-
-    dbm::Loss_function<float> loss_function(params);
-    loss_function.calculate_ind_delta(train_y, prediction,
-                                      ind_delta, params.dbm_loss_function, row_inds, n_samples);
-
-    {
-        dbm::Time_measurer time_measurer;
-        trainer.train(dpc_stairs, train_x, ind_delta, row_inds, n_samples, col_inds, 2);
-    }
-
-    dpc_stairs->predict(train_x, prediction);
-
-    loss_function.link_function(prediction, params.dbm_loss_function);
-    dbm::Matrix<float> result = dbm::hori_merge(train_y, prediction);
-    result.print_to_file("result.txt");
-
-    {
-        ofstream out("save.txt");
-        dbm::save_dpc_stairs(dpc_stairs, out);
-    }
-
-
-    dbm::DPC_stairs<float> *re_dpc_stairs;
-    {
-        ifstream in("save.txt");
-        dbm::load_dpc_stairs(in, re_dpc_stairs);
-        ofstream out("re_save.txt");
-        dbm::save_dpc_stairs(re_dpc_stairs, out);
-    }
-
-    delete re_dpc_stairs;
-    delete dpc_stairs;
 }

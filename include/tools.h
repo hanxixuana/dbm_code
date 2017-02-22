@@ -9,6 +9,8 @@
 //#define _DEBUG_TOOLS
 //#endif
 
+#include "matrix.h"
+
 #include <string>
 #include <ctime>
 #include <limits>
@@ -34,13 +36,18 @@ namespace dbm {
         bool dbm_record_every_tree = false;
         int dbm_freq_showing_loss_on_test = 1;
 
-        double dbm_shrinkage = 0.25;
+        double dbm_shrinkage = 0.01;
+
+        int dbm_nonoverlapping_training = 1;
+
+        int remove_rows_containing_nans = 1;
+        int min_no_samples_per_bl = 50;
 
         // portions should be summed to 1
-        double dbm_portion_for_trees = 0.167;
-        double dbm_portion_for_lr = 0.167;
-        double dbm_portion_for_s = 0.167;
-        double dbm_portion_for_k = 0.167;
+        double dbm_portion_for_trees = 0.2;
+        double dbm_portion_for_lr = 0.2;
+        double dbm_portion_for_s = 0.2;
+        double dbm_portion_for_k = 0.2;
         double dbm_portion_for_nn = 0;
         double dbm_portion_for_d = 0.2;
 
@@ -51,14 +58,16 @@ namespace dbm {
         double tweedie_p = 1.6;
 
         // splines
-        int splines_no_knot = 5;
-        double splines_regularization = 0.1;
-        double splines_hinge_coefficient = 2;
+        int splines_no_knot = 4;
+        double splines_portion_of_pairs = 0.01;
+        double splines_regularization = 3;
+        double splines_hinge_coefficient = 1;
 
         // kmeans
         int kmeans_no_centroids = 5;
         int kmeans_max_iteration = 50;
         double kmeans_tolerance = 1e-2;
+        double kmeans_fraction_of_pairs = 0.01;
 
         // neural networks
         int nn_no_hidden_neurons = 10;
@@ -69,9 +78,9 @@ namespace dbm {
         int nn_no_rise_of_loss_on_validate = 20;
 
         // CART
-        int cart_max_depth = 4;
-        int cart_prune = 0;
-        double cart_portion_candidate_split_point = 1;
+        int cart_min_samples_in_a_node = 50;
+        int cart_max_depth = 3;
+        int cart_prune = 1;
 
         // linear regression
         double lr_regularization = 0.1;
@@ -126,6 +135,14 @@ namespace dbm {
 
     // split a line into words
     int split_into_words(const std::string &line, std::string *words, const char sep = ' ');
+
+    // remove row indices with nans in selected columns
+    template <typename T>
+    void remove_nan_row_inds(int *row_inds, int &no_rows, const int *col_inds, const int &no_cols, const Matrix<T> &train_x);
+
+    // add nans to a matrix
+    template <typename T>
+    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan);
 
 }
 

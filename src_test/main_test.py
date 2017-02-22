@@ -23,7 +23,7 @@ c = dbm.Data_set(x, y, 0.2)
 train_x = c.get_train_x()
 
 s = 'dbm_no_bunches_of_learners 41 dbm_portion_train_sample 0.85 dbm_no_cores 0 dbm_shrinkage 0.1 ' \
-    'cart_portion_candidate_split_point 0.001 dbm_no_candidate_feature 5 dbm_loss_function p'
+    'dbm_no_candidate_feature 5 dbm_loss_function p'
 params = dbm.Params()
 params.set_params(s)
 # =====================================

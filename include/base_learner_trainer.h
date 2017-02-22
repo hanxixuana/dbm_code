@@ -49,6 +49,9 @@ namespace dbm {
     class Neural_network_trainer {
     private:
 
+        int remove_rows_containing_nans;
+        int min_no_samples_per_bl;
+
         int batch_size;
         int nn_max_iteration;
         T step_size;
@@ -76,7 +79,7 @@ namespace dbm {
         void train(Neural_network<T> *neural_network,
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0);
@@ -92,9 +95,14 @@ namespace dbm {
     class Splines_trainer {
     private:
 
+        int remove_rows_containing_nans;
+        int min_no_samples_per_bl;
+
         int no_pairs;
 
         double regularization;
+
+        double fraction_of_pairs;
 
         int **predictor_pairs_inds;
 
@@ -106,7 +114,7 @@ namespace dbm {
         void train(Splines<T> *splines,
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0);
@@ -122,9 +130,16 @@ namespace dbm {
     class Kmeans2d_trainer {
     private:
 
+        int remove_rows_containing_nans;
+        int min_no_samples_per_bl;
+
+        char loss_type;
+
         int no_centroids;
         int no_candidate_feature;
         int no_pairs;
+
+        double fraction_of_pairs;
 
         int kmeans_max_iteration;
         T kmeans_tolerance;
@@ -142,7 +157,7 @@ namespace dbm {
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
                    char loss_function_type = 'n',
-                   const int *row_inds = nullptr,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0);
@@ -157,6 +172,10 @@ namespace dbm {
     template<typename T>
     class Linear_regression_trainer {
     private:
+
+        int remove_rows_containing_nans;
+        int min_no_samples_per_bl;
+
         T regularization;
 
     public:
@@ -167,7 +186,8 @@ namespace dbm {
         void train(Linear_regression<T> *linear_regression,
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr,
+                   const Matrix<T> &monotonic_constraints,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0);
@@ -182,6 +202,12 @@ namespace dbm {
     template<typename T>
     class DPC_stairs_trainer {
     private:
+
+        int remove_rows_containing_nans;
+        int min_no_samples_per_bl;
+
+        char loss_type;
+
         T range_shrinkage_of_ticks;
 
     public:
@@ -192,7 +218,7 @@ namespace dbm {
         void train(DPC_stairs<T> *dpc_stairs,
                    const Matrix<T> &train_x,
                    const Matrix<T> &ind_delta,
-                   const int *row_inds = nullptr,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0);
@@ -204,48 +230,17 @@ namespace dbm {
 // for trees
 namespace dbm {
 
-    template<typename T>
-    class Tree_trainer {
-
-    private:
-
-        const int threshold_using_all_split_point = 10;
-        const int min_samples_in_a_node = 20;
-
-        int max_depth;
-        T portion_candidate_split_point;
-
-        Loss_function<T> loss_function;
-
-    public:
-        Tree_trainer(const Params &params);
-        ~Tree_trainer();
-
-        void train(Tree_node<T> *tree,
-                   const Matrix<T> &train_x,
-                   const Matrix<T> &train_y,
-                   const Matrix<T> &ind_delta,
-                   const Matrix<T> &prediction,
-                   const Matrix<T> &monotonic_constraints,
-                   char loss_function_type = 'n',
-                   const int *row_inds = nullptr,
-                   int no_rows = 0,
-                   const int *col_inds = nullptr,
-                   int no_cols = 0);
-
-        void prune(Tree_node<T> *tree);
-    };
-
     template <typename T>
     class Fast_tree_trainer {
 
     private:
 
-        const int threshold_using_all_split_point = 10;
-        const int min_samples_in_a_node = 100;
+        int remove_rows_containing_nans;
 
+        const int threshold_using_all_split_point = 10;
+
+        int min_samples_in_a_node;
         int max_depth;
-        T portion_candidate_split_point;
 
         Loss_function<T> loss_function;
 
@@ -269,7 +264,7 @@ namespace dbm {
 
                    char loss_function_type = 'n',
 
-                   const int *row_inds = nullptr,
+                   int *row_inds = nullptr,
                    int no_rows = 0,
                    const int *col_inds = nullptr,
                    int no_cols = 0

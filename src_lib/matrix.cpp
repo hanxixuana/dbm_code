@@ -1237,8 +1237,11 @@ namespace dbm {
 //        }
 
         #ifdef _DEBUG_MATRIX
+            T abs_determinant = std::abs(determinant(matrix));
+            if(std::isnan(abs_determinant) || abs_determinant < std::numeric_limits<T>::min() * 1e5)
+                matrix.print();
             assert(matrix.width > 0 && matrix.width == matrix.height &&
-                           std::abs(determinant(matrix)) > std::numeric_limits<T>::min() * 1e2);
+                           abs_determinant > std::numeric_limits<T>::min() * 1e5);
         #endif
         Matrix<T> result(matrix.height, matrix.width, 0);
         if(matrix.width == 1) {

@@ -49,12 +49,6 @@ namespace dbm {
     class Splines_trainer<float>;
 
     template
-    class Tree_trainer<double>;
-
-    template
-    class Tree_trainer<float>;
-
-    template
     class Fast_tree_trainer<double>;
 
     template
@@ -117,6 +111,8 @@ namespace dbm {
 
     template <typename T>
     Neural_network_trainer<T>::Neural_network_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_no_samples_per_bl(params.min_no_samples_per_bl),
             batch_size(params.nn_batch_size),
             nn_max_iteration(params.nn_max_iteration),
             step_size(params.nn_step_size),
@@ -160,135 +156,14 @@ namespace dbm {
     void Neural_network_trainer<T>::train(Neural_network<T> *neural_network,
                                           const Matrix<T> &train_x,
                                           const Matrix<T> &ind_delta,
-                                          const int *row_inds,
+                                          int *row_inds,
                                           int no_rows,
                                           const int *col_inds,
                                           int no_cols) {
 
         if(row_inds == nullptr) {
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-            assert(neural_network->no_predictors == train_x.get_width());
-            #endif
 
-            Matrix<T> input_output(neural_network->no_predictors + 1, 1, 0);
-            Matrix<T> hidden_output(neural_network->no_hidden_neurons + 1, 1, 0);
-            T output_output;
-
-            // no_hidden_neurons * (no_predictors + 1)
-            Matrix<T> input_delta(neural_network->no_hidden_neurons,
-                                  neural_network->no_predictors + 1, 0);
-            // 1 * (no_hidden_neurons + 1)
-            Matrix<T> hidden_delta(1, neural_network->no_predictors + 1, 0);
-
-            int data_height = train_x.get_height(),
-                    data_width = train_x.get_width();
-
-            for(int i = 0; i < data_width; ++i)
-                neural_network->col_inds[i] = i;
-
-            int no_validate = int(data_height * validate_portion),
-                    no_train = data_height - no_validate;
-            int *validate_row_inds = new int[no_validate],
-                    *train_row_inds = new int[no_train];
-
-            unsigned int *seeds = new unsigned int[nn_max_iteration];
-            for(int i = 0; i < nn_max_iteration; ++i)
-                seeds[i] = (unsigned int)(std::rand() / (RAND_MAX / 1e5));
-
-            T weight_sum_in_batch,
-                    validate_weight_sum = 0;
-            for(int i = 0; i < no_validate; ++i) {
-                validate_row_inds[i] = i;
-                validate_weight_sum += ind_delta.get(i, 1);
-            }
-            for(int i = no_validate; i < data_height; ++i)
-                train_row_inds[i] = i;
-
-            int no_batch = no_train / batch_size,
-                    row_index,
-                    count_to_break = 0;
-            T last_mse = std::numeric_limits<T>::max(),
-                    mse;
-
-            for(int i = 0; i < nn_max_iteration; ++i) {
-
-                shuffle(train_row_inds, no_train, seeds[i]);
-
-                for(int j = 0; j < no_batch / 3; ++j) {
-
-                    input_delta.clear();
-                    hidden_delta.clear();
-
-                    weight_sum_in_batch = 0;
-                    for(int k = 0; k < batch_size; ++k) {
-                        weight_sum_in_batch += ind_delta.get(train_row_inds[batch_size * j + k], 1);
-                    }
-
-                    for(int k = 0; k < batch_size; ++k) {
-
-                        row_index = train_row_inds[batch_size * j + k];
-
-                        for(int l = 0; l < neural_network->no_predictors; ++l)
-                            input_output.assign(l, 0,
-                                                train_x.get(row_index, neural_network->col_inds[l]));
-
-                        input_output.assign(neural_network->no_predictors,
-                                            0, 1);
-
-                        neural_network->forward(input_output, hidden_output, output_output);
-                        backward(neural_network,
-                                 input_output,
-                                 hidden_output,
-                                 output_output,
-                                 hidden_delta,
-                                 input_delta,
-                                 ind_delta.get(row_index, 0) / ind_delta.get(row_index, 1),
-                                 ind_delta.get(row_index, 1) / weight_sum_in_batch);
-                    }
-
-                    Matrix<T> temp_input_delta = plus(*neural_network->input_weight,
-                                                      input_delta);
-                    Matrix<T> temp_hidden_delta = plus(*neural_network->hidden_weight,
-                                                       hidden_delta);
-
-                    copy(temp_input_delta,
-                         *neural_network->input_weight);
-                    copy(temp_hidden_delta,
-                         *neural_network->hidden_weight);
-                }
-
-                mse = 0;
-                for(int j = 0; j < no_validate; ++j) {
-
-                    for(int k = 0; k < neural_network->no_predictors; ++k)
-                        input_output.assign(k, 0,
-                                            train_x.get(validate_row_inds[j], neural_network->col_inds[k]));
-
-                    input_output.assign(neural_network->no_predictors,
-                                        0, 1);
-                    neural_network->forward(input_output, hidden_output, output_output);
-
-                    mse += std::pow(ind_delta.get(validate_row_inds[j], 0) / ind_delta.get(validate_row_inds[j], 0) - output_output, 2.0) *
-                           ind_delta.get(validate_row_inds[j], 1) / validate_weight_sum;
-                }
-
-                if(mse > last_mse) {
-                    count_to_break += 1;
-                    if(count_to_break > no_rise_of_loss_on_validate) {
-//                        std::cout << "Training of "
-//                                  << neural_network
-//                                  << " was early stoped!"
-//                                  << std::endl;
-                        break;
-                    }
-                }
-            }
-
-            delete[] validate_row_inds;
-            delete[] train_row_inds;
-            delete[] seeds;
-            validate_row_inds = nullptr, train_row_inds = nullptr, seeds = nullptr;
 
         }
         else {
@@ -296,6 +171,25 @@ namespace dbm {
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && neural_network->no_predictors == no_cols);
             #endif
+
+            if(remove_rows_containing_nans)
+                remove_nan_row_inds(row_inds,
+                                    no_rows,
+                                    col_inds,
+                                    no_cols,
+                                    train_x);
+
+            if(no_rows < min_no_samples_per_bl) {
+                std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < neural_network->no_predictors; ++i)
+                    neural_network->col_inds[i] = 0;
+                for(int i = 0; i < neural_network->no_hidden_neurons; ++i)
+                    for(int j = 0; j < neural_network->no_predictors + 1; ++j)
+                        neural_network->input_weight->assign(i, j, NAN);
+                for(int i = 0; i < neural_network->no_hidden_neurons + 1; ++i)
+                    neural_network->hidden_weight->assign(0, i, NAN);
+                return;
+            }
 
             Matrix<T> input_output(neural_network->no_predictors + 1, 1, 0);
             Matrix<T> hidden_output(neural_network->no_hidden_neurons + 1, 1, 0);
@@ -429,8 +323,11 @@ namespace dbm {
 namespace dbm {
 
     template <typename T>
-    Splines_trainer<T>::Splines_trainer(const Params &params)
-            : regularization(params.splines_regularization) {
+    Splines_trainer<T>::Splines_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            regularization(params.splines_regularization),
+            fraction_of_pairs(params.splines_portion_of_pairs){
 
         no_pairs = params.dbm_no_candidate_feature * (params.dbm_no_candidate_feature - 1) / 2;
 
@@ -462,7 +359,7 @@ namespace dbm {
     void Splines_trainer<T>::train(Splines<T> *splines,
                                    const Matrix<T> &train_x,
                                    const Matrix<T> &ind_delta,
-                                   const int *row_inds,
+                                   int *row_inds,
                                    int no_rows,
                                    const int *col_inds,
                                    int no_cols) {
@@ -471,13 +368,39 @@ namespace dbm {
 
         }
         else {
-            Matrix<T> w(1, no_rows, 0);
-            for(int i = 0; i < no_rows; ++i)
-                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && no_cols >= splines->no_predictors);
             #endif
+
+            if(remove_rows_containing_nans)
+                remove_nan_row_inds(row_inds,
+                                    no_rows,
+                                    col_inds,
+                                    no_cols,
+                                    train_x);
+
+            if(no_rows < min_no_samples_per_bl) {
+                std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < splines->no_predictors; ++i)
+                    splines->col_inds[i] = 0;
+                for(int i = 0; i < splines->no_knots; ++i) {
+
+                    splines->x_knots[i] = 0;
+                    splines->x_left_coefs[i] = NAN;
+                    splines->x_right_coefs[i] = NAN;
+
+                    splines->y_knots[i] = 0;
+                    splines->y_left_coefs[i] = NAN;
+                    splines->y_right_coefs[i] = NAN;
+
+                }
+                return;
+            }
+
+            Matrix<T> w(1, no_rows, 0);
+            for(int i = 0; i < no_rows; ++i)
+                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             T scaling = 0.7;
             T **knots, min, max;
@@ -489,7 +412,7 @@ namespace dbm {
                 range(min, max, splines->no_knots, knots[i], scaling);
             }
 
-            T mse, lowest_mse = std::numeric_limits<T>::max();
+            double mse, lowest_mse = std::numeric_limits<T>::max();
             T knot;
 
             int lowest_mse_pair_ind = 0;
@@ -503,29 +426,42 @@ namespace dbm {
             Matrix<T> left_in_left;
             Matrix<T> left;
             Matrix<T> Y(no_rows, 1, 0);
+            for(int i = 0; i < no_rows; ++i)
+                Y.assign(i, 0, ind_delta.get(row_inds[i], 0) / ind_delta.get(row_inds[i], 1));
             Matrix<T> coefs;
 
             Matrix<T> eye(no_splines, no_splines, 0);
 
+            int x_col_no, y_col_no;
+//            int row_ind;
+
             for(int i = 0; i < no_splines; ++i)
                 eye.assign(i, i, regularization);
 
-            for(int i = 0; i < no_pairs / 3; ++i) {
+            for(int i = 0; i < std::max((int)(no_pairs * fraction_of_pairs), 1); ++i) {
 
-                splines->col_inds[0] = col_inds[ predictor_pairs_inds[i][0] ];
-                splines->col_inds[1] = col_inds[ predictor_pairs_inds[i][1] ];
+                x_col_no = predictor_pairs_inds[i][0];
+                y_col_no = predictor_pairs_inds[i][1];
+
+                splines->col_inds[0] = col_inds[ x_col_no ];
+                splines->col_inds[1] = col_inds[ y_col_no ];
 
                 design_matrix.clear();
-                for(int j = 0; j < no_rows; ++j) {
 
-                    x = train_x.get(row_inds[j],
+                int j = 0;
+                std::for_each(row_inds, row_inds + no_rows,
+                              [&j, &x, &y, &knot, &x_col_no, &y_col_no, &train_x,
+                                      &splines, &knots, &design_matrix]
+                                      (int index) {
+
+                    x = train_x.get(index,
                                     splines->col_inds[0]);
-                    y = train_x.get(row_inds[j],
+                    y = train_x.get(index,
                                     splines->col_inds[1]);
 
                     for(int k = 0; k < splines->no_knots; ++k) {
 
-                        knot = knots[ predictor_pairs_inds[i][0] ][k];
+                        knot = knots[ x_col_no ][k];
                         design_matrix.assign(j,
                                              4 * k,
                                              splines->x_left_hinge(x, y, knot) );
@@ -533,7 +469,7 @@ namespace dbm {
                                              4 * k + 1,
                                              splines->x_right_hinge(x, y, knot) );
 
-                        knot = knots[ predictor_pairs_inds[i][1] ][k];
+                        knot = knots[ y_col_no ][k];
                         design_matrix.assign(j,
                                              4 * k + 2,
                                              splines->y_left_hinge(x, y, knot) );
@@ -542,43 +478,98 @@ namespace dbm {
                                              splines->y_right_hinge(x, y, knot) );
 
                     }
-                }
+
+                    ++j;
+                });
+
+//                for(int j = 0; j < no_rows; ++j) {
+//
+//                    row_ind = row_inds[j];
+//
+//                    x = train_x.get(row_ind,
+//                                    splines->col_inds[0]);
+//                    y = train_x.get(row_ind,
+//                                    splines->col_inds[1]);
+//
+//                    for(int k = 0; k < splines->no_knots; ++k) {
+//
+//                        knot = knots[ x_col_no ][k];
+//                        design_matrix.assign(j,
+//                                             4 * k,
+//                                             splines->x_left_hinge(x, y, knot) );
+//                        design_matrix.assign(j,
+//                                             4 * k + 1,
+//                                             splines->x_right_hinge(x, y, knot) );
+//
+//                        knot = knots[ y_col_no ][k];
+//                        design_matrix.assign(j,
+//                                             4 * k + 2,
+//                                             splines->y_left_hinge(x, y, knot) );
+//                        design_matrix.assign(j,
+//                                             4 * k + 3,
+//                                             splines->y_right_hinge(x, y, knot) );
+//
+//                    }
+//                }
 
                 left_in_left = transpose(design_matrix);
                 left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
                 left = inner_product(left_in_left, design_matrix);
                 left = inverse(plus(left, eye));
 
-                for(int j = 0; j < no_rows; ++j)
-                    Y.assign(i, 0, ind_delta.get(row_inds[i], 0) / ind_delta.get(row_inds[i], 1));
-
                 coefs = inner_product(left, inner_product(left_in_left, Y));
-
 
                 // check this part, should I use predict_for_row?
                 mse = 0;
-                for(int j = 0; j < no_rows; ++j) {
-
+                j = 0;
+                std::for_each(row_inds, row_inds + no_rows,
+                              [&j, &prediction, &mse, &x, &y, &knot, &knots, &train_x,
+                                      &Y, &splines, &x_col_no, &y_col_no, &coefs]
+                                      (int index){
                     prediction = 0;
 
-                    x = train_x.get(row_inds[j],
+                    x = train_x.get(index,
                                     splines->col_inds[0]);
-                    y = train_x.get(row_inds[j],
+                    y = train_x.get(index,
                                     splines->col_inds[1]);
 
                     for(int k = 0; k < splines->no_knots; ++k) {
 
-                        knot = knots[ predictor_pairs_inds[i][0] ][k];
+                        knot = knots[ x_col_no ][k];
                         prediction += splines->x_left_hinge(x, y, knot) * coefs.get(4 * k, 0);
                         prediction += splines->x_right_hinge(x, y, knot) * coefs.get(4 * k + 1, 0);
 
-                        knot = knots[ predictor_pairs_inds[i][1] ][k];
+                        knot = knots[ y_col_no ][k];
                         prediction += splines->y_left_hinge(x, y, knot) * coefs.get(4 * k + 2, 0);
                         prediction += splines->y_right_hinge(x, y, knot) * coefs.get(4 * k + 3, 0);
 
                     }
-                    mse += std::pow(Y.get(j, 0) - prediction, 2.0);
-                }
+                    mse += (Y.get(j, 0) - prediction) * (Y.get(j, 0) - prediction);
+                    ++j;
+                });
+
+//                for(j = 0; j < no_rows; ++j) {
+//
+//                    prediction = 0;
+//
+//                    x = train_x.get(row_inds[j],
+//                                    splines->col_inds[0]);
+//                    y = train_x.get(row_inds[j],
+//                                    splines->col_inds[1]);
+//
+//                    for(int k = 0; k < splines->no_knots; ++k) {
+//
+//                        knot = knots[ predictor_pairs_inds[i][0] ][k];
+//                        prediction += splines->x_left_hinge(x, y, knot) * coefs.get(4 * k, 0);
+//                        prediction += splines->x_right_hinge(x, y, knot) * coefs.get(4 * k + 1, 0);
+//
+//                        knot = knots[ predictor_pairs_inds[i][1] ][k];
+//                        prediction += splines->y_left_hinge(x, y, knot) * coefs.get(4 * k + 2, 0);
+//                        prediction += splines->y_right_hinge(x, y, knot) * coefs.get(4 * k + 3, 0);
+//
+//                    }
+//                    mse += (Y.get(j, 0) - prediction) * (Y.get(j, 0) - prediction);
+//                }
 
                 mse /= no_rows;
 
@@ -625,8 +616,12 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d_trainer<T>::Kmeans2d_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            loss_type(params.dbm_loss_function),
             no_centroids(params.kmeans_no_centroids),
             no_candidate_feature(params.dbm_no_candidate_feature),
+            fraction_of_pairs(params.kmeans_fraction_of_pairs),
             kmeans_max_iteration(params.kmeans_max_iteration),
             kmeans_tolerance(params.kmeans_tolerance),
             loss_function(Loss_function<T>(params)) {
@@ -661,260 +656,12 @@ namespace dbm {
                                   const Matrix<T> &train_x,
                                   const Matrix<T> &ind_delta,
                                   char loss_function_type,
-                                  const int *row_inds,
+                                  int *row_inds,
                                   int no_rows,
                                   const int *col_inds,
                                   int no_cols) {
 
         if(row_inds == nullptr) {
-
-            int height = train_x.get_height();
-
-            T **start_centroids = new T*[no_centroids],
-                    *start_prediction = new T[no_centroids],
-                    **next_centroids = new T*[no_centroids],
-                    *best_prediction = new T[no_centroids];
-
-            for(int i = 0; i < no_centroids; ++i) {
-                start_centroids[i] = new T[kmeans2d->no_predictors];
-                next_centroids[i] = new T[kmeans2d->no_predictors];
-            }
-
-            int *no_samples_in_each_centroid = new int[no_centroids],
-                    predictor_col_inds[kmeans2d->no_predictors];
-
-            int closest_centroid_ind = 0;
-
-            T feature_mins[kmeans2d->no_predictors],
-                    feature_maxes[kmeans2d->no_predictors];
-
-            T dist = 0,
-                    lowest_dist = 0,
-                    standard_dev = 0,
-                    largest_standard_dev = -1;
-
-            int **sample_inds_for_each_centroid = new int*[no_centroids];
-            for(int i = 0; i < no_centroids; ++i)
-                sample_inds_for_each_centroid[i] = nullptr;
-
-            Matrix<T> prediction(no_centroids, 1, 0);
-
-            T denominator_in_prediction;
-
-            for(int l = 0; l < no_pairs / 3; ++l) {
-
-                for(int i = 0; i < kmeans2d->no_predictors; ++i) {
-
-                    predictor_col_inds[i] = col_inds[ predictor_pairs_inds[l][i] ];
-
-                    feature_mins[i] = train_x.get_col_min(col_inds[i]);
-                    feature_maxes[i] = train_x.get_col_max(col_inds[i]);
-
-                }
-
-                std::srand((unsigned int)
-                                   std::chrono::duration_cast< std::chrono::milliseconds >
-                                           (std::chrono::system_clock::now().time_since_epoch()).count() );
-
-                for(int i = 0; i < no_centroids; ++i)
-                    for(int j = 0; j < kmeans2d->no_predictors; ++j) {
-
-                        start_centroids[i][j] =
-                                std::rand() / double(RAND_MAX) *
-                                (feature_maxes[j] - feature_mins[j]) + feature_mins[j];
-
-                    }
-
-                for(int iter = 0; iter < kmeans_max_iteration; ++iter) {
-
-                    for(int i = 0; i < no_centroids; ++i) {
-
-                        no_samples_in_each_centroid[i] = 0;
-
-                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
-
-                            next_centroids[i][j] = 0;
-
-                        }
-                    }
-
-                    for(int i = 0; i < height; ++i) {
-
-                        lowest_dist = std::numeric_limits<T>::max();
-
-                        for(int j = 0; j < no_centroids; ++j) {
-
-                            dist = 0;
-
-                            for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                                dist += std::pow(start_centroids[j][k] -
-                                                 train_x.get(i, predictor_col_inds[k]), 2.0);
-                            }
-
-                            dist = std::sqrt(dist);
-
-                            if(dist < lowest_dist) {
-                                lowest_dist = dist;
-                                closest_centroid_ind = j;
-                            }
-
-                        }
-
-                        no_samples_in_each_centroid[closest_centroid_ind] += 1;
-
-                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
-
-                            next_centroids[closest_centroid_ind][j] +=
-                                    train_x.get(i, predictor_col_inds[j]);
-
-                    }
-
-                    dist = 0;
-                    for(int i = 0; i < no_centroids; ++i)
-                        for(int j = 0; j < kmeans2d->no_predictors; ++j) {
-
-                            next_centroids[i][j] /= no_samples_in_each_centroid[i];
-
-                            dist += std::pow(start_centroids[i][j] - next_centroids[i][j], 2.0);
-
-                        }
-
-                    dist = std::sqrt(dist);
-
-                    if(dist < kmeans_tolerance) {
-
-//                        std::cout << "Training of Kmeans(" << predictor_col_inds[0]
-//                                  <<", " << predictor_col_inds[1]
-//                                  << ") at " << kmeans2d
-//                                  << " was early stoped after " << iter << "/" << kmeans_max_iteration
-//                                  << " with the ending distance change: " << dist
-//                                  << " !"
-//                                  << std::endl;
-
-                        break;
-
-                    }
-                    else if(iter < kmeans_max_iteration - 1) {
-
-                        for(int i = 0; i < no_centroids; ++i)
-                            for(int j = 0; j < kmeans2d->no_predictors; ++j)
-                                start_centroids[i][j] = next_centroids[i][j];
-
-                    }
-
-                }
-
-                for(int i = 0; i < no_centroids; ++i) {
-
-                    sample_inds_for_each_centroid[i] = new int[no_samples_in_each_centroid[i]];
-
-                    no_samples_in_each_centroid[i] = 0;
-
-                }
-
-                for(int i = 0; i < height; ++i) {
-
-                    lowest_dist = std::numeric_limits<T>::max();
-
-                    for(int j = 0; j < no_centroids; ++j) {
-
-                        dist = 0;
-
-                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                            dist += std::pow(start_centroids[j][k] - train_x.get(i, predictor_col_inds[k]), 2.0);
-                        }
-
-                        dist = std::sqrt(dist);
-
-                        if(dist < lowest_dist) {
-                            lowest_dist = dist;
-                            closest_centroid_ind = j;
-                        }
-
-                    }
-
-                    sample_inds_for_each_centroid[closest_centroid_ind][no_samples_in_each_centroid[closest_centroid_ind]] = i;
-
-                    no_samples_in_each_centroid[closest_centroid_ind] += 1;
-
-                }
-
-                for(int i = 0; i < no_centroids; ++i) {
-
-                    start_prediction[i] = 0;
-                    denominator_in_prediction = 0;
-
-                    for(int j = 0; j < no_samples_in_each_centroid[i]; ++j) {
-                        start_prediction[i] += ind_delta.get(sample_inds_for_each_centroid[i][j], 0);
-                        denominator_in_prediction += ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
-                    }
-
-                    start_prediction[i] /= denominator_in_prediction;
-
-                    delete[] sample_inds_for_each_centroid[i];
-
-                    sample_inds_for_each_centroid[i] = nullptr;
-
-                }
-
-                for(int i = 0; i < height; ++i) {
-
-                    lowest_dist = std::numeric_limits<T>::max();
-
-                    for(int j = 0; j < no_centroids; ++j) {
-
-                        dist = 0;
-
-                        for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                            dist += std::pow(start_centroids[j][k] - train_x.get(i, predictor_col_inds[k]), 2.0);
-                        }
-
-                        dist = std::sqrt(dist);
-
-                        if(dist < lowest_dist) {
-                            lowest_dist = dist;
-                            closest_centroid_ind = j;
-                        }
-
-                    }
-
-                    standard_dev += std::pow(ind_delta.get(i, 0) / ind_delta.get(i, 1) - start_prediction[closest_centroid_ind], 2.0);
-
-                }
-
-                standard_dev = std::sqrt(standard_dev / (height - 1));
-
-                if(standard_dev > largest_standard_dev) {
-                    largest_standard_dev = standard_dev;
-
-                    kmeans2d->col_inds[0] = predictor_col_inds[0];
-                    kmeans2d->col_inds[1] = predictor_col_inds[1];
-
-                    for(int i = 0; i < no_centroids; ++i) {
-
-                        kmeans2d->predictions[i] = start_prediction[i];
-
-                        for(int j = 0; j < kmeans2d->no_predictors; ++j)
-                            kmeans2d->centroids[i][j] = start_centroids[i][j];
-
-                    }
-
-                }
-
-            }
-
-            delete[] start_prediction;
-            delete[] best_prediction;
-            delete[] sample_inds_for_each_centroid;
-
-            for(int i = 0; i < no_centroids; ++i) {
-                delete[] start_centroids[i];
-                delete[] next_centroids[i];
-            }
-            delete[] start_centroids;
-            delete[] next_centroids;
-
-            delete[] no_samples_in_each_centroid;
 
         }
         else {
@@ -923,6 +670,25 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols == no_candidate_feature);
             #endif
 
+            if(remove_rows_containing_nans)
+                remove_nan_row_inds(row_inds,
+                                    no_rows,
+                                    col_inds,
+                                    no_cols,
+                                    train_x);
+
+            if(no_rows < min_no_samples_per_bl) {
+                std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < kmeans2d->no_predictors; ++i)
+                    kmeans2d->col_inds[i] = 0;
+                for(int i = 0; i < kmeans2d->no_centroids; ++i) {
+                    for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                        kmeans2d->centroids[i][j] = 0;
+                    kmeans2d->predictions[i] = NAN;
+                }
+                return;
+            }
+
             T **start_centroids = new T*[no_centroids],
                     *start_prediction = new T[no_centroids],
                     **next_centroids = new T*[no_centroids],
@@ -944,7 +710,7 @@ namespace dbm {
             T dist = 0,
                     lowest_dist = 0,
                     standard_dev = 0,
-                    largest_standard_dev = -1;
+                    lowest_standard_dev = std::numeric_limits<T>::max();
 
             int **sample_inds_for_each_centroid = new int*[no_centroids];
             for(int i = 0; i < no_centroids; ++i)
@@ -956,7 +722,7 @@ namespace dbm {
 
             T denominator_in_prediction;
 
-            for(int l = 0; l < no_pairs / 3; ++l) {
+            for(int l = 0; l < no_pairs * fraction_of_pairs; ++l) {
 
                 for(int i = 0; i < kmeans2d->no_predictors; ++i) {
 
@@ -1002,8 +768,8 @@ namespace dbm {
                             dist = 0;
 
                             for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                                dist += std::pow(start_centroids[j][k] -
-                                                         train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
+                                dist += (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k])) *
+                                        (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]));
                             }
 
                             dist = std::sqrt(dist);
@@ -1028,9 +794,10 @@ namespace dbm {
                     for(int i = 0; i < no_centroids; ++i)
                         for(int j = 0; j < kmeans2d->no_predictors; ++j) {
 
-                            next_centroids[i][j] /= no_samples_in_each_centroid[i];
+                            next_centroids[i][j] /= (no_samples_in_each_centroid[i] != 0) ? no_samples_in_each_centroid[i] : 1;
 
-                            dist += std::pow(start_centroids[i][j] - next_centroids[i][j], 2.0);
+                            dist += (start_centroids[i][j] - next_centroids[i][j]) *
+                                    (start_centroids[i][j] - next_centroids[i][j]);
 
                         }
 
@@ -1076,7 +843,8 @@ namespace dbm {
                         dist = 0;
 
                         for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                            dist += std::pow(start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
+                            dist += (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k])) *
+                                    (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]));
                         }
 
                         dist = std::sqrt(dist);
@@ -1103,7 +871,14 @@ namespace dbm {
                         denominator_in_prediction += ind_delta.get(sample_inds_for_each_centroid[i][j], 1);
                     }
 
-                    start_prediction[i] /= denominator_in_prediction;
+                    if(denominator_in_prediction)
+                        start_prediction[i] /= denominator_in_prediction;
+                    else {
+                        if(loss_type == 'p' || loss_type == 't')
+                            start_prediction[i] = 1;
+                        else if(loss_type == 'n' || loss_type == 'b')
+                            start_prediction[i] = 0;
+                    }
 
 //                    prediction.assign(i, 0, start_prediction[i]);
 
@@ -1122,7 +897,8 @@ namespace dbm {
                         dist = 0;
 
                         for(int k = 0; k < kmeans2d->no_predictors; ++k) {
-                            dist += std::pow(start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]), 2.0);
+                            dist += (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k])) *
+                                    (start_centroids[j][k] - train_x.get(row_inds[i], predictor_col_inds[k]));
                         }
 
                         dist = std::sqrt(dist);
@@ -1134,15 +910,15 @@ namespace dbm {
 
                     }
 
-                    standard_dev += std::pow(ind_delta.get(row_inds[i], 0) / ind_delta.get(row_inds[i], 0) - start_prediction[closest_centroid_ind], 2.0);
+                    standard_dev += std::pow(ind_delta.get(row_inds[i], 0) / ind_delta.get(row_inds[i], 1) - start_prediction[closest_centroid_ind], 2.0);
 
                 }
 
                 standard_dev = std::sqrt(standard_dev / (no_rows - 1));
 
 //                standard_dev = prediction.col_std(0);
-                if(standard_dev > largest_standard_dev) {
-                    largest_standard_dev = standard_dev;
+                if(standard_dev < lowest_standard_dev) {
+                    lowest_standard_dev = standard_dev;
 
                     kmeans2d->col_inds[0] = predictor_col_inds[0];
                     kmeans2d->col_inds[1] = predictor_col_inds[1];
@@ -1183,6 +959,8 @@ namespace dbm {
 
     template <typename T>
     Linear_regression_trainer<T>::Linear_regression_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_no_samples_per_bl(params.min_no_samples_per_bl),
             regularization(params.lr_regularization) {}
 
     template <typename T>
@@ -1192,95 +970,42 @@ namespace dbm {
     void Linear_regression_trainer<T>::train(Linear_regression<T> *linear_regression,
                                              const Matrix<T> &train_x,
                                              const Matrix<T> &ind_delta,
-                                             const int *row_inds,
+                                             const Matrix<T> &monotonic_constraints,
+                                             int *row_inds,
                                              int no_rows,
                                              const int *col_inds,
                                              int no_cols) {
 
         if(row_inds == nullptr) {
-            int height = train_x.get_height(),
-                    width = train_x.get_width();
 
-            Matrix<T> w(1, height, 0);
-            for(int i = 0; i < height; ++i)
-                w.assign(0, i, ind_delta.get(i, 1));
 
-            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-                assert(train_x.get_width() == linear_regression->no_predictors);
-            #endif
-
-            for(int j = 0; j < width; ++j)
-                linear_regression->col_inds[j] = j;
-
-            Matrix<T> intercept(height, 1, 1);
-
-            Matrix<T> x; /**< Now x has only intercept and x_{j} */
-            Matrix<T> left_in_left;
-            Matrix<T> left;
-            Matrix<T> eye(2, 2, 0);
-            eye.assign(0, 0, regularization);
-            eye.assign(1, 1, regularization);
-            Matrix<T> y(height, 1, 0);
-            for(int i = 0; i < height; ++i)
-                y.assign(i, 0, ind_delta.get(i, 0) / ind_delta.get(i, 1));
-            Matrix<T> coefs(width + 1, 1, 0.);
-            Matrix<T> coef(2, 1, 0.);
-
-            for (int j = 0; j < linear_regression->no_predictors; j ++) {
-                /** Loop over all features, fit \beta_{j} based on x_{j} */
-                x = hori_merge(intercept, train_x.col(j));
-                left_in_left = transpose(x);
-                left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-                left = inner_product(left_in_left, x);
-
-                left = inverse(plus(left, eye));
-
-                /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
-                // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
-                coef = inner_product(left, inner_product(left_in_left, y));
-                coefs[0][0] += coef[0][0];
-                coefs.assign(j + 1, 0, coef.get(1, 0));
-            } // j
-
-            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
-            for (int j = 1; j < width + 1; j ++) {
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
-            } // j
-
-//            Matrix<T> x = hori_merge(intercept, train_x);
-//
-//            Matrix<T> left_in_left = transpose(x);
-//            left_in_left.inplace_elewise_prod_mat_with_row_vec(w);
-//            Matrix<T> left = inner_product(left_in_left, x); /**< left = x^{T} w x */
-//
-//            Matrix<T> y = ind_delta.col(0);
-//
-//            Matrix<T> eye(width + 1, width + 1, 0);
-//
-//            for(int i = 0; i < width + 1; ++i)
-//                eye.assign(i, i, regularization);
-//
-//            left = inverse(plus(left, eye));
-//
-//            /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
-//            Matrix<T> coefs = inner_product(left, inner_product(left_in_left, y));
-//
-//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-//                assert(coefs.get_width() == 1 && coefs.get_height() == width + 1);
-//            #endif
-//            linear_regression->intercept = coefs.get(0, 0);
-//            for(int j = 1; j < width + 1; ++j)
-//                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0);
         } // if
         else {
-            Matrix<T> w(1, no_rows, 0);
-            for(int i = 0; i < no_rows; ++i)
-                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_rows > 0 && no_cols == linear_regression->no_predictors);
             #endif
 
+            if(remove_rows_containing_nans)
+                remove_nan_row_inds(row_inds,
+                                    no_rows,
+                                    col_inds,
+                                    no_cols,
+                                    train_x);
+
+            if(no_rows < min_no_samples_per_bl) {
+                std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < no_cols; ++i)
+                    linear_regression->col_inds[i] = col_inds[i];
+                for(int i = 0; i < linear_regression->no_predictors; ++i)
+                    linear_regression->coefs_no_intercept[i] = NAN;
+                linear_regression->intercept = NAN;
+                return;
+            }
+
+            Matrix<T> w(1, no_rows, 0);
+            for(int i = 0; i < no_rows; ++i)
+                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             for(int j = 0; j < no_cols; ++j)
                 linear_regression->col_inds[j] = col_inds[j];
@@ -1294,9 +1019,12 @@ namespace dbm {
             for(int i = 0; i < no_rows; ++i)
                 y.assign(i, 0, ind_delta.get(row_inds[i], 0) / ind_delta.get(row_inds[i], 1));
             Matrix<T> coefs(linear_regression->no_predictors + 1, 1, 0.);
-#ifdef _DEBUG_BASE_LEARNER_TRAINER
-            assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
-#endif
+
+            #ifdef _DEBUG_BASE_LEARNER_TRAINER
+                assert(coefs.get_width() == 1 && coefs.get_height() == no_cols + 1);
+            #endif
+
+            int no_valid_predictor = linear_regression->no_predictors;
 
             for (int j = 0; j < linear_regression->no_predictors; j ++) {
                 /** Loop over all features, fit \beta_{j} based on x_{j} */
@@ -1313,14 +1041,26 @@ namespace dbm {
                 /** coefs = [x^{T} w x + \lambda]^{-1} x^{T} w y */
                 // (2, 2) * (2, n_observe) * (n_observe, 1) -> (2, 1)
                 Matrix<T> coef = inner_product(left, inner_product(left_in_left, y));
-                coefs[0][0] += coef[0][0];
-                coefs.assign(j + 1, 0, coef.get(1, 0));
 
+                // check if the coef is consistent with the monotonic constraint
+                // otherwise set the coef to 0
+                if ( coef.get(1, 0) * monotonic_constraints.get(col_inds[j], 0) >= 0 ) {
+                    coefs[0][0] += coef[0][0];
+                    coefs.assign(j + 1, 0, coef.get(1, 0));
+                }
+                else {
+                    --no_valid_predictor;
+                }
             } // j
 
-            linear_regression->intercept = coefs.get(0, 0) / (T)linear_regression->no_predictors;
-            for(int j = 1; j < no_cols + 1; j ++)
-                linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T)linear_regression->no_predictors;
+            if(no_valid_predictor) {
+                linear_regression->intercept = coefs.get(0, 0) / (T) no_valid_predictor;
+                for(int j = 1; j < no_cols + 1; j ++)
+                    linear_regression->coefs_no_intercept[j - 1] = coefs.get(j, 0) / (T) no_valid_predictor;
+            }
+            else {
+                std::cout << "Warning: all coefs are not consistent with the monotonic constraints." << std::endl;
+            }
 
 /////////////////////////////
 //            Matrix<T> x = hori_merge(intercept, train_x.submatrix(row_inds,
@@ -1356,13 +1096,16 @@ namespace dbm {
         } // else row_ind != nullptr
     } // END of void Linear_regression_trainer<T>::train()
 
-} // END of namespace dbm
+}
 
 // for dpc stairs
 namespace dbm {
 
     template <typename T>
     DPC_stairs_trainer<T>::DPC_stairs_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            loss_type(params.dbm_loss_function),
             range_shrinkage_of_ticks(params.dpcs_range_shrinkage_of_ticks) {}
 
     template <typename T>
@@ -1372,7 +1115,7 @@ namespace dbm {
     void DPC_stairs_trainer<T>::train(DPC_stairs<T> *dpc_stairs,
                                       const Matrix<T> &train_x,
                                       const Matrix<T> &ind_delta,
-                                      const int *row_inds,
+                                      int *row_inds,
                                       int no_rows,
                                       const int *col_inds,
                                       int no_cols) {
@@ -1383,13 +1126,34 @@ namespace dbm {
 
         }
         else {
-            Matrix<T> w(1, no_rows, 0);
-            for(int i = 0; i < no_rows; ++i)
-                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             #ifdef _DEBUG_BASE_LEARNER_TRAINER
                 assert(no_cols == dpc_stairs->no_predictors);
             #endif
+
+            if(remove_rows_containing_nans)
+                remove_nan_row_inds(row_inds,
+                                    no_rows,
+                                    col_inds,
+                                    no_cols,
+                                    train_x);
+
+            if(no_rows < min_no_samples_per_bl) {
+                std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < no_cols; ++i)
+                    dpc_stairs->col_inds[i] = col_inds[i];
+                for(int i = 0; i < dpc_stairs->no_predictors; ++i)
+                    dpc_stairs->coefs[i] = 0;
+                for(int i = 0; i < dpc_stairs->no_ticks; ++i)
+                    dpc_stairs->ticks[i] = 0;
+                for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i)
+                    dpc_stairs->predictions[i] = NAN;
+                return;
+            }
+
+            Matrix<T> w(1, no_rows, 0);
+            for(int i = 0; i < no_rows; ++i)
+                w.assign(0, i, ind_delta.get(row_inds[i], 1));
 
             for(int i = 0; i < no_cols; ++i)
                 dpc_stairs->col_inds[i] = col_inds[i];
@@ -1406,7 +1170,9 @@ namespace dbm {
                 dpc_stairs->coefs[i] = eigen_vec.get(i, 0);
 
             T *pc_scores = new T[no_rows];
-            T min_pc_score = std::numeric_limits<T>::max(), max_pc_score = std::numeric_limits<T>::lowest();
+            T min_pc_score = std::numeric_limits<T>::max(),
+                    max_pc_score = std::numeric_limits<T>::lowest(),
+                    spread_shrinkage;
 
             for(int i = 0; i < no_rows; ++i) {
 
@@ -1420,8 +1186,9 @@ namespace dbm {
 
             } // i < no_rows
 
-            min_pc_score += range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
-            max_pc_score -= range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
+            spread_shrinkage = range_shrinkage_of_ticks * (max_pc_score - min_pc_score) / 2.0;
+            min_pc_score += spread_shrinkage;
+            max_pc_score -= spread_shrinkage;
 
             for(int i = 0; i < dpc_stairs->no_ticks; ++i)
                 dpc_stairs->ticks[i] = min_pc_score + (max_pc_score - min_pc_score) * i / (dpc_stairs->no_ticks - 1.0);
@@ -1434,9 +1201,15 @@ namespace dbm {
 
             for(int i = 0; i < no_rows; ++i) {
 
+//                int j = 0;
+//                while(j < dpc_stairs->no_ticks && pc_scores[i] > dpc_stairs->ticks[j]) {
+//                    ++j;
+//                }
+
                 int j = 0;
-                while(j < dpc_stairs->no_ticks && pc_scores[i] > dpc_stairs->ticks[j]) {
-                    ++j;
+                for(; j < dpc_stairs->no_ticks + 1; ++j) {
+                    if(j == dpc_stairs->no_ticks || pc_scores[i] < dpc_stairs->ticks[j])
+                        break;
                 }
 
                 dpc_stairs->predictions[j] += ind_delta.get(row_inds[i], 0);
@@ -1446,7 +1219,14 @@ namespace dbm {
 
             for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i) {
 
-                dpc_stairs->predictions[i] /= denominators[i];
+                if(denominators[i])
+                    dpc_stairs->predictions[i] /= denominators[i];
+                else {
+                    if(loss_type == 'p' || loss_type == 't')
+                        dpc_stairs->predictions[i] = 1;
+                    else if(loss_type == 'n' || loss_type == 'b')
+                        dpc_stairs->predictions[i] = 0;
+                }
 
             }
 
@@ -1459,358 +1239,13 @@ namespace dbm {
 }
 
 // for trees
-//namespace dbm {
-//
-//    template<typename T>
-//    Tree_trainer<T>::Tree_trainer(const Params &params) :
-//            max_depth(params.cart_max_depth),
-//            portion_candidate_split_point(params.cart_portion_candidate_split_point),
-//            loss_function(Loss_function<T>(params)) {};
-//
-//    template<typename T>
-//    Tree_trainer<T>::~Tree_trainer() {};
-//
-//    template<typename T>
-//    void Tree_trainer<T>::train(Tree_node<T> *tree,
-//                                const Matrix<T> &train_x,
-//                                const Matrix<T> &train_y,
-//                                const Matrix<T> &ind_delta,
-//                                const Matrix<T> &prediction,
-//                                const Matrix<T> &monotonic_constraints,
-//                                char loss_function_type,
-//                                const int *row_inds,
-//                                int no_rows,
-//                                const int *col_inds,
-//                                int no_cols) {
-//
-//        if(row_inds == nullptr) {
-//
-//            int data_height = train_x.get_height(),
-//                    data_width = train_x.get_width();
-//
-//            tree->no_training_samples = data_height;
-//
-//            tree->prediction = loss_function.estimate_mean(ind_delta, loss_function_type);
-//            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
-//                tree->last_node = true;
-//                return;
-//            }
-//
-//            tree->loss = std::numeric_limits<T>::max();
-//
-//            int *larger_inds = new int[data_height],
-//                    *smaller_inds = new int[data_height];
-//
-//            int larger_smaller_n[2] = {0, 0};
-//
-//            T larger_beta,
-//                    smaller_beta,
-//                    loss = tree->loss;
-//
-//            T *uniques = new T[data_height];
-//            for(int i = 0; i < data_height; ++i)
-//                uniques[i] = 0;
-//
-//            for (int i = 0; i < data_width; ++i) {
-//
-//                int no_uniques = train_x.unique_vals_col(i,
-//                                                         uniques);
-//                no_uniques = middles(uniques,
-//                                     no_uniques);
-//                shuffle(uniques,
-//                        no_uniques);
-//
-//                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
-//                             (int)(no_uniques * portion_candidate_split_point) :
-//                             (no_uniques > threshold_using_all_split_point ?
-//                              threshold_using_all_split_point : no_uniques);
-//
-//                std::sort(uniques, uniques + no_uniques);
-//
-//                for (int j = 0; j < no_uniques; ++j) {
-//                    train_x.inds_split(i,
-//                                       uniques[j],
-//                                       larger_inds,
-//                                       smaller_inds,
-//                                       larger_smaller_n);
-//
-//                    larger_beta = loss_function.estimate_mean(ind_delta,
-//                                                              loss_function_type,
-//                                                              larger_inds,
-//                                                              larger_smaller_n[0]);
-//                    smaller_beta = loss_function.estimate_mean(ind_delta,
-//                                                               loss_function_type,
-//                                                               smaller_inds,
-//                                                               larger_smaller_n[1]);
-//
-//                    if ( (larger_beta - smaller_beta) * monotonic_constraints.get(i, 0) < 0 )
-//                        continue;
-//
-//                    loss = loss_function.loss(train_y,
-//                                              prediction,
-//                                              loss_function_type,
-//                                              larger_beta,
-//                                              larger_inds,
-//                                              larger_smaller_n[0]) +
-//                           loss_function.loss(train_y, prediction,
-//                                              loss_function_type,
-//                                              smaller_beta,
-//                                              smaller_inds,
-//                                              larger_smaller_n[1]);
-//
-//                    if (loss < tree->loss) {
-//                        tree->loss = loss;
-//                        tree->column = i;
-//                        tree->split_value = uniques[j];
-//                    }
-//
-//                }
-//
-//            }
-//
-//            if(tree->loss < std::numeric_limits<T>::max()) {
-//                train_x.inds_split(tree->column,
-//                                   tree->split_value,
-//                                   larger_inds,
-//                                   smaller_inds,
-//                                   larger_smaller_n);
-//
-//                if (tree->larger != nullptr)
-//                    delete tree->larger;
-//                if (tree->smaller != nullptr)
-//                    delete tree->smaller;
-//
-//                tree->larger = new Tree_node<T>(tree->depth + 1);
-//                tree->smaller = new Tree_node<T>(tree->depth + 1);
-//
-//                train(tree->larger,
-//                      train_x,
-//                      train_y,
-//                      ind_delta,
-//                      prediction,
-//                      monotonic_constraints,
-//                      loss_function_type,
-//                      larger_inds,
-//                      larger_smaller_n[0]);
-//
-//                train(tree->smaller,
-//                      train_x,
-//                      train_y,
-//                      ind_delta,
-//                      prediction,
-//                      monotonic_constraints,
-//                      loss_function_type,
-//                      smaller_inds,
-//                      larger_smaller_n[1]);
-//
-//                delete[] larger_inds;
-//                delete[] smaller_inds;
-//                delete[] uniques;
-//                larger_inds = nullptr;
-//                smaller_inds = nullptr;
-//                uniques = nullptr;
-//            }
-//            else {
-//                tree->last_node = true;
-//                delete[] larger_inds;
-//                delete[] smaller_inds;
-//                delete[] uniques;
-//                larger_inds = nullptr;
-//                smaller_inds = nullptr;
-//                uniques = nullptr;
-//            }
-//
-//        }
-//        else {
-//
-//            tree->no_training_samples = no_rows;
-//
-//            #ifdef _DEBUG_BASE_LEARNER_TRAINER
-//            assert(no_rows > 0 && no_cols > 0);
-//            #endif
-//
-//            tree->prediction = loss_function.estimate_mean(ind_delta,
-//                                                           loss_function_type,
-//                                                           row_inds,
-//                                                           no_rows);
-//            if (tree->depth == max_depth || no_rows < min_samples_in_a_node) {
-//                tree->last_node = true;
-//                return;
-//            }
-//
-//            tree->loss = std::numeric_limits<T>::max();
-//
-//            int *larger_inds = new int[no_rows],
-//                    *smaller_inds = new int[no_rows];
-//
-//            int larger_smaller_n[2] = {0, 0};
-//
-//            T larger_beta,
-//                    smaller_beta,
-//                    loss = tree->loss;
-//
-//            T *uniques = new T[no_rows];
-//            for(int i = 0; i < no_rows; ++i)
-//                uniques[i] = 0;
-//
-//            for (int i = 0; i < no_cols; ++i) {
-//
-//                int no_uniques = train_x.unique_vals_col(col_inds[i],
-//                                                         uniques,
-//                                                         row_inds,
-//                                                         no_rows);
-//                no_uniques = middles(uniques,
-//                                     no_uniques);
-//                shuffle(uniques,
-//                        no_uniques);
-//
-//                no_uniques = (int)(no_uniques * portion_candidate_split_point) > threshold_using_all_split_point ?
-//                             (int)(no_uniques * portion_candidate_split_point) :
-//                             (no_uniques > threshold_using_all_split_point ?
-//                              threshold_using_all_split_point : no_uniques);
-//
-//                for (int j = 0; j < no_uniques; ++j) {
-//                    train_x.inds_split(col_inds[i],
-//                                       uniques[j],
-//                                       larger_inds,
-//                                       smaller_inds,
-//                                       larger_smaller_n,
-//                                       row_inds, no_rows);
-//
-//                    larger_beta = loss_function.estimate_mean(ind_delta,
-//                                                              loss_function_type,
-//                                                              larger_inds,
-//                                                              larger_smaller_n[0]);
-//                    smaller_beta = loss_function.estimate_mean(ind_delta,
-//                                                               loss_function_type,
-//                                                               smaller_inds,
-//                                                               larger_smaller_n[1]);
-//
-//                    if ( (larger_beta - smaller_beta) * monotonic_constraints.get(col_inds[i], 0) < 0 )
-//                        continue;
-//
-//                    loss = loss_function.loss(train_y,
-//                                              prediction,
-//                                              loss_function_type,
-//                                              larger_beta,
-//                                              larger_inds,
-//                                              larger_smaller_n[0]) +
-//                           loss_function.loss(train_y,
-//                                              prediction,
-//                                              loss_function_type,
-//                                              smaller_beta,
-//                                              smaller_inds,
-//                                              larger_smaller_n[1]);
-//
-//                    if (loss < tree->loss) {
-//                        tree->loss = loss;
-//                        tree->column = col_inds[i];
-//                        tree->split_value = uniques[j];
-//                    }
-//
-//                }
-//
-//            }
-//
-//            if(tree->loss < std::numeric_limits<T>::max()) {
-//                train_x.inds_split(tree->column,
-//                                   tree->split_value,
-//                                   larger_inds,
-//                                   smaller_inds,
-//                                   larger_smaller_n,
-//                                   row_inds,
-//                                   no_rows);
-//
-//                if (tree->larger != nullptr)
-//                    delete tree->larger;
-//                if (tree->smaller != nullptr)
-//                    delete tree->smaller;
-//
-//                tree->larger = new Tree_node<T>(tree->depth + 1);
-//                tree->smaller = new Tree_node<T>(tree->depth + 1);
-//
-//                train(tree->larger,
-//                      train_x,
-//                      train_y,
-//                      ind_delta,
-//                      prediction,
-//                      monotonic_constraints,
-//                      loss_function_type,
-//                      larger_inds,
-//                      larger_smaller_n[0],
-//                      col_inds,
-//                      no_cols);
-//                train(tree->smaller,
-//                      train_x,
-//                      train_y,
-//                      ind_delta,
-//                      prediction,
-//                      monotonic_constraints,
-//                      loss_function_type,
-//                      smaller_inds,
-//                      larger_smaller_n[1],
-//                      col_inds,
-//                      no_cols);
-//                delete[] larger_inds;
-//                delete[] smaller_inds;
-//                delete[] uniques;
-//                larger_inds = nullptr;
-//                smaller_inds = nullptr;
-//                uniques = nullptr;
-//            }
-//            else {
-//                tree->last_node = true;
-//                delete[] larger_inds;
-//                delete[] smaller_inds;
-//                delete[] uniques;
-//                larger_inds = nullptr;
-//                smaller_inds = nullptr;
-//                uniques = nullptr;
-//            }
-//
-//        }
-//
-//    }
-//
-//    template<typename T>
-//    void Tree_trainer<T>::prune(Tree_node<T> *tree) {
-//
-//        if (tree->last_node) return;
-//        #ifdef _DEBUG_BASE_LEARNER_TRAINER
-//            assert(tree->larger != NULL && tree->smaller != NULL);
-//        #endif
-//        if (tree->larger->loss > tree->smaller->loss) {
-//            tree->larger->last_node = true;
-//
-//            delete_tree(tree->larger->larger);
-//            delete_tree(tree->larger->smaller);
-//
-//            tree->larger->larger = nullptr,
-//                    tree->larger->smaller = nullptr;
-//
-//            prune(tree->smaller);
-//        } else {
-//            tree->smaller->last_node = true;
-//
-//            delete_tree(tree->smaller->larger);
-//            delete_tree(tree->smaller->smaller);
-//
-//            tree->smaller->larger = nullptr,
-//                    tree->smaller->smaller = nullptr;
-//
-//            prune(tree->larger);
-//        }
-//    }
-//
-//}
-
-// for fast tree training
 namespace dbm {
 
     template<typename T>
     Fast_tree_trainer<T>::Fast_tree_trainer(const Params &params) :
+            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            min_samples_in_a_node(params.cart_min_samples_in_a_node),
             max_depth(params.cart_max_depth),
-            portion_candidate_split_point(params.cart_portion_candidate_split_point),
             loss_function(Loss_function<T>(params)) {};
 
     template<typename T>
@@ -1833,7 +1268,7 @@ namespace dbm {
 
                                      char loss_function_type,
 
-                                     const int *row_inds,
+                                     int *row_inds,
                                      int no_rows,
                                      const int *col_inds,
                                      int no_cols) {
@@ -1845,7 +1280,10 @@ namespace dbm {
         else {
 
             /*
-             *  @TODO (BUG?)-0.5p_i(1 - p_i) p_i may be needed to be updated in each node
+             *  @TODO two ways to deal with min number of samples in a node
+             *      1. split at the best point and then check if child nodes have enough samples
+             *      2. do not split until first cart_min_samples_in_a_node samples and stop splitting
+             *          after last cart_min_samples_in_a_node samples
              */
 
             tree->no_training_samples = no_rows;
@@ -1855,6 +1293,12 @@ namespace dbm {
             #endif
 
             if(tree->depth == 0) {
+                if(remove_rows_containing_nans)
+                    remove_nan_row_inds(row_inds,
+                                        no_rows,
+                                        col_inds,
+                                        no_cols,
+                                        train_x);
                 tree->prediction = loss_function.estimate_mean(ind_delta,
                                                                loss_function_type,
                                                                row_inds,
@@ -1882,9 +1326,9 @@ namespace dbm {
                     right_numerator = 0,
                     right_denominator = 0;
             double left_1st_comp_in_loss = 0,
-//                    left_2nd_comp_in_loss = 0,
-                    right_1st_comp_in_loss = 0;
-//                    right_2nd_comp_in_loss = 0;
+                    left_2nd_comp_in_loss = 0,
+                    right_1st_comp_in_loss = 0,
+                    right_2nd_comp_in_loss = 0;
 
             double sum_of_numerators = 0, sum_of_denominators = 0, sum_of_first_comp = 0, sum_of_second_comp = 0;
             std::for_each(row_inds, row_inds + no_rows,
@@ -1925,7 +1369,7 @@ namespace dbm {
                 left_numerator = 0;
                 left_denominator = 0;
                 left_1st_comp_in_loss = 0;
-//                left_2nd_comp_in_loss = 0;
+                left_2nd_comp_in_loss = 0;
 
                 for(int j = 0; j < last_chosen_ind_in_sorted_array; ++j) {
 
@@ -1936,34 +1380,36 @@ namespace dbm {
                         left_numerator += ind_delta.get(original_row_ind, 0);
                         left_denominator += ind_delta.get(original_row_ind, 1);
                         left_1st_comp_in_loss += first_comp_in_loss.get(original_row_ind, 0);
-//                        left_2nd_comp_in_loss += second_comp_in_loss.get(original_row_ind, 0);
+                        left_2nd_comp_in_loss += second_comp_in_loss.get(original_row_ind, 0);
 
                         right_numerator = sum_of_numerators - left_numerator;
                         right_denominator = sum_of_denominators - left_denominator;
                         right_1st_comp_in_loss = sum_of_first_comp - left_1st_comp_in_loss;
-//                        right_2nd_comp_in_loss = sum_of_second_comp - left_2nd_comp_in_loss;
+                        right_2nd_comp_in_loss = sum_of_second_comp - left_2nd_comp_in_loss;
 
-                        left_beta = left_numerator / left_denominator;
-                        right_beta = right_numerator / right_denominator;
+//                        left_beta = left_numerator / left_denominator;
+//                        right_beta = right_numerator / right_denominator;
 
-                        if ( (left_beta - right_beta) * monotonic_constraints.get(original_col_ind, 0) < 0 )
+                        left_beta = loss_function.inversed_link_function(left_numerator / left_denominator,
+                                                                         loss_function_type);
+                        right_beta = loss_function.inversed_link_function(right_numerator / right_denominator,
+                                                                          loss_function_type);
+
+                        if ( (right_beta - left_beta) * monotonic_constraints.get(original_col_ind, 0) < 0 )
                             continue;
 
-                        loss_reduction = left_1st_comp_in_loss * left_beta * left_beta +
-                                right_1st_comp_in_loss * right_beta * right_beta;
+//                        loss_reduction = left_1st_comp_in_loss * left_beta * left_beta +
+//                                right_1st_comp_in_loss * right_beta * right_beta;
 
-//                            std::cout << "i: " << i
-//                                      << " col: " << original_col_ind
-//                                      << " j: " << j
-//                                      << " row: " << original_row_ind
-//                                      << " LR: " << loss_reduction
-//                                      << "    " << left_numerator
-//                                      << " " << left_denominator
-//                                      << " " << left_beta
-//                                      << "    " << right_numerator
-//                                      << " " << right_denominator
-//                                      << " " << right_beta
-//                                      << std::endl;
+                        loss_reduction =
+                                loss_function.loss_reduction(left_1st_comp_in_loss,
+                                                                      left_2nd_comp_in_loss,
+                                                                      left_beta,
+                                                                      loss_function_type) +
+                                loss_function.loss_reduction(right_1st_comp_in_loss,
+                                                             right_2nd_comp_in_loss,
+                                                             right_beta,
+                                                             loss_function_type);
 
                         if((loss_reduction < tree->loss_reduction) ||
                                 ((loss_reduction == tree->loss_reduction) &&
@@ -1977,21 +1423,6 @@ namespace dbm {
 
                             best_left_beta = left_beta;
                             best_right_beta = right_beta;
-
-//                            std::cout << "*" << std::endl;
-
-//                            std::cout << "i: " << i
-//                                      << " col: " << original_col_ind
-//                                      << " j: " << j
-//                                      << " row: " << original_row_ind
-//                                      << " LR: " << loss_reduction
-//                                      << "    " << left_numerator
-//                                      << " " << left_denominator
-//                                      << " " << left_beta
-//                                      << "    " << right_numerator
-//                                      << " " << right_denominator
-//                                      << " " << right_beta
-//                                      << std::endl;
                         }
 
                     }
@@ -2090,7 +1521,7 @@ namespace dbm {
     template <typename T>
     T Fast_tree_trainer<T>::update_loss_reduction(Tree_node<T> *tree) {
 
-        if(tree->left->last_node || tree->right->last_node)
+        if(tree->last_node || tree->left->last_node || tree->right->last_node)
             return tree->loss_reduction;
 
         T left_loss_reduction, right_loss_reduction;

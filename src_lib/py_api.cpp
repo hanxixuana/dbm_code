@@ -60,18 +60,30 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                            &dbm::Params::dbm_no_candidate_feature)
             .def_readwrite("dbm_portion_train_sample",
                            &dbm::Params::dbm_portion_train_sample)
+
             .def_readwrite("dbm_no_cores",
                            &dbm::Params::dbm_no_cores)
+
             .def_readwrite("dbm_loss_function",
                            &dbm::Params::dbm_loss_function)
+
             .def_readwrite("dbm_display_training_progress",
                            &dbm::Params::dbm_display_training_progress)
             .def_readwrite("dbm_record_every_tree",
                            &dbm::Params::dbm_record_every_tree)
             .def_readwrite("dbm_freq_showing_loss_on_test",
                            &dbm::Params::dbm_freq_showing_loss_on_test)
+
             .def_readwrite("dbm_shrinkage",
                            &dbm::Params::dbm_shrinkage)
+
+            .def_readwrite("dbm_nonoverlapping_training",
+                           &dbm::Params::dbm_nonoverlapping_training)
+
+            .def_readwrite("remove_rows_containing_nans",
+                           &dbm::Params::remove_rows_containing_nans)
+            .def_readwrite("min_no_samples_per_bl",
+                           &dbm::Params::min_no_samples_per_bl)
 
             .def_readwrite("dbm_portion_for_trees",
                            &dbm::Params::dbm_portion_for_trees)
@@ -83,6 +95,8 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                            &dbm::Params::dbm_portion_for_k)
             .def_readwrite("dbm_portion_for_nn",
                            &dbm::Params::dbm_portion_for_nn)
+            .def_readwrite("dbm_portion_for_d",
+                           &dbm::Params::dbm_portion_for_d)
 
             .def_readwrite("dbm_accumulated_portion_shrinkage_for_selected_bl",
                            &dbm::Params::dbm_accumulated_portion_shrinkage_for_selected_bl)
@@ -94,8 +108,12 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
 
             .def_readwrite("splines_no_knot",
                            &dbm::Params::splines_no_knot)
+            .def_readwrite("splines_portion_of_pairs",
+                           &dbm::Params::splines_portion_of_pairs)
             .def_readwrite("splines_regularization",
                            &dbm::Params::splines_regularization)
+            .def_readwrite("splines_hinge_coefficient",
+                           &dbm::Params::splines_hinge_coefficient)
 
             .def_readwrite("kmeans_no_centroids",
                            &dbm::Params::kmeans_no_centroids)
@@ -103,6 +121,8 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                            &dbm::Params::kmeans_max_iteration)
             .def_readwrite("kmeans_tolerance",
                            &dbm::Params::kmeans_tolerance)
+            .def_readwrite("kmeans_fraction_of_pairs",
+                           &dbm::Params::kmeans_fraction_of_pairs)
 
             .def_readwrite("nn_no_hidden_neurons",
                            &dbm::Params::nn_no_hidden_neurons)
@@ -117,13 +137,23 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def_readwrite("nn_no_rise_of_loss_on_validate",
                            &dbm::Params::nn_no_rise_of_loss_on_validate)
 
+            .def_readwrite("cart_min_samples_in_a_node",
+                           &dbm::Params::cart_min_samples_in_a_node)
             .def_readwrite("cart_max_depth",
                            &dbm::Params::cart_max_depth)
-            .def_readwrite("cart_portion_candidate_split_point",
-                           &dbm::Params::cart_portion_candidate_split_point)
+            .def_readwrite("cart_prune",
+                           &dbm::Params::cart_prune)
 
             .def_readwrite("lr_regularization",
                            &dbm::Params::lr_regularization)
+
+            .def_readwrite("dpcs_no_ticks",
+                           &dbm::Params::dpcs_no_ticks)
+            .def_readwrite("dpcs_range_shrinkage_of_ticks",
+                           &dbm::Params::dpcs_range_shrinkage_of_ticks)
+
+            .def_readwrite("dbm_do_perf",
+                           &dbm::Params::dbm_do_perf)
 
             .def_readwrite("pdp_no_x_ticks",
                            &dbm::Params::pdp_no_x_ticks)
@@ -135,6 +165,15 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                            &dbm::Params::pdp_ci_bandwidth)
             .def_readwrite("pdp_save_files",
                            &dbm::Params::pdp_save_files)
+
+            .def_readwrite("twm_no_x_ticks",
+                           &dbm::Params::twm_no_x_ticks)
+            .def_readwrite("twm_no_resamplings",
+                           &dbm::Params::twm_no_resamplings)
+            .def_readwrite("twm_resampling_portion",
+                           &dbm::Params::twm_resampling_portion)
+            .def_readwrite("twm_ci_bandwidth",
+                           &dbm::Params::twm_ci_bandwidth)
             ;
 
     def("set_params", &dbm::set_params);
@@ -213,8 +252,8 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                  &dbm::AUTO_DBM<float>::statistical_significance,
                  return_value_policy<copy_non_const_reference>())
 
-            .def("save_dbm", &dbm::DBM<float>::save_dbm_to)
-            .def("load_dbm", &dbm::DBM<float>::load_dbm_from)
+            .def("save_dbm", &dbm::AUTO_DBM<float>::save_auto_dbm_to)
+            .def("load_dbm", &dbm::AUTO_DBM<float>::load_auto_dbm_from)
             ;
 
 }

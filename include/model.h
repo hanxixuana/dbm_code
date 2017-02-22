@@ -209,7 +209,7 @@ namespace dbm {
 
         Matrix<T> *prediction = nullptr;
 
-        static const int no_base_learners = 6;
+        static const int no_base_learners = 5;
         char *names_base_learners = nullptr;
         T loss_on_train_set;
 

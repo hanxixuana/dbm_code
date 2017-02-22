@@ -3,7 +3,6 @@
 //
 
 #include "tools.h"
-#include "matrix.h"
 
 #include <iostream>
 #include <cassert>
@@ -36,7 +35,9 @@ namespace dbm {
                   << std::endl << std::endl;
     }
 
-    int split_into_words(const std::string &line, std::string *words, const char sep) {
+    int split_into_words(const std::string &line,
+                         std::string *words,
+                         const char sep) {
         size_t prev = 0, next = 0;
         int n_words = 0;
         while ((next = line.find_first_of(sep, prev)) != std::string::npos) {
@@ -54,33 +55,101 @@ namespace dbm {
     }
 
     template <typename T>
-    void range(const T &start, const T &end, const int & number, T *result, const T &scaling) {
+    void remove_nan_row_inds(int *row_inds,
+                             int &no_rows,
+                             const int *col_inds,
+                             const int &no_cols,
+                             const Matrix<T> &train_x) {
+        int no_nan_in_row, original_no_rows = no_rows;
+        int temp;
+        for(int i = 0; i < no_rows; ++i) {
+            no_nan_in_row = 0;
+            for(int j = 0; j < no_cols; ++j)
+                no_nan_in_row += std::isnan(train_x.get(row_inds[i], col_inds[j]));
+//            std::cout << row_inds[i] << ':' << no_nan_in_row << ' ';
+            if(no_nan_in_row > 0) {
+                temp = row_inds[i];
+                row_inds[i] = row_inds[no_rows - 1];
+                row_inds[no_rows - 1] = temp;
+                --no_rows;
+                --i;
+            }
+        }
+//        std::cout << std::endl;
+        if(original_no_rows > no_rows)
+            std::cout << "Removed " << original_no_rows - no_rows << " rows containing NaNs." << std::endl;
+
+    }
+
+    template <typename T>
+    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan) {
+        int height = mat.get_height(), width = mat.get_width() - 1;
+
+        int *mat_col_inds = new int[width];
+        int *no_nan = new int[height];
+
+        for(int i = 0; i < width; ++i)
+            mat_col_inds[i] = i;
+
+        for(int i = 0; i < height; ++i)
+            no_nan[i] = rand() / (RAND_MAX / max_no_nan);
+
+        for(int i = 0; i < height; ++i) {
+
+            std::random_shuffle(mat_col_inds, mat_col_inds + width);
+
+            for(int j = 0; j < no_nan[i]; ++j) {
+
+                mat.assign(i, mat_col_inds[j], NAN);
+
+            }
+
+        }
+
+        delete[] mat_col_inds;
+        delete[] no_nan;
+    }
+
+    template <typename T>
+    void range(const T &start, const T &end,
+               const int & number,
+               T *result,
+               const T &scaling) {
         #ifdef _DEBUG_TOOLS
             assert(end > start);
         #endif
-        T length = (end - start) / (number - 1);
-        result[0] = start * scaling;
-        for(int i = 1; i < number - 1; ++i)
-            result[i] = (start + i * length) * scaling;
-        result[number - 1] = end * scaling;
+        T length = scaling * (end - start) / (number - 1);
+        result[0] = start + (1.0 - scaling) * (end - start) / 2.0;
+        for(int i = 1; i < number; ++i)
+            result[i] = result[0] + i * length;
     }
 
     template<typename T>
-    inline int middles(T *uniques, int no_uniques) {
+    inline int middles(T *uniques,
+                       int no_uniques) {
         for (int i = 0; i < no_uniques - 1; ++i) uniques[i] = (uniques[i] + uniques[i + 1]) / 2.0;
         return no_uniques - 1;
     }
 
     template<typename T>
-    inline void shuffle(T *values, int no_values, unsigned int seed) {
+    inline void shuffle(T *values,
+                        int no_values,
+                        unsigned int seed) {
         std::srand(seed);
         std::random_shuffle(values, values + no_values);
     }
 
     template<typename T>
-    void make_data(const std::string &file_name, int n_samples, int n_features, char data_type,
-                   const int *sig_lin_inds, const T *coef_sig_lin, int n_sig_lin_feats,
-                   const int *sig_quad_inds, const T *coef_sig_quad, int n_sig_quad_feats) {
+    void make_data(const std::string &file_name,
+                   int n_samples,
+                   int n_features,
+                   char data_type,
+                   const int *sig_lin_inds,
+                   const T *coef_sig_lin,
+                   int n_sig_lin_feats,
+                   const int *sig_quad_inds,
+                   const T *coef_sig_quad,
+                   int n_sig_quad_feats) {
 
         if (sig_lin_inds == NULL ||
                 coef_sig_lin == NULL ||
@@ -182,7 +251,8 @@ namespace dbm {
 
     }
 
-    Params set_params(const std::string &param_string, const char delimiter) {
+    Params set_params(const std::string &param_string,
+                      const char delimiter) {
 
         std::string words[100];
 
@@ -232,6 +302,14 @@ namespace dbm {
             else if (words[2 * i] == "dbm_shrinkage")
                 params.dbm_shrinkage = std::stod(words[2 * i + 1]);
 
+            else if (words[2 * i] == "dbm_nonoverlapping_training")
+                params.dbm_nonoverlapping_training = std::stoi(words[2 * i + 1]);
+
+            else if (words[2 * i] == "remove_rows_containing_nans")
+                params.remove_rows_containing_nans = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "min_no_samples_per_bl")
+                params.min_no_samples_per_bl = std::stoi(words[2 * i + 1]);
+
             else if (words[2 * i] == "dbm_portion_for_trees")
                 params.dbm_portion_for_trees = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "dbm_portion_for_lr")
@@ -269,6 +347,8 @@ namespace dbm {
                 params.kmeans_max_iteration = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "kmeans_tolerance")
                 params.kmeans_tolerance = std::stod(words[2 * i + 1]);
+            else if (words[2 * i] == "kmeans_fraction_of_pairs")
+                params.kmeans_fraction_of_pairs = std::stod(words[2 * i + 1]);
 
             // neural networks
             else if (words[2 * i] == "nn_no_hidden_neurons")
@@ -283,12 +363,12 @@ namespace dbm {
                 params.nn_max_iteration = std::stoi(words[2 * i + 1]);
 
             // CART
+            else if (words[2 * i] == "cart_min_samples_in_a_node")
+                params.cart_min_samples_in_a_node = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "cart_max_depth")
                 params.cart_max_depth = std::stoi(words[2 * i + 1]);
             else if (words[2 * i] == "cart_prune")
                 params.cart_prune = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "cart_portion_candidate_split_point")
-                params.cart_portion_candidate_split_point = std::stod(words[2 * i + 1]);
 
             // linear regression
             else if (words[2 * i] == "lr_regularization")
@@ -344,9 +424,17 @@ namespace dbm {
 // explicit instantiation of templated functions
 namespace dbm {
 
-    template void range(const double &start, const double &end, const int & number, double *result, const double &scaling);
+    template void remove_nan_row_inds<double>(int *row_inds, int &no_rows, const int *col_inds, const int &no_cols, const Matrix<double> &train_x);
 
-    template void range(const float &start, const float &end, const int & number, float *result, const float &scaling);
+    template void remove_nan_row_inds<float>(int *row_inds, int &no_rows, const int *col_inds, const int &no_cols, const Matrix<float> &train_x);
+
+    template void add_nans_to_mat<double>(Matrix<double> &mat, int max_no_nan);
+
+    template void add_nans_to_mat<float>(Matrix<float> &mat, int max_no_nan);
+
+    template void range<double>(const double &start, const double &end, const int & number, double *result, const double &scaling);
+
+    template void range<float>(const float &start, const float &end, const int & number, float *result, const float &scaling);
 
     template int middles<float>(float *uniqes, int no_uniques);
 
