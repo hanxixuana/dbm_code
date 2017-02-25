@@ -128,6 +128,15 @@ class DBM(object):
     def ss(self, data_x):
         return Matrix(mat = self.dbm.statistical_significance(data_x.mat))
 
+    def calibrate_plot(self, observation, prediction, resolution, file_name = ''):
+        return Matrix(mat = self.dbm.calibrate_plot(observation.mat, prediction.mat, resolution, file_name))
+
+    def interact(self, data, predictor_ind, total_no_predictor):
+        return self.dbm.interact(data.mat, predictor_ind, total_no_predictor)
+
+    def save_performance(self, file_name):
+        self.dbm.save_performance(file_name)
+
     def save(self, file_name):
         self.dbm.save_dbm(file_name)
 
@@ -152,6 +161,15 @@ class AUTO_DBM(object):
 
     def ss(self, data_x):
         return Matrix(mat = self.dbm.statistical_significance(data_x.mat))
+
+    def calibrate_plot(self, observation, prediction, resolution, file_name):
+        return Matrix(mat = self.dbm.calibrate_plot(observation.mat, prediction.mat, resolution, file_name))
+
+    def interact(self, data, predictor_ind, total_no_predictor):
+        return self.dbm.interact(data.mat, predictor_ind, total_no_predictor)
+
+    def save_performance(self, file_name):
+        self.dbm.save_performance(file_name)
 
     def save(self, file_name):
         self.dbm.save_dbm(file_name)

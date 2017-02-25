@@ -96,6 +96,8 @@ namespace dbm {
         Matrix<T> *prediction_two_way = nullptr;
         Matrix<T> *predictor_x_ticks = nullptr;
 
+        Matrix<T> *mat_plot_dat = nullptr;
+
     public:
 
         DBM(int no_bunches_of_learners,
@@ -159,9 +161,9 @@ namespace dbm {
          * two-way models
          */
 
-        void train_two_way_model(const Matrix<T> &data);
-
-        Matrix<T> &predict_two_way_model(const Matrix<T> &data_x);
+//        void train_two_way_model(const Matrix<T> &data);
+//
+//        Matrix<T> &predict_two_way_model(const Matrix<T> &data_x);
 
         /*
          *  IO
@@ -221,6 +223,8 @@ namespace dbm {
         Matrix<T> *prediction_two_way = nullptr;
         Matrix<T> *predictor_x_ticks = nullptr;
 
+        Matrix<T> *mat_plot_dat = nullptr;
+
         int base_learner_choose(const Matrix<T> &train_x,
                                 const Matrix<T> &train_y,
                                 const Matrix<T> &test_x,
@@ -271,15 +275,24 @@ namespace dbm {
 
         Matrix<T> &statistical_significance(const Matrix<T> &data);
 
+        Matrix<T> &calibrate_plot(const Matrix<T> &observation,
+                                  const Matrix<T> &prediction,
+                                  int resolution,
+                                  const std::string& file_name = "");
+
         void save_perf_to(const std::string &file_name);
+
+        T interact(const Matrix<T>& data,
+                   const int* predictor_ind,
+                   int no_predictor);
 
         /*
          * two-way models
          */
 
-        void train_two_way_model(const Matrix<T> &data);
-
-        Matrix<T> &predict_two_way_model(const Matrix<T> &data_x);
+//        void train_two_way_model(const Matrix<T> &data);
+//
+//        Matrix<T> &predict_two_way_model(const Matrix<T> &data_x);
 
         /*
          *  IO

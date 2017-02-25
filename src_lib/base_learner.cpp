@@ -588,6 +588,9 @@ namespace dbm {
             ++j;
         }
 
+        if(std::isnan(predictions[j]))
+            return 0.0;
+
         switch (loss_type) {
             case 'n':
                 return predictions[j];

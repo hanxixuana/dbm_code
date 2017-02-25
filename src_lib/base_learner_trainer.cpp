@@ -359,6 +359,7 @@ namespace dbm {
     void Splines_trainer<T>::train(Splines<T> *splines,
                                    const Matrix<T> &train_x,
                                    const Matrix<T> &ind_delta,
+                                   const Matrix<T> &monotonic_constraints,
                                    int *row_inds,
                                    int no_rows,
                                    const int *col_inds,
@@ -382,6 +383,24 @@ namespace dbm {
 
             if(no_rows < min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < splines->no_predictors; ++i)
+                    splines->col_inds[i] = 0;
+                for(int i = 0; i < splines->no_knots; ++i) {
+
+                    splines->x_knots[i] = 0;
+                    splines->x_left_coefs[i] = NAN;
+                    splines->x_right_coefs[i] = NAN;
+
+                    splines->y_knots[i] = 0;
+                    splines->y_left_coefs[i] = NAN;
+                    splines->y_right_coefs[i] = NAN;
+
+                }
+                return;
+            }
+
+            if(monotonic_constraints.frobenius_norm() > 0) {
+                std::cout << "This BL does not support Monotonic Constraints." << std::endl;
                 for(int i = 0; i < splines->no_predictors; ++i)
                     splines->col_inds[i] = 0;
                 for(int i = 0; i < splines->no_knots; ++i) {
@@ -653,13 +672,13 @@ namespace dbm {
 
     template <typename T>
     void Kmeans2d_trainer<T>::train(Kmeans2d<T> *kmeans2d,
-                                  const Matrix<T> &train_x,
-                                  const Matrix<T> &ind_delta,
-                                  char loss_function_type,
-                                  int *row_inds,
-                                  int no_rows,
-                                  const int *col_inds,
-                                  int no_cols) {
+                                    const Matrix<T> &train_x,
+                                    const Matrix<T> &ind_delta,
+                                    const Matrix<T> &monotonic_constraints,
+                                    int *row_inds,
+                                    int no_rows,
+                                    const int *col_inds,
+                                    int no_cols) {
 
         if(row_inds == nullptr) {
 
@@ -679,6 +698,18 @@ namespace dbm {
 
             if(no_rows < min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < kmeans2d->no_predictors; ++i)
+                    kmeans2d->col_inds[i] = 0;
+                for(int i = 0; i < kmeans2d->no_centroids; ++i) {
+                    for(int j = 0; j < kmeans2d->no_predictors; ++j)
+                        kmeans2d->centroids[i][j] = 0;
+                    kmeans2d->predictions[i] = NAN;
+                }
+                return;
+            }
+
+            if(monotonic_constraints.frobenius_norm() > 0) {
+                std::cout << "This BL does not support Monotonic Constraints." << std::endl;
                 for(int i = 0; i < kmeans2d->no_predictors; ++i)
                     kmeans2d->col_inds[i] = 0;
                 for(int i = 0; i < kmeans2d->no_centroids; ++i) {
@@ -1115,6 +1146,7 @@ namespace dbm {
     void DPC_stairs_trainer<T>::train(DPC_stairs<T> *dpc_stairs,
                                       const Matrix<T> &train_x,
                                       const Matrix<T> &ind_delta,
+                                      const Matrix<T> &monotonic_constraints,
                                       int *row_inds,
                                       int no_rows,
                                       const int *col_inds,
@@ -1140,6 +1172,19 @@ namespace dbm {
 
             if(no_rows < min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
+                for(int i = 0; i < no_cols; ++i)
+                    dpc_stairs->col_inds[i] = col_inds[i];
+                for(int i = 0; i < dpc_stairs->no_predictors; ++i)
+                    dpc_stairs->coefs[i] = 0;
+                for(int i = 0; i < dpc_stairs->no_ticks; ++i)
+                    dpc_stairs->ticks[i] = 0;
+                for(int i = 0; i < dpc_stairs->no_ticks + 1; ++i)
+                    dpc_stairs->predictions[i] = NAN;
+                return;
+            }
+
+            if(monotonic_constraints.frobenius_norm() > 0) {
+                std::cout << "This BL does not support Monotonic Constraints." << std::endl;
                 for(int i = 0; i < no_cols; ++i)
                     dpc_stairs->col_inds[i] = col_inds[i];
                 for(int i = 0; i < dpc_stairs->no_predictors; ++i)

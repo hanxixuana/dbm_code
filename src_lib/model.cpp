@@ -208,6 +208,8 @@ namespace dbm {
         delete prediction_two_way;
         delete predictor_x_ticks;
 
+        delete mat_plot_dat;
+
     }
 
     template<typename T>
@@ -693,7 +695,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds_vec[thread_id],
                                                     no_samples_in_nonoverlapping_batch,
                                                     thread_col_inds,
@@ -721,7 +723,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds,
                                                     no_train_sample,
                                                     thread_col_inds,
@@ -810,6 +812,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds_vec[thread_id],
                                                    no_samples_in_nonoverlapping_batch,
                                                    thread_col_inds,
@@ -838,6 +841,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds,
                                                    no_train_sample,
                                                    thread_col_inds,
@@ -1042,6 +1046,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds_vec[thread_id],
                                                       no_samples_in_nonoverlapping_batch,
                                                       thread_col_inds,
@@ -1070,6 +1075,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds,
                                                       no_train_sample,
                                                       thread_col_inds,
@@ -1647,7 +1653,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds_vec[thread_id],
                                                     no_samples_in_nonoverlapping_batch,
                                                     thread_col_inds,
@@ -1675,7 +1681,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds,
                                                     no_train_sample,
                                                     thread_col_inds,
@@ -1764,6 +1770,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds_vec[thread_id],
                                                    no_samples_in_nonoverlapping_batch,
                                                    thread_col_inds,
@@ -1792,6 +1799,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds,
                                                    no_train_sample,
                                                    thread_col_inds,
@@ -1996,6 +2004,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds_vec[thread_id],
                                                       no_samples_in_nonoverlapping_batch,
                                                       thread_col_inds,
@@ -2024,6 +2033,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds,
                                                       no_train_sample,
                                                       thread_col_inds,
@@ -2630,7 +2640,7 @@ namespace dbm {
             } // it ?= plot_data.end()
         } // i
 
-        Matrix<T> *mat_plot_dat = new Matrix<T>((int)plot_data.size(), 3, 0.);
+        mat_plot_dat = new Matrix<T>((int)plot_data.size(), 3, 0.);
         T sd, avg;
         int i = 0;
         for (it = plot_data.begin(); it != plot_data.end(); ++ it) {
@@ -2666,10 +2676,17 @@ namespace dbm {
 
     template <typename T>
     void DBM<T>::save_perf_to(const std::string &file_name) {
+        if(train_loss_record == nullptr || test_loss_record == nullptr) {
+            std::cout << "No training record..." << std::endl;
+            return;
+        }
         std::ofstream fout(file_name);
+        fout << "Iteration" << "\t"
+             << "Train Loss" << "\t"
+             << "Test Loss" << std::endl;
         for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; i ++) {
-            fout << (i * params.dbm_freq_showing_loss_on_test) << " "
-                 << train_loss_record[i] << " "
+            fout << (i * params.dbm_freq_showing_loss_on_test) << "\t"
+                 << train_loss_record[i] << "\t"
                  << test_loss_record[i] << std::endl;
         } // i
         fout.close();
@@ -2677,275 +2694,275 @@ namespace dbm {
 
 }
 
-namespace dbm {
-
-    template <typename T>
-    void DBM<T>::train_two_way_model(const Matrix<T> &data) {
-
-        if(vec_of_two_way_predictions != nullptr) {
-
-            for(int i = 0; i < no_two_way_models; ++i) {
-
-                delete vec_of_two_way_predictions[i];
-
-            }
-            delete[] vec_of_two_way_predictions;
-
-        }
-
-        no_two_way_models = total_no_feature * (total_no_feature - 1) / 2;
-
-        vec_of_two_way_predictions = new Matrix<T> *[no_two_way_models];
-        for(int i = 0; i < no_two_way_models; ++i) {
-
-            vec_of_two_way_predictions[i] = new Matrix<T>(params.twm_no_x_ticks, params.twm_no_x_ticks, 0);
-
-        }
-
-        predictor_x_ticks = new Matrix<T>(total_no_feature, params.twm_no_x_ticks, 0);
-
-        int index_two_way_model = -1;
-
-        Matrix<T> *modified_data = nullptr;
-
-        int data_height = data.get_height(),
-                data_width = data.get_width(),
-                *row_inds = new int[data_height],
-                resampling_size = int(data_height * params.twm_resampling_portion);
-        for(int i = 0; i < data_height; ++i)
-            row_inds[i] = i;
-
-        T predictor_min, predictor_max;
-
-        for(int i = 0; i < total_no_feature; ++i) {
-
-            predictor_max = data.get_col_max(i);
-            predictor_min = data.get_col_min(i);
-
-            predictor_max += 0.2 * std::abs(predictor_max);
-            predictor_min -= 0.2 * std::abs(predictor_min);
-
-            for(int j = 0; j < params.twm_no_x_ticks; ++j) {
-
-                predictor_x_ticks->assign(i, j,
-                                          predictor_min +
-                                                  j * (predictor_max - predictor_min) /
-                                                          (params.twm_no_x_ticks - 1));
-
-            }
-
-        }
-
-        Matrix<T> bootstrapped_predictions(params.twm_no_resamplings * no_cores, 1, 0);
-
-        // end of declarations and initilizations
-
-        #ifdef _OMP
-
-            omp_set_num_threads(no_cores);
-
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[params.twm_no_resamplings * no_cores];
-            for(int i = 0; i < params.twm_no_resamplings * no_cores; ++i)
-                seeds[i] = (unsigned int)dist(mt);
-
-        #else
-
-            Matrix<T> resampling_prediction(resampling_size, 1, 0);
-
-        #endif
-
-        Time_measurer timer(no_cores);
-        std::cout << std::endl
-                  << "Started bootstraping..."
-                  << std::endl;
-
-        for(int i = 0; i < total_no_feature - 1; ++i) {
-
-            for(int j = i + 1; j < total_no_feature; ++j) {
-
-                ++index_two_way_model;
-
-                for(int k = 0; k < params.twm_no_x_ticks; ++k) {
-
-                    for(int l = 0; l < params.twm_no_x_ticks; ++l) {
-
-                        modified_data = new Matrix<T>(data_height, data_width, 0);
-                        copy(data, *modified_data);
-
-                        for(int m = 0; m < data_height; ++m)
-                            modified_data->assign(m, i, predictor_x_ticks->get(i, k));
-
-                        for(int m = 0; m < data_height; ++m)
-                            modified_data->assign(m, j, predictor_x_ticks->get(j, l));
-
-                        for(int m = 0; m < params.twm_no_resamplings; ++m) {
-
-                            #ifdef _OMP
-                            #pragma omp parallel default(shared)
-                            {
-
-                                int resampling_id = no_cores * m + omp_get_thread_num();
-
-                            #else
-                            {
-                            #endif
-
-                                #ifdef _OMP
-
-                                    int *thread_row_inds = new int[data_height];
-                                    std::copy(row_inds, row_inds + data_height, thread_row_inds);
-                                    shuffle(thread_row_inds, data_height, seeds[resampling_id]);
-
-                                    Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
-                                    predict(modified_data->rows(thread_row_inds, resampling_size), *resampling_prediction);
-
-                                    bootstrapped_predictions.assign(resampling_id, 0, resampling_prediction->col_average(0));
-
-                                    delete[] thread_row_inds;
-                                    delete resampling_prediction;
-
-                                #else
-
-                                    shuffle(row_inds, data_height);
-
-                                    resampling_prediction.clear();
-                                    predict(modified_data->rows(row_inds, resampling_size), resampling_prediction);
-
-                                    bootstrapped_predictions.assign(m, 0, resampling_prediction->col_average(0));
-
-                                #endif
-
-                            } // no_cores
-
-                        } // m < params.twm_no_resamplings
-
-                        vec_of_two_way_predictions[index_two_way_model]->assign(k, l, bootstrapped_predictions.col_average(0));
-
-                        delete modified_data;
-
-                    } // l < params.twm_no_x_ticks
-
-                } // k < params.twm_no_x_ticks
-
-                std::cout << "Predictor ( " << i
-                          << " ) and Predictor ( " << j
-                          << " ) --> bootstraping completed..."
-                          << std::endl;
-
-            } // j < total_no_feature
-
-        } // i < total_no_feature
-
-    }
-
-    template <typename T>
-    Matrix<T> &DBM<T>::predict_two_way_model(const Matrix<T> &data_x) {
-
-        if(prediction_two_way != nullptr) {
-
-            delete prediction_two_way;
-
-        }
-
-        int data_height = data_x.get_height();
-
-        #ifdef _DEBUG_MODEL
-            assert(data_x.get_width() == total_no_feature);
-        #endif
-
-        prediction_two_way = new Matrix<T>(data_height, 1, 0);
-
-        int index_two_way_model, m, n;
-
-        for(int i = 0; i < data_height; ++i) {
-
-            index_two_way_model = -1;
-
-            for(int k = 0; k < total_no_feature - 1; ++k) {
-
-                for(int l = k + 1; l < total_no_feature; ++l) {
-
-                    ++index_two_way_model;
-
-                    for(m = 0; m < params.twm_no_x_ticks; ++m) {
-
-                        if(data_x.get(i, k) < predictor_x_ticks->get(k, m)) break;
-
-                    }
-
-                    for(n = 0; n < params.twm_no_x_ticks; ++n) {
-
-                        if(data_x.get(i, l) < predictor_x_ticks->get(l, n)) break;
-
-                    }
-
-                    if(m == 0 && n == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                vec_of_two_way_predictions[index_two_way_model]->get(m, n));
-
-                    }
-                    else if(m == params.twm_no_x_ticks && n == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1));
-
-                    }
-                    else if(m == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                        vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1)) / 2.0);
-
-                    }
-                    else if(m == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                (vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n) +
-                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
-
-                    }
-                    else if(n == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 2.0);
-
-                    }
-                    else if(n == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
-                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
-
-                    }
-                    else {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
-                                 vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1) +
-                                 vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                 vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 4.0);
-
-                    }
-
-
-                } // l < total_no_feature
-
-            } //  k < total_no_feature - 1
-
-            prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) / no_two_way_models);
-
-        } // i < data_height
-
-        return *prediction_two_way;
-
-    }
-
-}
+//namespace dbm {
+//
+//    template <typename T>
+//    void DBM<T>::train_two_way_model(const Matrix<T> &data) {
+//
+//        if(vec_of_two_way_predictions != nullptr) {
+//
+//            for(int i = 0; i < no_two_way_models; ++i) {
+//
+//                delete vec_of_two_way_predictions[i];
+//
+//            }
+//            delete[] vec_of_two_way_predictions;
+//
+//        }
+//
+//        no_two_way_models = total_no_feature * (total_no_feature - 1) / 2;
+//
+//        vec_of_two_way_predictions = new Matrix<T> *[no_two_way_models];
+//        for(int i = 0; i < no_two_way_models; ++i) {
+//
+//            vec_of_two_way_predictions[i] = new Matrix<T>(params.twm_no_x_ticks, params.twm_no_x_ticks, 0);
+//
+//        }
+//
+//        predictor_x_ticks = new Matrix<T>(total_no_feature, params.twm_no_x_ticks, 0);
+//
+//        int index_two_way_model = -1;
+//
+//        Matrix<T> *modified_data = nullptr;
+//
+//        int data_height = data.get_height(),
+//                data_width = data.get_width(),
+//                *row_inds = new int[data_height],
+//                resampling_size = int(data_height * params.twm_resampling_portion);
+//        for(int i = 0; i < data_height; ++i)
+//            row_inds[i] = i;
+//
+//        T predictor_min, predictor_max;
+//
+//        for(int i = 0; i < total_no_feature; ++i) {
+//
+//            predictor_max = data.get_col_max(i);
+//            predictor_min = data.get_col_min(i);
+//
+//            predictor_max += 0.2 * std::abs(predictor_max);
+//            predictor_min -= 0.2 * std::abs(predictor_min);
+//
+//            for(int j = 0; j < params.twm_no_x_ticks; ++j) {
+//
+//                predictor_x_ticks->assign(i, j,
+//                                          predictor_min +
+//                                                  j * (predictor_max - predictor_min) /
+//                                                          (params.twm_no_x_ticks - 1));
+//
+//            }
+//
+//        }
+//
+//        Matrix<T> bootstrapped_predictions(params.twm_no_resamplings * no_cores, 1, 0);
+//
+//        // end of declarations and initilizations
+//
+//        #ifdef _OMP
+//
+//            omp_set_num_threads(no_cores);
+//
+//            std::random_device rd;
+//            std::mt19937 mt(rd());
+//            std::uniform_real_distribution<T> dist(0, 1000);
+//            unsigned int *seeds = new unsigned int[params.twm_no_resamplings * no_cores];
+//            for(int i = 0; i < params.twm_no_resamplings * no_cores; ++i)
+//                seeds[i] = (unsigned int)dist(mt);
+//
+//        #else
+//
+//            Matrix<T> resampling_prediction(resampling_size, 1, 0);
+//
+//        #endif
+//
+//        Time_measurer timer(no_cores);
+//        std::cout << std::endl
+//                  << "Started bootstraping..."
+//                  << std::endl;
+//
+//        for(int i = 0; i < total_no_feature - 1; ++i) {
+//
+//            for(int j = i + 1; j < total_no_feature; ++j) {
+//
+//                ++index_two_way_model;
+//
+//                for(int k = 0; k < params.twm_no_x_ticks; ++k) {
+//
+//                    for(int l = 0; l < params.twm_no_x_ticks; ++l) {
+//
+//                        modified_data = new Matrix<T>(data_height, data_width, 0);
+//                        copy(data, *modified_data);
+//
+//                        for(int m = 0; m < data_height; ++m)
+//                            modified_data->assign(m, i, predictor_x_ticks->get(i, k));
+//
+//                        for(int m = 0; m < data_height; ++m)
+//                            modified_data->assign(m, j, predictor_x_ticks->get(j, l));
+//
+//                        for(int m = 0; m < params.twm_no_resamplings; ++m) {
+//
+//                            #ifdef _OMP
+//                            #pragma omp parallel default(shared)
+//                            {
+//
+//                                int resampling_id = no_cores * m + omp_get_thread_num();
+//
+//                            #else
+//                            {
+//                            #endif
+//
+//                                #ifdef _OMP
+//
+//                                    int *thread_row_inds = new int[data_height];
+//                                    std::copy(row_inds, row_inds + data_height, thread_row_inds);
+//                                    shuffle(thread_row_inds, data_height, seeds[resampling_id]);
+//
+//                                    Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+//                                    predict(modified_data->rows(thread_row_inds, resampling_size), *resampling_prediction);
+//
+//                                    bootstrapped_predictions.assign(resampling_id, 0, resampling_prediction->col_average(0));
+//
+//                                    delete[] thread_row_inds;
+//                                    delete resampling_prediction;
+//
+//                                #else
+//
+//                                    shuffle(row_inds, data_height);
+//
+//                                    resampling_prediction.clear();
+//                                    predict(modified_data->rows(row_inds, resampling_size), resampling_prediction);
+//
+//                                    bootstrapped_predictions.assign(m, 0, resampling_prediction->col_average(0));
+//
+//                                #endif
+//
+//                            } // no_cores
+//
+//                        } // m < params.twm_no_resamplings
+//
+//                        vec_of_two_way_predictions[index_two_way_model]->assign(k, l, bootstrapped_predictions.col_average(0));
+//
+//                        delete modified_data;
+//
+//                    } // l < params.twm_no_x_ticks
+//
+//                } // k < params.twm_no_x_ticks
+//
+//                std::cout << "Predictor ( " << i
+//                          << " ) and Predictor ( " << j
+//                          << " ) --> bootstraping completed..."
+//                          << std::endl;
+//
+//            } // j < total_no_feature
+//
+//        } // i < total_no_feature
+//
+//    }
+//
+//    template <typename T>
+//    Matrix<T> &DBM<T>::predict_two_way_model(const Matrix<T> &data_x) {
+//
+//        if(prediction_two_way != nullptr) {
+//
+//            delete prediction_two_way;
+//
+//        }
+//
+//        int data_height = data_x.get_height();
+//
+//        #ifdef _DEBUG_MODEL
+//            assert(data_x.get_width() == total_no_feature);
+//        #endif
+//
+//        prediction_two_way = new Matrix<T>(data_height, 1, 0);
+//
+//        int index_two_way_model, m, n;
+//
+//        for(int i = 0; i < data_height; ++i) {
+//
+//            index_two_way_model = -1;
+//
+//            for(int k = 0; k < total_no_feature - 1; ++k) {
+//
+//                for(int l = k + 1; l < total_no_feature; ++l) {
+//
+//                    ++index_two_way_model;
+//
+//                    for(m = 0; m < params.twm_no_x_ticks; ++m) {
+//
+//                        if(data_x.get(i, k) < predictor_x_ticks->get(k, m)) break;
+//
+//                    }
+//
+//                    for(n = 0; n < params.twm_no_x_ticks; ++n) {
+//
+//                        if(data_x.get(i, l) < predictor_x_ticks->get(l, n)) break;
+//
+//                    }
+//
+//                    if(m == 0 && n == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                vec_of_two_way_predictions[index_two_way_model]->get(m, n));
+//
+//                    }
+//                    else if(m == params.twm_no_x_ticks && n == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1));
+//
+//                    }
+//                    else if(m == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                        vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1)) / 2.0);
+//
+//                    }
+//                    else if(m == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                (vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n) +
+//                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
+//
+//                    }
+//                    else if(n == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 2.0);
+//
+//                    }
+//                    else if(n == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
+//                                        vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
+//
+//                    }
+//                    else {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
+//                                 vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1) +
+//                                 vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                 vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 4.0);
+//
+//                    }
+//
+//
+//                } // l < total_no_feature
+//
+//            } //  k < total_no_feature - 1
+//
+//            prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) / no_two_way_models);
+//
+//        } // i < data_height
+//
+//        return *prediction_two_way;
+//
+//    }
+//
+//}
 
 namespace dbm {
 
@@ -3434,6 +3451,8 @@ namespace dbm {
         }
         delete prediction_two_way;
         delete predictor_x_ticks;
+
+        delete mat_plot_dat;
 
     }
 
@@ -4083,7 +4102,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds_vec[thread_id],
                                                     no_samples_in_nonoverlapping_batch,
                                                     thread_col_inds,
@@ -4111,7 +4130,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds,
                                                     no_train_sample,
                                                     thread_col_inds,
@@ -4208,6 +4227,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds_vec[thread_id],
                                                    no_samples_in_nonoverlapping_batch,
                                                    thread_col_inds,
@@ -4236,6 +4256,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds,
                                                    no_train_sample,
                                                    thread_col_inds,
@@ -4456,6 +4477,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds_vec[thread_id],
                                                       no_samples_in_nonoverlapping_batch,
                                                       thread_col_inds,
@@ -4484,6 +4506,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds,
                                                       no_train_sample,
                                                       thread_col_inds,
@@ -5120,7 +5143,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds_vec[thread_id],
                                                     no_samples_in_nonoverlapping_batch,
                                                     thread_col_inds,
@@ -5148,7 +5171,7 @@ namespace dbm {
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
                                                     ind_delta,
-                                                    params.dbm_loss_function,
+                                                    input_monotonic_constraints,
                                                     thread_row_inds,
                                                     no_train_sample,
                                                     thread_col_inds,
@@ -5245,6 +5268,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds_vec[thread_id],
                                                    no_samples_in_nonoverlapping_batch,
                                                    thread_col_inds,
@@ -5273,6 +5297,7 @@ namespace dbm {
                                                    (learners[learner_id]),
                                                    train_x,
                                                    ind_delta,
+                                                   input_monotonic_constraints,
                                                    thread_row_inds,
                                                    no_train_sample,
                                                    thread_col_inds,
@@ -5493,6 +5518,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds_vec[thread_id],
                                                       no_samples_in_nonoverlapping_batch,
                                                       thread_col_inds,
@@ -5521,6 +5547,7 @@ namespace dbm {
                                                       (learners[learner_id]),
                                                       train_x,
                                                       ind_delta,
+                                                      input_monotonic_constraints,
                                                       thread_row_inds,
                                                       no_train_sample,
                                                       thread_col_inds,
@@ -6090,12 +6117,95 @@ namespace dbm {
 
     }
 
+    template<typename T>
+    Matrix<T> &AUTO_DBM<T>::calibrate_plot(const Matrix<T> &observation,
+                                      const Matrix<T> &prediction,
+                                      int resolution,
+                                      const std::string& file_name) {
+        /**
+         * Generate data for calibrate plot, containing a pointwise 95 band
+         * @param observation the outcome 0-1 variables
+         * @param prediction the predictions estimating E(y|x)
+         * @param resolution number of significant digits
+         * @param file_name (optional) file name to record data of calibrate plot
+         */
+
+
+#ifdef _DEBUG_MODEL
+        assert(prediction.get_height() == observation.get_height());
+#endif
+        std::map<T, dbm::AveragedObservation<T> > plot_data;
+        typename std::map<T, dbm::AveragedObservation<T> >::iterator it;
+        AveragedObservation<T> avg_obs;
+        T x_pos, obs, magnitude = 1.;
+        int height = prediction.get_height();
+
+        for (int i = 0; i < resolution; i ++) magnitude *= (T)10.;
+        for (int i = 0; i < height; i ++) {
+            x_pos = round(prediction.get(i, 0) * magnitude) / magnitude;
+            it = plot_data.find(x_pos);
+            if (it == plot_data.end()) {
+                avg_obs.N = 1;
+                avg_obs.sum = observation.get(i, 0);
+                avg_obs.sum2 = avg_obs.sum * avg_obs.sum;
+                plot_data[x_pos] = avg_obs;
+            } else {
+                avg_obs = it->second;
+                obs = observation.get(i, 0);
+                avg_obs.N ++;
+                avg_obs.sum += obs;
+                avg_obs.sum2 += obs * obs;
+                plot_data[x_pos] = avg_obs;
+            } // it ?= plot_data.end()
+        } // i
+
+        mat_plot_dat = new Matrix<T>((int)plot_data.size(), 3, 0.);
+        T sd, avg;
+        int i = 0;
+        for (it = plot_data.begin(); it != plot_data.end(); ++ it) {
+            mat_plot_dat->assign(i, 0, it->first);
+            avg_obs = it->second;
+
+            avg = avg_obs.sum / (T)avg_obs.N;
+            mat_plot_dat->assign(i, 1, avg);
+
+            sd = avg_obs.sum2 - (T)avg_obs.N * avg * avg;
+            if (avg_obs.N == 1) {
+                sd = (T)0.;
+            } else {
+                sd = sqrt(sd / (T)(avg_obs.N - 1));
+            }
+            mat_plot_dat->assign(i, 2, sd);
+            i ++;
+        } // it
+
+        std::ofstream fout(file_name);
+        if (fout.is_open()) {
+            for (i = 0; i < mat_plot_dat->get_height(); i ++) {
+                fout << mat_plot_dat->get(i, 0) << " "
+                     << mat_plot_dat->get(i, 1) << " "
+                     << mat_plot_dat->get(i, 2) << std::endl;
+            } // i
+            fout.close();
+        } // output calibrate.plot to file
+
+        return *mat_plot_dat;
+        /* END of Matrix<T>& calibrate_plot()*/
+    } // calibrate_plot
+
     template <typename T>
     void AUTO_DBM<T>::save_perf_to(const std::string &file_name) {
+        if(train_loss_record == nullptr || test_loss_record == nullptr) {
+            std::cout << "No training record..." << std::endl;
+            return;
+        }
         std::ofstream fout(file_name);
+        fout << "Iteration" << "\t"
+             << "Train Loss" << "\t"
+             << "Test Loss" << std::endl;
         for (int i = 0; i < no_bunches_of_learners / params.dbm_freq_showing_loss_on_test + 1; i ++) {
-            fout << (i * params.dbm_freq_showing_loss_on_test) << " "
-                 << train_loss_record[i] << " "
+            fout << (i * params.dbm_freq_showing_loss_on_test) << "\t"
+                 << train_loss_record[i] << "\t"
                  << test_loss_record[i] << std::endl;
         } // i
         fout.close();
@@ -6103,275 +6213,275 @@ namespace dbm {
 
 }
 
-namespace dbm {
-
-    template <typename T>
-    void AUTO_DBM<T>::train_two_way_model(const Matrix<T> &data) {
-
-        if(vec_of_two_way_predictions != nullptr) {
-
-            for(int i = 0; i < no_two_way_models; ++i) {
-
-                delete vec_of_two_way_predictions[i];
-
-            }
-            delete[] vec_of_two_way_predictions;
-
-        }
-
-        no_two_way_models = total_no_feature * (total_no_feature - 1) / 2;
-
-        vec_of_two_way_predictions = new Matrix<T> *[no_two_way_models];
-        for(int i = 0; i < no_two_way_models; ++i) {
-
-            vec_of_two_way_predictions[i] = new Matrix<T>(params.twm_no_x_ticks, params.twm_no_x_ticks, 0);
-
-        }
-
-        predictor_x_ticks = new Matrix<T>(total_no_feature, params.twm_no_x_ticks, 0);
-
-        int index_two_way_model = -1;
-
-        Matrix<T> *modified_data = nullptr;
-
-        int data_height = data.get_height(),
-                data_width = data.get_width(),
-                *row_inds = new int[data_height],
-                resampling_size = int(data_height * params.twm_resampling_portion);
-        for(int i = 0; i < data_height; ++i)
-            row_inds[i] = i;
-
-        T predictor_min, predictor_max;
-
-        for(int i = 0; i < total_no_feature; ++i) {
-
-            predictor_max = data.get_col_max(i);
-            predictor_min = data.get_col_min(i);
-
-            predictor_max += 0.2 * std::abs(predictor_max);
-            predictor_min -= 0.2 * std::abs(predictor_min);
-
-            for(int j = 0; j < params.twm_no_x_ticks; ++j) {
-
-                predictor_x_ticks->assign(i, j,
-                                          predictor_min +
-                                          j * (predictor_max - predictor_min) /
-                                          (params.twm_no_x_ticks - 1));
-
-            }
-
-        }
-
-        Matrix<T> bootstrapped_predictions(params.twm_no_resamplings * no_cores, 1, 0);
-
-        // end of declarations and initilizations
-
-#ifdef _OMP
-
-        omp_set_num_threads(no_cores);
-
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
-        unsigned int *seeds = new unsigned int[params.twm_no_resamplings * no_cores];
-        for(int i = 0; i < params.twm_no_resamplings * no_cores; ++i)
-            seeds[i] = (unsigned int)dist(mt);
-
-#else
-
-        Matrix<T> resampling_prediction(resampling_size, 1, 0);
-
-#endif
-
-        Time_measurer timer(no_cores);
-        std::cout << std::endl
-                  << "Started bootstraping..."
-                  << std::endl;
-
-        for(int i = 0; i < total_no_feature - 1; ++i) {
-
-            for(int j = i + 1; j < total_no_feature; ++j) {
-
-                ++index_two_way_model;
-
-                for(int k = 0; k < params.twm_no_x_ticks; ++k) {
-
-                    for(int l = 0; l < params.twm_no_x_ticks; ++l) {
-
-                        modified_data = new Matrix<T>(data_height, data_width, 0);
-                        copy(data, *modified_data);
-
-                        for(int m = 0; m < data_height; ++m)
-                            modified_data->assign(m, i, predictor_x_ticks->get(i, k));
-
-                        for(int m = 0; m < data_height; ++m)
-                            modified_data->assign(m, j, predictor_x_ticks->get(j, l));
-
-                        for(int m = 0; m < params.twm_no_resamplings; ++m) {
-
-#ifdef _OMP
-#pragma omp parallel default(shared)
-                            {
-
-                                int resampling_id = no_cores * m + omp_get_thread_num();
-
-#else
-                                {
-#endif
-
-#ifdef _OMP
-
-                                int *thread_row_inds = new int[data_height];
-                                std::copy(row_inds, row_inds + data_height, thread_row_inds);
-                                shuffle(thread_row_inds, data_height, seeds[resampling_id]);
-
-                                Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
-                                predict(modified_data->rows(thread_row_inds, resampling_size), *resampling_prediction);
-
-                                bootstrapped_predictions.assign(resampling_id, 0, resampling_prediction->col_average(0));
-
-                                delete[] thread_row_inds;
-                                delete resampling_prediction;
-
-#else
-
-                                shuffle(row_inds, data_height);
-
-                                    resampling_prediction.clear();
-                                    predict(modified_data->rows(row_inds, resampling_size), resampling_prediction);
-
-                                    bootstrapped_predictions.assign(m, 0, resampling_prediction->col_average(0));
-
-#endif
-
-                            } // no_cores
-
-                        } // m < params.twm_no_resamplings
-
-                        vec_of_two_way_predictions[index_two_way_model]->assign(k, l, bootstrapped_predictions.col_average(0));
-
-                        delete modified_data;
-
-                    } // l < params.twm_no_x_ticks
-
-                } // k < params.twm_no_x_ticks
-
-                std::cout << "Predictor ( " << i
-                          << " ) and Predictor ( " << j
-                          << " ) --> bootstraping completed..."
-                          << std::endl;
-
-            } // j < total_no_feature
-
-        } // i < total_no_feature
-
-    }
-
-    template <typename T>
-    Matrix<T> &AUTO_DBM<T>::predict_two_way_model(const Matrix<T> &data_x) {
-
-        if(prediction_two_way != nullptr) {
-
-            delete prediction_two_way;
-
-        }
-
-        int data_height = data_x.get_height();
-
-        #ifdef _DEBUG_MODEL
-            assert(data_x.get_width() == total_no_feature);
-        #endif
-
-        prediction_two_way = new Matrix<T>(data_height, 1, 0);
-
-        int index_two_way_model, m, n;
-
-        for(int i = 0; i < data_height; ++i) {
-
-            index_two_way_model = -1;
-
-            for(int k = 0; k < total_no_feature - 1; ++k) {
-
-                for(int l = k + 1; l < total_no_feature; ++l) {
-
-                    ++index_two_way_model;
-
-                    for(m = 0; m < params.twm_no_x_ticks; ++m) {
-
-                        if(data_x.get(i, k) < predictor_x_ticks->get(k, m)) break;
-
-                    }
-
-                    for(n = 0; n < params.twm_no_x_ticks; ++n) {
-
-                        if(data_x.get(i, l) < predictor_x_ticks->get(l, n)) break;
-
-                    }
-
-                    if(m == 0 && n == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         vec_of_two_way_predictions[index_two_way_model]->get(m, n));
-
-                    }
-                    else if(m == params.twm_no_x_ticks && n == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1));
-
-                    }
-                    else if(m == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1)) / 2.0);
-
-                    }
-                    else if(m == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
-
-                    }
-                    else if(n == 0) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 2.0);
-
-                    }
-                    else if(n == params.twm_no_x_ticks) {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
-
-                    }
-                    else {
-
-                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
-                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
-                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 4.0);
-
-                    }
-
-
-                } // l < total_no_feature
-
-            } //  k < total_no_feature - 1
-
-            prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) / no_two_way_models);
-
-        } // i < data_height
-
-        return *prediction_two_way;
-
-    }
-
-}
+//namespace dbm {
+//
+//    template <typename T>
+//    void AUTO_DBM<T>::train_two_way_model(const Matrix<T> &data) {
+//
+//        if(vec_of_two_way_predictions != nullptr) {
+//
+//            for(int i = 0; i < no_two_way_models; ++i) {
+//
+//                delete vec_of_two_way_predictions[i];
+//
+//            }
+//            delete[] vec_of_two_way_predictions;
+//
+//        }
+//
+//        no_two_way_models = total_no_feature * (total_no_feature - 1) / 2;
+//
+//        vec_of_two_way_predictions = new Matrix<T> *[no_two_way_models];
+//        for(int i = 0; i < no_two_way_models; ++i) {
+//
+//            vec_of_two_way_predictions[i] = new Matrix<T>(params.twm_no_x_ticks, params.twm_no_x_ticks, 0);
+//
+//        }
+//
+//        predictor_x_ticks = new Matrix<T>(total_no_feature, params.twm_no_x_ticks, 0);
+//
+//        int index_two_way_model = -1;
+//
+//        Matrix<T> *modified_data = nullptr;
+//
+//        int data_height = data.get_height(),
+//                data_width = data.get_width(),
+//                *row_inds = new int[data_height],
+//                resampling_size = int(data_height * params.twm_resampling_portion);
+//        for(int i = 0; i < data_height; ++i)
+//            row_inds[i] = i;
+//
+//        T predictor_min, predictor_max;
+//
+//        for(int i = 0; i < total_no_feature; ++i) {
+//
+//            predictor_max = data.get_col_max(i);
+//            predictor_min = data.get_col_min(i);
+//
+//            predictor_max += 0.2 * std::abs(predictor_max);
+//            predictor_min -= 0.2 * std::abs(predictor_min);
+//
+//            for(int j = 0; j < params.twm_no_x_ticks; ++j) {
+//
+//                predictor_x_ticks->assign(i, j,
+//                                          predictor_min +
+//                                          j * (predictor_max - predictor_min) /
+//                                          (params.twm_no_x_ticks - 1));
+//
+//            }
+//
+//        }
+//
+//        Matrix<T> bootstrapped_predictions(params.twm_no_resamplings * no_cores, 1, 0);
+//
+//        // end of declarations and initilizations
+//
+//#ifdef _OMP
+//
+//        omp_set_num_threads(no_cores);
+//
+//        std::random_device rd;
+//        std::mt19937 mt(rd());
+//        std::uniform_real_distribution<T> dist(0, 1000);
+//        unsigned int *seeds = new unsigned int[params.twm_no_resamplings * no_cores];
+//        for(int i = 0; i < params.twm_no_resamplings * no_cores; ++i)
+//            seeds[i] = (unsigned int)dist(mt);
+//
+//#else
+//
+//        Matrix<T> resampling_prediction(resampling_size, 1, 0);
+//
+//#endif
+//
+//        Time_measurer timer(no_cores);
+//        std::cout << std::endl
+//                  << "Started bootstraping..."
+//                  << std::endl;
+//
+//        for(int i = 0; i < total_no_feature - 1; ++i) {
+//
+//            for(int j = i + 1; j < total_no_feature; ++j) {
+//
+//                ++index_two_way_model;
+//
+//                for(int k = 0; k < params.twm_no_x_ticks; ++k) {
+//
+//                    for(int l = 0; l < params.twm_no_x_ticks; ++l) {
+//
+//                        modified_data = new Matrix<T>(data_height, data_width, 0);
+//                        copy(data, *modified_data);
+//
+//                        for(int m = 0; m < data_height; ++m)
+//                            modified_data->assign(m, i, predictor_x_ticks->get(i, k));
+//
+//                        for(int m = 0; m < data_height; ++m)
+//                            modified_data->assign(m, j, predictor_x_ticks->get(j, l));
+//
+//                        for(int m = 0; m < params.twm_no_resamplings; ++m) {
+//
+//#ifdef _OMP
+//#pragma omp parallel default(shared)
+//                            {
+//
+//                                int resampling_id = no_cores * m + omp_get_thread_num();
+//
+//#else
+//                                {
+//#endif
+//
+//#ifdef _OMP
+//
+//                                int *thread_row_inds = new int[data_height];
+//                                std::copy(row_inds, row_inds + data_height, thread_row_inds);
+//                                shuffle(thread_row_inds, data_height, seeds[resampling_id]);
+//
+//                                Matrix<T> *resampling_prediction = new Matrix<T>(resampling_size, 1, 0);
+//                                predict(modified_data->rows(thread_row_inds, resampling_size), *resampling_prediction);
+//
+//                                bootstrapped_predictions.assign(resampling_id, 0, resampling_prediction->col_average(0));
+//
+//                                delete[] thread_row_inds;
+//                                delete resampling_prediction;
+//
+//#else
+//
+//                                shuffle(row_inds, data_height);
+//
+//                                    resampling_prediction.clear();
+//                                    predict(modified_data->rows(row_inds, resampling_size), resampling_prediction);
+//
+//                                    bootstrapped_predictions.assign(m, 0, resampling_prediction->col_average(0));
+//
+//#endif
+//
+//                            } // no_cores
+//
+//                        } // m < params.twm_no_resamplings
+//
+//                        vec_of_two_way_predictions[index_two_way_model]->assign(k, l, bootstrapped_predictions.col_average(0));
+//
+//                        delete modified_data;
+//
+//                    } // l < params.twm_no_x_ticks
+//
+//                } // k < params.twm_no_x_ticks
+//
+//                std::cout << "Predictor ( " << i
+//                          << " ) and Predictor ( " << j
+//                          << " ) --> bootstraping completed..."
+//                          << std::endl;
+//
+//            } // j < total_no_feature
+//
+//        } // i < total_no_feature
+//
+//    }
+//
+//    template <typename T>
+//    Matrix<T> &AUTO_DBM<T>::predict_two_way_model(const Matrix<T> &data_x) {
+//
+//        if(prediction_two_way != nullptr) {
+//
+//            delete prediction_two_way;
+//
+//        }
+//
+//        int data_height = data_x.get_height();
+//
+//        #ifdef _DEBUG_MODEL
+//            assert(data_x.get_width() == total_no_feature);
+//        #endif
+//
+//        prediction_two_way = new Matrix<T>(data_height, 1, 0);
+//
+//        int index_two_way_model, m, n;
+//
+//        for(int i = 0; i < data_height; ++i) {
+//
+//            index_two_way_model = -1;
+//
+//            for(int k = 0; k < total_no_feature - 1; ++k) {
+//
+//                for(int l = k + 1; l < total_no_feature; ++l) {
+//
+//                    ++index_two_way_model;
+//
+//                    for(m = 0; m < params.twm_no_x_ticks; ++m) {
+//
+//                        if(data_x.get(i, k) < predictor_x_ticks->get(k, m)) break;
+//
+//                    }
+//
+//                    for(n = 0; n < params.twm_no_x_ticks; ++n) {
+//
+//                        if(data_x.get(i, l) < predictor_x_ticks->get(l, n)) break;
+//
+//                    }
+//
+//                    if(m == 0 && n == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         vec_of_two_way_predictions[index_two_way_model]->get(m, n));
+//
+//                    }
+//                    else if(m == params.twm_no_x_ticks && n == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1));
+//
+//                    }
+//                    else if(m == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1)) / 2.0);
+//
+//                    }
+//                    else if(m == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
+//
+//                    }
+//                    else if(n == 0) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 2.0);
+//
+//                    }
+//                    else if(n == params.twm_no_x_ticks) {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1)) / 2.0);
+//
+//                    }
+//                    else {
+//
+//                        prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) +
+//                                                         (vec_of_two_way_predictions[index_two_way_model]->get(m, n - 1) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n - 1) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m, n) +
+//                                                          vec_of_two_way_predictions[index_two_way_model]->get(m - 1, n)) / 4.0);
+//
+//                    }
+//
+//
+//                } // l < total_no_feature
+//
+//            } //  k < total_no_feature - 1
+//
+//            prediction_two_way->assign(i, 0, prediction_two_way->get(i, 0) / no_two_way_models);
+//
+//        } // i < data_height
+//
+//        return *prediction_two_way;
+//
+//    }
+//
+//}
 
 namespace dbm {
 
@@ -6660,6 +6770,8 @@ namespace dbm {
 
 
 #include "partial_dependence_plot.inc"
+
+
 
 
 

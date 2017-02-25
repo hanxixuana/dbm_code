@@ -249,6 +249,7 @@ namespace dbm {
         friend Matrix substract<>(const Matrix &left, const Matrix &right);
 
         friend Matrix inner_product<>(const Matrix &left, const Matrix &right);
+
 #ifdef _MKL
         friend Matrix<float> inner_product<>(const Matrix<float> &lhs, const Matrix<float> &rhs);
         friend Matrix<double> inner_product<>(const Matrix<double> &lhs, const Matrix<double> &rhs);

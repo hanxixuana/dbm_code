@@ -213,6 +213,15 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
                  &dbm::DBM<float>::statistical_significance,
                  return_value_policy<copy_non_const_reference>())
 
+            .def("save_performance", &dbm::DBM<float>::save_perf_to)
+
+            .def("calibrate_plot",
+                 &dbm::DBM<float>::calibrate_plot,
+                 return_value_policy<copy_non_const_reference>())
+
+            .def("interact",
+                 &dbm::DBM<float>::interact)
+
             .def("save_dbm", &dbm::DBM<float>::save_dbm_to)
             .def("load_dbm", &dbm::DBM<float>::load_dbm_from)
             ;
@@ -251,6 +260,15 @@ BOOST_PYTHON_MODULE(lib_dbm_code_py)
             .def("statistical_significance",
                  &dbm::AUTO_DBM<float>::statistical_significance,
                  return_value_policy<copy_non_const_reference>())
+
+            .def("save_performance", &dbm::AUTO_DBM<float>::save_perf_to)
+
+            .def("calibrate_plot",
+                 &dbm::AUTO_DBM<float>::calibrate_plot,
+                 return_value_policy<copy_non_const_reference>())
+
+            .def("interact",
+                 &dbm::AUTO_DBM<float>::interact)
 
             .def("save_dbm", &dbm::AUTO_DBM<float>::save_auto_dbm_to)
             .def("load_dbm", &dbm::AUTO_DBM<float>::load_auto_dbm_from)
