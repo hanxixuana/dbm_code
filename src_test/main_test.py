@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.getcwd())
 
-import dbm_py.dbm_py as dbm
+import dbm_py.interface as dbm
 
 x = dbm.Matrix(50000, 10)
 x_nd_array = dbm.float_matrix_to_np2darray(x)

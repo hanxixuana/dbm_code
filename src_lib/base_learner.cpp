@@ -764,7 +764,9 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        assert(count == 1);
+//        assert(count == 1);
+        if(count != 1)
+            std::cout << "Error in loading Global Mean: count is " << count << std::endl;
 
         mean = new Global_mean<T>;
         mean->mean = T(std::stod(words[0]));

@@ -127,8 +127,8 @@ elseif(not PythonLibs_FOUND)
 
 endif()
 
-add_library(_dbm_code_py SHARED ${PY_API_LIB_FILES})
-target_link_libraries(_dbm_code_py _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
+add_library(_dbm_cpp_to_python_interface SHARED ${PY_API_LIB_FILES})
+target_link_libraries(_dbm_cpp_to_python_interface _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
 
 ################
 #     Test     #
@@ -141,7 +141,7 @@ add_executable(main_test ${TEST_SOURCE_FILES})
 #TARGET_LINK_LIBRARIES(main_test -pg)
 
 
-TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_code_py)
+TARGET_LINK_LIBRARIES(main_test _dbm_code _dbm_cpp_to_python_interface)
 #TARGET_LINK_LIBRARIES(main_test _dbm_code)
 
 add_executable(main_test_mkl ${TEST_SOURCE_FILES})
@@ -155,7 +155,7 @@ TARGET_LINK_LIBRARIES(main_test_mkl _dbm_code_mkl ${MKL_LIB})
 
 # for python
 configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_py/dbm_py.py"
+        "${CMAKE_HOME_DIRECTORY}/api/dbm_py/interface.py"
         COPYONLY)
 
 configure_file("${CMAKE_HOME_DIRECTORY}/src_api/__init__.py"
@@ -167,9 +167,9 @@ configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.py"
         COPYONLY)
 
 # for r
-configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
-        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
-        COPYONLY)
+#configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
+#        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
+#        COPYONLY)
 
 configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_r.R"
         "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_r.R"
@@ -179,9 +179,9 @@ configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.R"
         "${CMAKE_HOME_DIRECTORY}/api/dbm_r/main_test.R"
         COPYONLY)
 
-add_custom_command(TARGET _dbm_code_py
+add_custom_command(TARGET _dbm_cpp_to_python_interface
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_code_py> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)
+        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_dbm_cpp_to_python_interface> ${CMAKE_HOME_DIRECTORY}/api/dbm_r/)
 
 
 ################

@@ -3052,7 +3052,9 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        assert(count == 7);
+//        assert(count == 7);
+        if(count != 7)
+            std::cout << "Error in loading DBM: count is " << count << std::endl;
 
         dbm = new DBM<T>(std::stoi(words[0]), std::stoi(words[1]), std::stoi(words[2]), std::stoi(words[3]), std::stoi(words[6]));
         dbm->set_loss_function_and_shrinkage(words[4].front(), T(std::stod(words[5])));
@@ -3209,7 +3211,9 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        assert(count == 7);
+//        assert(count == 7);
+        if(count != 7)
+            std::cout << "Error in loading DBM: count is " << count << std::endl;
 
         no_bunches_of_learners = std::stoi(words[0]);
         no_cores = std::stoi(words[1]);
@@ -6609,7 +6613,9 @@ namespace dbm {
         std::string words[100];
         int count = split_into_words(line, words);
 
-        assert(count == 7);
+//        assert(count == 7);
+        if(count != 7)
+            std::cout << "Error in loading AUTO DBM: count is " << count << std::endl;
 
         no_bunches_of_learners = std::stoi(words[0]);
         no_cores = std::stoi(words[1]);

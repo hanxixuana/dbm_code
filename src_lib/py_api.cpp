@@ -14,7 +14,7 @@
 
 using namespace boost::python;
 
-BOOST_PYTHON_MODULE(lib_dbm_code_py)
+BOOST_PYTHON_MODULE(lib_dbm_cpp_to_python_interface)
 {
 
     class_<dbm::Matrix<float>>("Float_Matrix", init<int, int>())
