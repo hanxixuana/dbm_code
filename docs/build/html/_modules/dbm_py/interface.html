@@ -1,0 +1,628 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>dbm_py.interface &#8212; DBM 1.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for dbm_py.interface</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">&#39;../api&#39;</span><span class="p">))</span>
+
+<span class="kn">import</span> <span class="nn">dbm_py.lib_dbm_cpp_to_python_interface</span> <span class="k">as</span> <span class="nn">dbm_cpp_interface</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="Matrix"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix">[docs]</a><span class="k">class</span> <span class="nc">Matrix</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Matrix.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">height</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">width</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">file_name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">sep</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">mat</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the class of Matrix used in DBM. To feed the training</span>
+<span class="sd">        and prediction data to DBM, they should be converted to</span>
+<span class="sd">        Matrix first of all. The Matrix interface provides four ways</span>
+<span class="sd">        of initialization, i.e. initialization with random values in</span>
+<span class="sd">        [-1, 1], initialization with a user-provided value,</span>
+<span class="sd">        initialization from a file and initialization with a</span>
+<span class="sd">        Float_Matrix object. One may also initializing a matrix with</span>
+<span class="sd">        any values and then use the method from_np2darray to transfer</span>
+<span class="sd">        the values from a numpy array of the same shape to it.</span>
+
+<span class="sd">        Initialization with random values in [-1, 1]</span>
+<span class="sd">        :param height: height of the matrix</span>
+<span class="sd">        :param width: width of the matrix</span>
+
+<span class="sd">        Initialization with a user-provided value</span>
+<span class="sd">        :param val: a particular value for initialization</span>
+
+<span class="sd">        Initialization from a file</span>
+<span class="sd">        :param file_name: file name of the file where data comes from</span>
+<span class="sd">        :param sep: seperator used in the file</span>
+
+<span class="sd">        Initialization with a Float_Matrix object</span>
+<span class="sd">        :param mat: a Float_Matrix object</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            1. When initializing from a file, the format should be</span>
+<span class="sd">            correct. One may first of all save a matrix to a file</span>
+<span class="sd">            and look at the file and see how it looks like.</span>
+<span class="sd">            2. Avoid directly using Float_Matrix.</span>
+<span class="sd">            3. Converting tools np2darray_to_float_matrix and</span>
+<span class="sd">            float_matrix_to_np2darray are provided.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span><span class="p">(</span><span class="n">height</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span>
+               <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="kc">None</span>
+               <span class="ow">and</span> <span class="n">sep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Float_Matrix</span><span class="p">(</span><span class="n">height</span><span class="p">,</span>
+                                                          <span class="n">width</span><span class="p">)</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">sep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Float_Matrix</span><span class="p">(</span><span class="n">height</span><span class="p">,</span>
+                                                          <span class="n">width</span><span class="p">,</span>
+                                                          <span class="n">val</span><span class="p">)</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">sep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Float_Matrix</span><span class="p">(</span><span class="n">height</span><span class="p">,</span>
+                                                          <span class="n">width</span><span class="p">,</span>
+                                                          <span class="n">file_name</span><span class="p">)</span>
+
+            <span class="k">elif</span><span class="p">(</span><span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                 <span class="ow">and</span> <span class="n">sep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Float_Matrix</span><span class="p">(</span><span class="n">height</span><span class="p">,</span>
+                                                          <span class="n">width</span><span class="p">,</span>
+                                                          <span class="n">file_name</span><span class="p">,</span>
+                                                          <span class="n">sep</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Error!&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">height</span> <span class="ow">is</span> <span class="kc">None</span>
+             <span class="ow">and</span> <span class="n">width</span> <span class="ow">is</span> <span class="kc">None</span>
+             <span class="ow">and</span> <span class="n">mat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mat</span> <span class="o">=</span> <span class="n">mat</span></div>
+
+    <span class="c1"># shape</span>
+<div class="viewcode-block" id="Matrix.shape"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.shape">[docs]</a>    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a list containing the shape of the matrix.</span>
+
+<span class="sd">        :return: [matrix height, matrix width]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()]</span></div>
+
+    <span class="c1"># get</span>
+<div class="viewcode-block" id="Matrix.get"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Access to a particular element in the matrix.</span>
+
+<span class="sd">        :param i: height of the element</span>
+<span class="sd">        :param j: width of the element</span>
+<span class="sd">        :return: the element</span>
+
+<span class="sd">        Note: i and j should be in the correct ranges</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+    <span class="c1"># print to screen</span>
+<div class="viewcode-block" id="Matrix.show"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.show">[docs]</a>    <span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print to screen the data stored in the matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+    <span class="c1"># save to file</span>
+<div class="viewcode-block" id="Matrix.save"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the data stored in it to a file.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        :param sep: a character</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">print_to_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span></div>
+
+    <span class="c1"># clear all values to 0</span>
+<div class="viewcode-block" id="Matrix.clear"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set all elements to 0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+    <span class="c1"># elementwise assignment</span>
+<div class="viewcode-block" id="Matrix.assign"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.assign">[docs]</a>    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assign a value to a particular element.</span>
+
+<span class="sd">        :param i: height of the element</span>
+<span class="sd">        :param j: width of the element</span>
+<span class="sd">        :param val: value to be assigned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span></div>
+
+    <span class="c1"># conversion of Numpy 2d array to Matrix</span>
+<div class="viewcode-block" id="Matrix.from_np2darray"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.from_np2darray">[docs]</a>    <span class="k">def</span> <span class="nf">from_np2darray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assign the data stored in a two-dimensional numpy array to</span>
+<span class="sd">        this matrix.</span>
+
+<span class="sd">        :param source: a two-dimensional numpy array of the same</span>
+<span class="sd">        shape as this matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">__len__</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">()</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()</span> <span class="o">==</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The Numpy array may not have the same &#39;</span>
+                             <span class="s1">&#39;shape as the target.&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">source</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">])</span></div>
+
+    <span class="c1"># conversion of Matrix to Numpy 2d array</span>
+<div class="viewcode-block" id="Matrix.to_np2darray"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.to_np2darray">[docs]</a>    <span class="k">def</span> <span class="nf">to_np2darray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assign the data stored in this matrix to a two-dimensional</span>
+<span class="sd">        numpy array and return it.</span>
+
+<span class="sd">        :return: a two-dimensional numpy array of the same shape as</span>
+<span class="sd">        this matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">(),</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()):</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+
+<div class="viewcode-block" id="Data_set"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set">[docs]</a><span class="k">class</span> <span class="nc">Data_set</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Data_set.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">data_y</span><span class="p">,</span> <span class="n">portion_for_validating</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the class of Data_set that provides an easy to tool</span>
+<span class="sd">        for splitting all data into training and validating</span>
+<span class="sd">        parts.</span>
+
+<span class="sd">        :param data_x: a Matrix object</span>
+<span class="sd">        :param data_y: a Matrix object</span>
+<span class="sd">        :param portion_for_validating: percentage of the whole data</span>
+<span class="sd">        used for validating</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span> <span class="o">=</span> \
+            <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Data_Set</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                       <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                       <span class="n">portion_for_validating</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Data_set.get_train_x"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.get_train_x">[docs]</a>    <span class="k">def</span> <span class="nf">get_train_x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the part of predictors for training.</span>
+
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span><span class="o">.</span><span class="n">get_train_x</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Data_set.get_train_y"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.get_train_y">[docs]</a>    <span class="k">def</span> <span class="nf">get_train_y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the part of responses for training.</span>
+
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span><span class="o">.</span><span class="n">get_train_y</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Data_set.get_validate_x"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.get_validate_x">[docs]</a>    <span class="k">def</span> <span class="nf">get_validate_x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the part of predictors for validating.</span>
+
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span><span class="o">.</span><span class="n">get_test_x</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Data_set.get_validate_y"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.get_validate_y">[docs]</a>    <span class="k">def</span> <span class="nf">get_validate_y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the part of responses for validating.</span>
+
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span><span class="o">.</span><span class="n">get_test_y</span><span class="p">())</span></div></div>
+
+<div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Params.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Params.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is class of Params storing parameters used in DBM.</span>
+
+<span class="sd">        :param params: a Params object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="Params.set_params"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Params.set_params">[docs]</a>    <span class="k">def</span> <span class="nf">set_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">string</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set values of parameters.</span>
+
+<span class="sd">        Usage: [sep] represents the character used as the separator</span>
+
+<span class="sd">                &#39;parameter_name[sep]parameter_value&#39;</span>
+<span class="sd">                &#39;parameter_name[sep]parameter_value[sep]</span>
+<span class="sd">                            parameter_name[sep]parameter_value&#39;</span>
+
+
+<span class="sd">        :param string: a string storing the parameters to be set</span>
+<span class="sd">        :param sep: separator used in the string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">sep</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Params.print_all"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Params.print_all">[docs]</a>    <span class="k">def</span> <span class="nf">print_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print all parameters and their values to the screen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">attr</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+                 <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">attr</span><span class="p">)))</span></div></div>
+
+<div class="viewcode-block" id="DBM"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM">[docs]</a><span class="k">class</span> <span class="nc">DBM</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="DBM.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the class of DBM.</span>
+
+<span class="sd">        :param params: a Params object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">DBM</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DBM.train"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_set</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the DBM.</span>
+
+<span class="sd">        :param data_set: a Data_set object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">train_val_no_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DBM.predict"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict if it has been trained or it has been loaded from</span>
+<span class="sd">        a trained model.</span>
+
+<span class="sd">        :param data_x: a Matrix object</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_y</span> <span class="o">=</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">shape</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">predict_in_place</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span> <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data_y</span></div>
+
+<div class="viewcode-block" id="DBM.pdp"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.pdp">[docs]</a>    <span class="k">def</span> <span class="nf">pdp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">feature_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the data used in partial dependence plots.</span>
+
+<span class="sd">        :param data_x: a Matrix object used for calculating</span>
+<span class="sd">        :param feature_index: the index of the predictor of</span>
+<span class="sd">        interest (the No. of the column)</span>
+<span class="sd">        :return: a Matrix object storing the data used in partial</span>
+<span class="sd">        dependence plots</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                              <span class="n">feature_index</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DBM.ss"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.ss">[docs]</a>    <span class="k">def</span> <span class="nf">ss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate statistical signifiance of every predictor.</span>
+
+<span class="sd">        :param data_x: a Matrix object used for calculating</span>
+<span class="sd">        :return: a Matrix object storing P-values for every predictor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">statistical_significance</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DBM.calibrate_plot"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.calibrate_plot">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">observation</span><span class="p">,</span>
+                       <span class="n">prediction</span><span class="p">,</span>
+                       <span class="n">resolution</span><span class="p">,</span>
+                       <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is exactly the same as the one in GBM in R.</span>
+
+<span class="sd">        :param observation: a Matrix object</span>
+<span class="sd">        :param prediction: a Matrix object</span>
+<span class="sd">        :param resolution: a scalar</span>
+<span class="sd">        :param file_name: save the result if provided</span>
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">calibrate_plot</span><span class="p">(</span><span class="n">observation</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                                    <span class="n">prediction</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                                    <span class="n">resolution</span><span class="p">,</span>
+                                                    <span class="n">file_name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DBM.interact"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.interact">[docs]</a>    <span class="k">def</span> <span class="nf">interact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span>
+                 <span class="n">predictor_ind</span><span class="p">,</span>
+                 <span class="n">total_no_predictor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is exactly the same as the one in GBM in R.</span>
+
+<span class="sd">        :param data: a Matrix object</span>
+<span class="sd">        :param predictor_ind: a Matrix object</span>
+<span class="sd">        :param total_no_predictor: a scalar</span>
+<span class="sd">        :return: a scalar</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                 <span class="n">predictor_ind</span><span class="p">,</span>
+                                 <span class="n">total_no_predictor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DBM.save_performance"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.save_performance">[docs]</a>    <span class="k">def</span> <span class="nf">save_performance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the training and validating losses.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_performance</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DBM.save"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the DBM after trained.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DBM.load"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load from a file.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">load_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="AUTO_DBM"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM">[docs]</a><span class="k">class</span> <span class="nc">AUTO_DBM</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="AUTO_DBM.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is the class of DBM.</span>
+
+<span class="sd">        :param params: a Params object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">AUTO_DBM</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.train"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_set</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the DBM.</span>
+
+<span class="sd">        :param data_set: a Data_set object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">train_val_no_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.predict"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict if it has been trained or it has been loaded from</span>
+<span class="sd">        a trained model.</span>
+
+<span class="sd">        :param data_x: a Matrix object</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_y</span> <span class="o">=</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">shape</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">predict_in_place</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span> <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data_y</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.pdp"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.pdp">[docs]</a>    <span class="k">def</span> <span class="nf">pdp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">feature_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the data used in partial dependence plots.</span>
+
+<span class="sd">        :param data_x: a Matrix object used for calculating</span>
+<span class="sd">        :param feature_index: the index of the predictor of interest</span>
+<span class="sd">        (the No. of the column)</span>
+<span class="sd">        :return: a Matrix object storing the data used in partial</span>
+<span class="sd">        dependence plots</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                              <span class="n">feature_index</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.ss"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.ss">[docs]</a>    <span class="k">def</span> <span class="nf">ss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate statistical signifiance of every predictor.</span>
+
+<span class="sd">        :param data_x: a Matrix object used for calculating</span>
+<span class="sd">        :return: a Matrix object storing P-values for every predictor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">statistical_significance</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.calibrate_plot"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.calibrate_plot">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">observation</span><span class="p">,</span>
+                       <span class="n">prediction</span><span class="p">,</span>
+                       <span class="n">resolution</span><span class="p">,</span>
+                       <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is exactly the same as the one in GBM in R.</span>
+
+<span class="sd">        :param observation: a Matrix object</span>
+<span class="sd">        :param prediction: a Matrix object</span>
+<span class="sd">        :param resolution: a scalar</span>
+<span class="sd">        :param file_name: save the result if provided</span>
+<span class="sd">        :return: a Matrix object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">calibrate_plot</span><span class="p">(</span><span class="n">observation</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                                    <span class="n">prediction</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                                    <span class="n">resolution</span><span class="p">,</span>
+                                                    <span class="n">file_name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.interact"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.interact">[docs]</a>    <span class="k">def</span> <span class="nf">interact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">predictor_ind</span><span class="p">,</span> <span class="n">total_no_predictor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This is exactly the same as the one in GBM in R.</span>
+
+<span class="sd">        :param data: a Matrix object</span>
+<span class="sd">        :param predictor_ind: a Matrix object</span>
+<span class="sd">        :param total_no_predictor: a scalar</span>
+<span class="sd">        :return: a scalar</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+                                 <span class="n">predictor_ind</span><span class="p">,</span>
+                                 <span class="n">total_no_predictor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.save_performance"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.save_performance">[docs]</a>    <span class="k">def</span> <span class="nf">save_performance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the training and validating losses.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_performance</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.save"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the DBM after trained.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.load"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load from a file.</span>
+
+<span class="sd">        :param file_name: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">load_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="np2darray_to_float_matrix"><a class="viewcode-back" href="../../index.html#dbm_py.interface.np2darray_to_float_matrix">[docs]</a><span class="k">def</span> <span class="nf">np2darray_to_float_matrix</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a two-dimensional numpy array to a Matrix.</span>
+
+<span class="sd">    :param source: a two-dimensional numpy array</span>
+<span class="sd">    :return: a Matrix object of the same shape as the numpy array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The argument may not be a Numpy array.&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">__len__</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The argument may not be a 2d array.&#39;</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">target</span><span class="o">.</span><span class="n">from_np2darray</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">target</span></div>
+
+<div class="viewcode-block" id="float_matrix_to_np2darray"><a class="viewcode-back" href="../../index.html#dbm_py.interface.float_matrix_to_np2darray">[docs]</a><span class="k">def</span> <span class="nf">float_matrix_to_np2darray</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a Matrix to a two-dimensional numpy array.</span>
+
+<span class="sd">    :param source: a Matrix object</span>
+<span class="sd">    :return: a two-dimensional numpy array of the same shape as the</span>
+<span class="sd">    Matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Matrix</span>
+    <span class="k">except</span> <span class="ne">AssertionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The argument may not be a Matrix.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">source</span><span class="o">.</span><span class="n">to_np2darray</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="string_to_params"><a class="viewcode-back" href="../../index.html#dbm_py.interface.string_to_params">[docs]</a><span class="k">def</span> <span class="nf">string_to_params</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">sep</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Directly transfer a string to a Params object.</span>
+
+<span class="sd">    :param string: a string</span>
+<span class="sd">    :param sep: a character</span>
+<span class="sd">    :return: a Params object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Params</span><span class="p">(</span><span class="n">params</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">set_params</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">sep</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Simon Lee.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

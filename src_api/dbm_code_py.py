@@ -1,59 +1,94 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import lib_dbm_cpp_to_python_interface as dbm_cpp_interface
+import os
+import sys
+sys.path.append(os.path.abspath('../api'))
+
+import dbm_py.lib_dbm_cpp_to_python_interface as dbm_cpp_interface
 import numpy as np
 
 
 class Matrix(object):
 
-    def __init__(self, height = None, width = None, val = None, file_name = None, sep = None, mat = None):
+    def __init__(self,
+                 height = None,
+                 width = None,
+                 val = None,
+                 file_name = None,
+                 sep = None,
+                 mat = None):
         """
-        This is the class of Matrix used in DBM. To feed the training and prediction data to DBM, they should be
-        converted to Matrix first of all. The Matrix interface provides four ways of initialization, i.e.
-        initialization with random values in [-1, 1], initialization with a user-provided value, initialization
-        from a file and initialization with a Float_Matrix object. One may also initializing a matrix with any
-        values and then use the method from_np2darray to transfer the values from a numpy array of the same shape
-        to it.
+        This is the class of Matrix used in DBM. To feed the training
+        and prediction data to DBM, they should be converted to
+        Matrix first of all. The Matrix interface provides four ways
+        of initialization, i.e. initialization with random values in
+        [-1, 1], initialization with a user-provided value,
+        initialization from a file and initialization with a
+        Float_Matrix object. One may also initializing a matrix with
+        any values and then use the method from_np2darray to transfer
+        the values from a numpy array of the same shape to it.
 
         Initialization with random values in [-1, 1]
-        :param height (optional) : height of the matrix
-        :param width (optional) : width of the matrix
+        :param height: height of the matrix
+        :param width: width of the matrix
 
         Initialization with a user-provided value
-        [:param val (optional) : a particular value for initialization
+        :param val: a particular value for initialization
 
         Initialization from a file
-        [:param file_name: file name of the file where data comes from
-        :param sep (optional) : seperator used in the file]]
+        :param file_name: file name of the file where data comes from
+        :param sep: seperator used in the file
 
         Initialization with a Float_Matrix object
-        :param mat (optional) : a Float_Matrix object
+        :param mat: a Float_Matrix object
 
         Note:
-            1. When initializing from a file, the format should be correct. One may first of all save a matrix
-            to a file and look at the file and see how it looks like.
+            1. When initializing from a file, the format should be
+            correct. One may first of all save a matrix to a file
+            and look at the file and see how it looks like.
             2. Avoid directly using Float_Matrix.
-            3. Converting tools np2darray_to_float_matrix and float_matrix_to_np2darray are provided.
+            3. Converting tools np2darray_to_float_matrix and
+            float_matrix_to_np2darray are provided.
+
         """
 
         if(height is not None and width is not None and mat is None):
 
-            if(val is None and file_name is None and sep is None):
-                self.mat = dbm_cpp_interface.Float_Matrix(height, width)
+            if(val is None
+               and file_name is None
+               and sep is None):
+                self.mat = dbm_cpp_interface.Float_Matrix(height,
+                                                          width)
 
-            elif(val is not None and file_name is None and sep is None):
-                self.mat = dbm_cpp_interface.Float_Matrix(height, width, val)
+            elif(val is not None
+                 and file_name is None
+                 and sep is None):
+                self.mat = dbm_cpp_interface.Float_Matrix(height,
+                                                          width,
+                                                          val)
 
-            elif(val is None and file_name is not None and sep is None):
-                self.mat = dbm_cpp_interface.Float_Matrix(height, width, file_name)
+            elif(val is None
+                 and file_name is not None
+                 and sep is None):
+                self.mat = dbm_cpp_interface.Float_Matrix(height,
+                                                          width,
+                                                          file_name)
 
-            elif(val is None and file_name is not None and sep is not None):
-                self.mat = dbm_cpp_interface.Float_Matrix(height, width, file_name, sep)
+            elif(val is None
+                 and file_name is not None
+                 and sep is not None):
+                self.mat = dbm_cpp_interface.Float_Matrix(height,
+                                                          width,
+                                                          file_name,
+                                                          sep)
 
             else:
                 raise ValueError('Error!')
 
-        elif(height is None and width is None and mat is not None):
+        elif(height is None
+             and width is None
+             and mat is not None):
             self.mat = mat
 
     # shape
@@ -116,9 +151,11 @@ class Matrix(object):
     # conversion of Numpy 2d array to Matrix
     def from_np2darray(self, source):
         """
-        Assign the data stored in a two-dimensional numpy array to this matrix.
+        Assign the data stored in a two-dimensional numpy array to
+        this matrix.
 
-        :param source: a two-dimensional numpy array of the same shape as this matrix
+        :param source: a two-dimensional numpy array of the same
+        shape as this matrix
         """
         try:
             assert source.shape.__len__() == 2
@@ -127,7 +164,8 @@ class Matrix(object):
         except AssertionError as e:
             print(source.shape)
             print((self.mat.get_height(), self.mat.get_width()))
-            raise ValueError('The Numpy array may not have the same shape as the target.')
+            raise ValueError('The Numpy array may not have the same '
+                             'shape as the target.')
         for i in range(self.mat.get_height()):
             for j in range(self.mat.get_width()):
                 self.mat.assign(i, j, source[i][j])
@@ -135,11 +173,14 @@ class Matrix(object):
     # conversion of Matrix to Numpy 2d array
     def to_np2darray(self):
         """
-        Assign the data stored in this matrix to a two-dimensional numpy array and return it.
+        Assign the data stored in this matrix to a two-dimensional
+        numpy array and return it.
 
-        :return: a two-dimensional numpy array of the same shape as this matrix
+        :return: a two-dimensional numpy array of the same shape as
+        this matrix
         """
-        result = np.zeros([self.mat.get_height(), self.mat.get_width()])
+        result = np.zeros([self.mat.get_height(),
+                           self.mat.get_width()])
         for i in range(self.mat.get_height()):
             for j in range(self.mat.get_width()):
                 result[i][j] = self.mat.get(i, j)
@@ -151,14 +192,19 @@ class Data_set(object):
 
     def __init__(self, data_x, data_y, portion_for_validating):
         """
-        This is the class of Data_set that provides an easy to tool for splitting all data into training and validating
+        This is the class of Data_set that provides an easy to tool
+        for splitting all data into training and validating
         parts.
 
         :param data_x: a Matrix object
         :param data_y: a Matrix object
-        :param portion_for_validating: percentage of the whole data used for validating
+        :param portion_for_validating: percentage of the whole data
+        used for validating
         """
-        self.data_set = dbm_cpp_interface.Data_Set(data_x.mat, data_y.mat, portion_for_validating)
+        self.data_set = \
+            dbm_cpp_interface.Data_Set(data_x.mat,
+                                       data_y.mat,
+                                       portion_for_validating)
 
     def get_train_x(self):
         """
@@ -198,7 +244,7 @@ class Params(object):
         """
         This is class of Params storing parameters used in DBM.
 
-        :param params (optional) : a Params object
+        :param params: a Params object
         """
         if params is None:
             self.params = dbm_cpp_interface.Params()
@@ -212,7 +258,8 @@ class Params(object):
         Usage: [sep] represents the character used as the separator
 
                 'parameter_name[sep]parameter_value'
-                'parameter_name[sep]parameter_value[sep]parameter_name[sep]parameter_value'
+                'parameter_name[sep]parameter_value[sep]
+                            parameter_name[sep]parameter_value'
 
 
         :param string: a string storing the parameters to be set
@@ -224,7 +271,8 @@ class Params(object):
         """
         Print all parameters and their values to the screen.
         """
-        attrs = [attr for attr in dir(self.params) if not callable(attr) and not attr.startswith("__")]
+        attrs = [attr for attr in dir(self.params)
+                 if not callable(attr) and not attr.startswith("__")]
         for attr in attrs:
             print("%s = %s" % (attr, getattr(self.params, attr)))
 
@@ -248,7 +296,8 @@ class DBM(object):
 
     def predict(self, data_x):
         """
-        Predict if it has been trained or it has been loaded from a trained model.
+        Predict if it has been trained or it has been loaded from
+        a trained model.
 
         :param data_x: a Matrix object
         :return:
@@ -262,10 +311,13 @@ class DBM(object):
         Calculate the data used in partial dependence plots.
 
         :param data_x: a Matrix object used for calculating
-        :param feature_index: the index of the predictor of interest (the No. of the column)
-        :return: a Matrix object storing the data used in partial dependence plots
+        :param feature_index: the index of the predictor of
+        interest (the No. of the column)
+        :return: a Matrix object storing the data used in partial
+        dependence plots
         """
-        return Matrix(mat = self.dbm.pdp_auto(data_x.mat, feature_index))
+        return Matrix(mat = self.dbm.pdp_auto(data_x.mat,
+                                              feature_index))
 
     def ss(self, data_x):
         """
@@ -274,21 +326,31 @@ class DBM(object):
         :param data_x: a Matrix object used for calculating
         :return: a Matrix object storing P-values for every predictor
         """
-        return Matrix(mat = self.dbm.statistical_significance(data_x.mat))
+        return Matrix(mat =
+                      self.dbm.statistical_significance(data_x.mat))
 
-    def calibrate_plot(self, observation, prediction, resolution, file_name = ''):
+    def calibrate_plot(self,
+                       observation,
+                       prediction,
+                       resolution,
+                       file_name = ''):
         """
         This is exactly the same as the one in GBM in R.
 
         :param observation: a Matrix object
         :param prediction: a Matrix object
         :param resolution: a scalar
-        :param file_name (optional) : save the result if provided
+        :param file_name: save the result if provided
         :return: a Matrix object
         """
-        return Matrix(mat = self.dbm.calibrate_plot(observation.mat, prediction.mat, resolution, file_name))
+        return Matrix(mat = self.dbm.calibrate_plot(observation.mat,
+                                                    prediction.mat,
+                                                    resolution,
+                                                    file_name))
 
-    def interact(self, data, predictor_ind, total_no_predictor):
+    def interact(self, data,
+                 predictor_ind,
+                 total_no_predictor):
         """
         This is exactly the same as the one in GBM in R.
 
@@ -297,7 +359,9 @@ class DBM(object):
         :param total_no_predictor: a scalar
         :return: a scalar
         """
-        return self.dbm.interact(data.mat, predictor_ind, total_no_predictor)
+        return self.dbm.interact(data.mat,
+                                 predictor_ind,
+                                 total_no_predictor)
 
     def save_performance(self, file_name):
         """
@@ -343,7 +407,8 @@ class AUTO_DBM(object):
 
     def predict(self, data_x):
         """
-        Predict if it has been trained or it has been loaded from a trained model.
+        Predict if it has been trained or it has been loaded from
+        a trained model.
 
         :param data_x: a Matrix object
         :return:
@@ -357,10 +422,13 @@ class AUTO_DBM(object):
         Calculate the data used in partial dependence plots.
 
         :param data_x: a Matrix object used for calculating
-        :param feature_index: the index of the predictor of interest (the No. of the column)
-        :return: a Matrix object storing the data used in partial dependence plots
+        :param feature_index: the index of the predictor of interest
+        (the No. of the column)
+        :return: a Matrix object storing the data used in partial
+        dependence plots
         """
-        return Matrix(mat = self.dbm.pdp_auto(data_x.mat, feature_index))
+        return Matrix(mat = self.dbm.pdp_auto(data_x.mat,
+                                              feature_index))
 
     def ss(self, data_x):
         """
@@ -369,19 +437,27 @@ class AUTO_DBM(object):
         :param data_x: a Matrix object used for calculating
         :return: a Matrix object storing P-values for every predictor
         """
-        return Matrix(mat = self.dbm.statistical_significance(data_x.mat))
+        return Matrix(mat =
+                      self.dbm.statistical_significance(data_x.mat))
 
-    def calibrate_plot(self, observation, prediction, resolution, file_name):
+    def calibrate_plot(self,
+                       observation,
+                       prediction,
+                       resolution,
+                       file_name):
         """
         This is exactly the same as the one in GBM in R.
 
         :param observation: a Matrix object
         :param prediction: a Matrix object
         :param resolution: a scalar
-        :param file_name (optional) : save the result if provided
+        :param file_name: save the result if provided
         :return: a Matrix object
         """
-        return Matrix(mat = self.dbm.calibrate_plot(observation.mat, prediction.mat, resolution, file_name))
+        return Matrix(mat = self.dbm.calibrate_plot(observation.mat,
+                                                    prediction.mat,
+                                                    resolution,
+                                                    file_name))
 
     def interact(self, data, predictor_ind, total_no_predictor):
         """
@@ -392,7 +468,9 @@ class AUTO_DBM(object):
         :param total_no_predictor: a scalar
         :return: a scalar
         """
-        return self.dbm.interact(data.mat, predictor_ind, total_no_predictor)
+        return self.dbm.interact(data.mat,
+                                 predictor_ind,
+                                 total_no_predictor)
 
     def save_performance(self, file_name):
         """
@@ -442,7 +520,8 @@ def float_matrix_to_np2darray(source):
     Convert a Matrix to a two-dimensional numpy array.
 
     :param source: a Matrix object
-    :return: a two-dimensional numpy array of the same shape as the Matrix
+    :return: a two-dimensional numpy array of the same shape as the
+    Matrix
     """
     try:
         assert type(source) is Matrix

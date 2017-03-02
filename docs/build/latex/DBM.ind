@@ -1,0 +1,87 @@
+\begin{sphinxtheindex}
+\def\bigletter#1{{\Large\sffamily#1}\nopagebreak\vspace{1mm}}
+
+  \bigletter {Symbols}
+  \item \_\_init\_\_() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{6}
+  \item \_\_init\_\_() (dbm\_py.interface.DBM method), \hyperpage{5}
+  \item \_\_init\_\_() (dbm\_py.interface.Data\_set method), \hyperpage{4}
+  \item \_\_init\_\_() (dbm\_py.interface.Matrix method), \hyperpage{3}
+  \item \_\_init\_\_() (dbm\_py.interface.Params method), \hyperpage{5}
+
+  \indexspace
+  \bigletter A
+  \item assign() (dbm\_py.interface.Matrix method), \hyperpage{3}
+  \item AUTO\_DBM (class in dbm\_py.interface), \hyperpage{6}
+
+  \indexspace
+  \bigletter C
+  \item calibrate\_plot() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{6}
+  \item calibrate\_plot() (dbm\_py.interface.DBM method), \hyperpage{5}
+  \item clear() (dbm\_py.interface.Matrix method), \hyperpage{3}
+
+  \indexspace
+  \bigletter D
+  \item Data\_set (class in dbm\_py.interface), \hyperpage{4}
+  \item DBM (class in dbm\_py.interface), \hyperpage{5}
+
+  \indexspace
+  \bigletter F
+  \item float\_matrix\_to\_np2darray() (in module dbm\_py.interface), \hyperpage{9}
+  \item from\_np2darray() (dbm\_py.interface.Matrix method), \hyperpage{3}
+
+  \indexspace
+  \bigletter G
+  \item get() (dbm\_py.interface.Matrix method), \hyperpage{3}
+  \item get\_train\_x() (dbm\_py.interface.Data\_set method), \hyperpage{4}
+  \item get\_train\_y() (dbm\_py.interface.Data\_set method), \hyperpage{4}
+  \item get\_validate\_x() (dbm\_py.interface.Data\_set method), \hyperpage{4}
+  \item get\_validate\_y() (dbm\_py.interface.Data\_set method), \hyperpage{4}
+
+  \indexspace
+  \bigletter I
+  \item interact() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{6}
+  \item interact() (dbm\_py.interface.DBM method), \hyperpage{5}
+
+  \indexspace
+  \bigletter L
+  \item load() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item load() (dbm\_py.interface.DBM method), \hyperpage{5}
+
+  \indexspace
+  \bigletter M
+  \item Matrix (class in dbm\_py.interface), \hyperpage{3}
+
+  \indexspace
+  \bigletter N
+  \item np2darray\_to\_float\_matrix() (in module dbm\_py.interface), \hyperpage{9}
+
+  \indexspace
+  \bigletter P
+  \item Params (class in dbm\_py.interface), \hyperpage{4}
+  \item pdp() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item pdp() (dbm\_py.interface.DBM method), \hyperpage{5}
+  \item predict() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item predict() (dbm\_py.interface.DBM method), \hyperpage{6}
+  \item print\_all() (dbm\_py.interface.Params method), \hyperpage{5}
+
+  \indexspace
+  \bigletter S
+  \item save() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item save() (dbm\_py.interface.DBM method), \hyperpage{6}
+  \item save() (dbm\_py.interface.Matrix method), \hyperpage{4}
+  \item save\_performance() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item save\_performance() (dbm\_py.interface.DBM method), \hyperpage{6}
+  \item set\_params() (dbm\_py.interface.Params method), \hyperpage{5}
+  \item shape() (dbm\_py.interface.Matrix method), \hyperpage{4}
+  \item show() (dbm\_py.interface.Matrix method), \hyperpage{4}
+  \item ss() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item ss() (dbm\_py.interface.DBM method), \hyperpage{6}
+  \item string\_to\_params() (in module dbm\_py.interface), \hyperpage{9}
+
+  \indexspace
+  \bigletter T
+  \item to\_np2darray() (dbm\_py.interface.Matrix method), \hyperpage{4}
+  \item train() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{7}
+  \item train() (dbm\_py.interface.DBM method), \hyperpage{6}
+
+\end{sphinxtheindex}

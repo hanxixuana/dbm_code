@@ -1,0 +1,807 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to DBM’s documentation! &#8212; DBM 1.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-dbm-s-documentation">
+<h1>Welcome to DBM&#8217;s documentation!<a class="headerlink" href="#welcome-to-dbm-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>This is the document of the Python APIs of Delta Boosting Machine. Classes and functions are listed and described.</p>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+</ul>
+</div>
+<div class="section" id="classes">
+<h1>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="dbm_py.interface.Matrix">
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Matrix</code><span class="sig-paren">(</span><em>height=None</em>, <em>width=None</em>, <em>val=None</em>, <em>file_name=None</em>, <em>sep=None</em>, <em>mat=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="dbm_py.interface.Matrix.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>height=None</em>, <em>width=None</em>, <em>val=None</em>, <em>file_name=None</em>, <em>sep=None</em>, <em>mat=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the class of Matrix used in DBM. To feed the training
+and prediction data to DBM, they should be converted to
+Matrix first of all. The Matrix interface provides four ways
+of initialization, i.e. initialization with random values in
+[-1, 1], initialization with a user-provided value,
+initialization from a file and initialization with a
+Float_Matrix object. One may also initializing a matrix with
+any values and then use the method from_np2darray to transfer
+the values from a numpy array of the same shape to it.</p>
+<p>Initialization with random values in [-1, 1]
+:param height: height of the matrix
+:param width: width of the matrix</p>
+<p>Initialization with a user-provided value
+:param val: a particular value for initialization</p>
+<p>Initialization from a file
+:param file_name: file name of the file where data comes from
+:param sep: seperator used in the file</p>
+<p>Initialization with a Float_Matrix object
+:param mat: a Float_Matrix object</p>
+<dl class="docutils">
+<dt>Note:</dt>
+<dd>1. When initializing from a file, the format should be
+correct. One may first of all save a matrix to a file
+and look at the file and see how it looks like.
+2. Avoid directly using Float_Matrix.
+3. Converting tools np2darray_to_float_matrix and
+float_matrix_to_np2darray are provided.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.assign">
+<code class="descname">assign</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.assign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.assign" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign a value to a particular element.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>i</strong> &#8211; height of the element</li>
+<li><strong>j</strong> &#8211; width of the element</li>
+<li><strong>val</strong> &#8211; value to be assigned</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.clear">
+<code class="descname">clear</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.clear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.clear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set all elements to 0.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.from_np2darray">
+<code class="descname">from_np2darray</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.from_np2darray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.from_np2darray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign the data stored in a two-dimensional numpy array to
+this matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a two-dimensional numpy array of the same</td>
+</tr>
+</tbody>
+</table>
+<p>shape as this matrix</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.get">
+<code class="descname">get</code><span class="sig-paren">(</span><em>i</em>, <em>j</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access to a particular element in the matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> &#8211; height of the element</li>
+<li><strong>j</strong> &#8211; width of the element</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the element</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Note: i and j should be in the correct ranges</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>file_name</em>, <em>sep='\t'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the data stored in it to a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_name</strong> &#8211; a string</li>
+<li><strong>sep</strong> &#8211; a character</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.shape">
+<code class="descname">shape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list containing the shape of the matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[matrix height, matrix width]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.show">
+<code class="descname">show</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.show"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.show" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print to screen the data stored in the matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Matrix.to_np2darray">
+<code class="descname">to_np2darray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.to_np2darray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.to_np2darray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign the data stored in this matrix to a two-dimensional
+numpy array and return it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as</td>
+</tr>
+</tbody>
+</table>
+<p>this matrix</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dbm_py.interface.Data_set">
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Data_set</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="dbm_py.interface.Data_set.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the class of Data_set that provides an easy to tool
+for splitting all data into training and validating
+parts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_x</strong> &#8211; a Matrix object</li>
+<li><strong>data_y</strong> &#8211; a Matrix object</li>
+<li><strong>portion_for_validating</strong> &#8211; percentage of the whole data</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>used for validating</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Data_set.get_train_x">
+<code class="descname">get_train_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.get_train_x"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.get_train_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the part of predictors for training.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Data_set.get_train_y">
+<code class="descname">get_train_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.get_train_y"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.get_train_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the part of responses for training.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Data_set.get_validate_x">
+<code class="descname">get_validate_x</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.get_validate_x"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.get_validate_x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the part of predictors for validating.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Data_set.get_validate_y">
+<code class="descname">get_validate_y</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.get_validate_y"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.get_validate_y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the part of responses for validating.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dbm_py.interface.Params">
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Params</code><span class="sig-paren">(</span><em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Params" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="dbm_py.interface.Params.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Params.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Params.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is class of Params storing parameters used in DBM.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> &#8211; a Params object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Params.print_all">
+<code class="descname">print_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Params.print_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Params.print_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print all parameters and their values to the screen.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.Params.set_params">
+<code class="descname">set_params</code><span class="sig-paren">(</span><em>string</em>, <em>sep=' '</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Params.set_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Params.set_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set values of parameters.</p>
+<p>Usage: [sep] represents the character used as the separator</p>
+<blockquote>
+<div><p>&#8216;parameter_name[sep]parameter_value&#8217;
+&#8216;parameter_name[sep]parameter_value[sep]</p>
+<blockquote>
+<div>parameter_name[sep]parameter_value&#8217;</div></blockquote>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>string</strong> &#8211; a string storing the parameters to be set</li>
+<li><strong>sep</strong> &#8211; separator used in the string</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dbm_py.interface.DBM">
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">DBM</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="dbm_py.interface.DBM.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the class of DBM.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> &#8211; a Params object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.calibrate_plot">
+<code class="descname">calibrate_plot</code><span class="sig-paren">(</span><em>observation</em>, <em>prediction</em>, <em>resolution</em>, <em>file_name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.calibrate_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.calibrate_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is exactly the same as the one in GBM in R.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>observation</strong> &#8211; a Matrix object</li>
+<li><strong>prediction</strong> &#8211; a Matrix object</li>
+<li><strong>resolution</strong> &#8211; a scalar</li>
+<li><strong>file_name</strong> &#8211; save the result if provided</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Matrix object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.interact">
+<code class="descname">interact</code><span class="sig-paren">(</span><em>data</em>, <em>predictor_ind</em>, <em>total_no_predictor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.interact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.interact" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is exactly the same as the one in GBM in R.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; a Matrix object</li>
+<li><strong>predictor_ind</strong> &#8211; a Matrix object</li>
+<li><strong>total_no_predictor</strong> &#8211; a scalar</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a scalar</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load from a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.pdp">
+<code class="descname">pdp</code><span class="sig-paren">(</span><em>data_x</em>, <em>feature_index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.pdp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.pdp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the data used in partial dependence plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_x</strong> &#8211; a Matrix object used for calculating</li>
+<li><strong>feature_index</strong> &#8211; the index of the predictor of</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>interest (the No. of the column)
+:return: a Matrix object storing the data used in partial
+dependence plots</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>data_x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict if it has been trained or it has been loaded from
+a trained model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_x</strong> &#8211; a Matrix object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the DBM after trained.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.save_performance">
+<code class="descname">save_performance</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.save_performance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.save_performance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the training and validating losses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.ss">
+<code class="descname">ss</code><span class="sig-paren">(</span><em>data_x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.ss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.ss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate statistical signifiance of every predictor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_x</strong> &#8211; a Matrix object used for calculating</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object storing P-values for every predictor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.DBM.train">
+<code class="descname">train</code><span class="sig-paren">(</span><em>data_set</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the DBM.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_set</strong> &#8211; a Data_set object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="dbm_py.interface.AUTO_DBM">
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">AUTO_DBM</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the class of DBM.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> &#8211; a Params object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.calibrate_plot">
+<code class="descname">calibrate_plot</code><span class="sig-paren">(</span><em>observation</em>, <em>prediction</em>, <em>resolution</em>, <em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.calibrate_plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.calibrate_plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is exactly the same as the one in GBM in R.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>observation</strong> &#8211; a Matrix object</li>
+<li><strong>prediction</strong> &#8211; a Matrix object</li>
+<li><strong>resolution</strong> &#8211; a scalar</li>
+<li><strong>file_name</strong> &#8211; save the result if provided</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Matrix object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.interact">
+<code class="descname">interact</code><span class="sig-paren">(</span><em>data</em>, <em>predictor_ind</em>, <em>total_no_predictor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.interact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.interact" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is exactly the same as the one in GBM in R.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> &#8211; a Matrix object</li>
+<li><strong>predictor_ind</strong> &#8211; a Matrix object</li>
+<li><strong>total_no_predictor</strong> &#8211; a scalar</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a scalar</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load from a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.pdp">
+<code class="descname">pdp</code><span class="sig-paren">(</span><em>data_x</em>, <em>feature_index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.pdp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.pdp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the data used in partial dependence plots.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_x</strong> &#8211; a Matrix object used for calculating</li>
+<li><strong>feature_index</strong> &#8211; the index of the predictor of interest</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>(the No. of the column)
+:return: a Matrix object storing the data used in partial
+dependence plots</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>data_x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict if it has been trained or it has been loaded from
+a trained model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_x</strong> &#8211; a Matrix object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the DBM after trained.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.save_performance">
+<code class="descname">save_performance</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.save_performance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.save_performance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the training and validating losses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_name</strong> &#8211; a string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.ss">
+<code class="descname">ss</code><span class="sig-paren">(</span><em>data_x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.ss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.ss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate statistical signifiance of every predictor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_x</strong> &#8211; a Matrix object used for calculating</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object storing P-values for every predictor</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.train">
+<code class="descname">train</code><span class="sig-paren">(</span><em>data_set</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the DBM.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_set</strong> &#8211; a Data_set object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="functions">
+<h1>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="dbm_py.interface.np2darray_to_float_matrix">
+<code class="descclassname">dbm_py.interface.</code><code class="descname">np2darray_to_float_matrix</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#np2darray_to_float_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.np2darray_to_float_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a two-dimensional numpy array to a Matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a two-dimensional numpy array</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a Matrix object of the same shape as the numpy array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="dbm_py.interface.float_matrix_to_np2darray">
+<code class="descclassname">dbm_py.interface.</code><code class="descname">float_matrix_to_np2darray</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#float_matrix_to_np2darray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.float_matrix_to_np2darray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a Matrix to a two-dimensional numpy array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a Matrix object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as the</td>
+</tr>
+</tbody>
+</table>
+<p>Matrix</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="dbm_py.interface.string_to_params">
+<code class="descclassname">dbm_py.interface.</code><code class="descname">string_to_params</code><span class="sig-paren">(</span><em>string</em>, <em>sep=' '</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#string_to_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.string_to_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Directly transfer a string to a Params object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>string</strong> &#8211; a string</li>
+<li><strong>sep</strong> &#8211; a character</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Params object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to DBM&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#functions">Functions</a></li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Simon Lee.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
