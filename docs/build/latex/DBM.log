@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.2.13)  5 MAR 2017 22:35
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.2.13)  5 MAR 2017 22:46
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1146,12 +1146,7 @@ LaTeX Font Info:    Font shape `T1/ptm/bx/n' in size <10> not available
 
 ] [2
 
-]
-LaTeX Font Info:    Try loading font information for TS1+ptm on input line 60.
-
-(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
-File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
-) [1] [2
+] [1] [2
 
 ]
 Chapter 1.
@@ -1161,57 +1156,53 @@ File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
 )
 LaTeX Font Info:    Font shape `T1/pcr/bx/n' in size <10> not available
 (Font)              Font shape `T1/pcr/b/n' tried instead on input line 1.
- [3] [4]
-Overfull \hbox (39.18044pt too wide) in alignment at lines 326--328
+LaTeX Font Info:    Try loading font information for TS1+ptm on input line 115.
+
+
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+) [3] [4]
+Overfull \hbox (63.33047pt too wide) in alignment at lines 321--323
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 328--333
+Overfull \hbox (63.33047pt too wide) in alignment at lines 323--328
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 333--336
+Overfull \hbox (63.33047pt too wide) in alignment at lines 328--331
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 336--338
+Overfull \hbox (63.33047pt too wide) in alignment at lines 331--333
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 338--445
+Overfull \hbox (63.33047pt too wide) in alignment at lines 333--440
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 445--572
+Overfull \hbox (63.33047pt too wide) in alignment at lines 440--567
  [] [] [] 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 662--662
-
- []
-
-
-Overfull \vbox (12.7799pt too high) detected at line 662
- []
-
-
-Overfull \hbox (39.18044pt too wide) in alignment at lines 572--681
+Overfull \hbox (63.33047pt too wide) in alignment at lines 567--681
  [] [] [] 
  []
 
 
-Overfull \hbox (39.18044pt too wide) in alignment at lines 681--709
+Overfull \hbox (63.33047pt too wide) in alignment at lines 681--702
  [] [] [] 
  []
 
 [5]
-Overfull \hbox (108.9092pt too wide) in paragraph at lines 745--747
+Overfull \hbox (108.9092pt too wide) in paragraph at lines 738--740
 []\T1/ptm/m/n/10 `parameter_name[sep]parameter_value' `pa-ram-e-ter_name[sep]pa
 rameter_value[sep]parameter_name[sep]parameter_value' 
  []
@@ -1250,24 +1241,24 @@ Package sphinx Warning:
 ******** ERROR !! PLEASE UPDATE titlesec.sty !!********
 ******** THIS VERSION SWALLOWS SECTION NUMBERS.********.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1190.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 1190.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 1183.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 1183.
 (./DBM.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1190.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1190.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 1183.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 1183.
 
 Package rerunfilecheck Info: File `DBM.out' has not changed.
 (rerunfilecheck)             Checksum: 59A90D029D5B4AA4809760FA062BD12D;1023.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1190.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1183.
  ) 
 Here is how much of TeX's memory you used:
- 13758 strings out of 494953
- 189707 string characters out of 6180977
- 295034 words of memory out of 5000000
- 16663 multiletter control sequences out of 15000+600000
+ 13753 strings out of 494953
+ 189585 string characters out of 6180977
+ 295016 words of memory out of 5000000
+ 16658 multiletter control sequences out of 15000+600000
  44748 words of font info for 64 fonts, out of 8000000 for 9000
  15 hyphenation exceptions out of 8191
- 37i,13n,45p,445b,637s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 37i,11n,45p,445b,637s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
 e/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/share/texlive/texmf-dist/
 fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/u
@@ -1276,7 +1267,7 @@ uhvbo8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/helvetic/uhvr8a.pfb>
 </usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/share/tex
 live/texmf-dist/fonts/type1/urw/times/utmr8a.pfb></usr/share/texlive/texmf-dist
 /fonts/type1/urw/times/utmri8a.pfb>
-Output written on DBM.pdf (17 pages, 109943 bytes).
+Output written on DBM.pdf (17 pages, 109858 bytes).
 PDF statistics:
  266 PDF objects out of 1000 (max. 8388607)
  231 compressed objects within 3 object streams

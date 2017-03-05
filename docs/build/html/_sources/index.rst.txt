@@ -12,10 +12,8 @@ Welcome to DBM's documentation!
 
 This is the document of the Python APIs of Delta Boosting Machine. Classes and functions are listed and described.
 
-* :ref:`genindex`
-
 Classes
-==================
+=======
 
 Matrix
 ------
@@ -141,10 +139,8 @@ Parameters
     +-----------------------------------------------+-------+dominating principal component               +
     |                                               |       |                                             |
     +-----------------------------------------------+-------+---------------------------------------------+
-    |dpcs_range_shrinkage_of_ticks                  |double |shrinkage of the range in the                |
-    +-----------------------------------------------+-------+direction of dominating principal            +
-    |                                               |       |component                                    |
-    +-----------------------------------------------+-------+                                             +
+    |dpcs_range_shrinkage_of_ticks                  |double |shrinkage of the range in the direction of   |
+    +-----------------------------------------------+-------+dominating principal component               +
     |                                               |       |                                             |
     +-----------------------------------------------+-------+---------------------------------------------+
     |dbm_do_perf                                    |bool   |whether to record performance on both        |
@@ -178,7 +174,7 @@ Delta Boosting Machines with Automatic BL Selection
    :members: __init__, train, predict, pdp, ss, calibrate_plot, interact, save_performance, save, load
 
 Functions
-=================
+=========
 
 .. autofunction:: dbm_py.interface.np2darray_to_float_matrix
 
