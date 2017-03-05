@@ -305,10 +305,10 @@ namespace dbm {
             else if (words[2 * i] == "dbm_nonoverlapping_training")
                 params.dbm_nonoverlapping_training = std::stoi(words[2 * i + 1]);
 
-            else if (words[2 * i] == "remove_rows_containing_nans")
-                params.remove_rows_containing_nans = std::stoi(words[2 * i + 1]);
-            else if (words[2 * i] == "min_no_samples_per_bl")
-                params.min_no_samples_per_bl = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_remove_rows_containing_nans")
+                params.dbm_remove_rows_containing_nans = std::stoi(words[2 * i + 1]);
+            else if (words[2 * i] == "dbm_min_no_samples_per_bl")
+                params.dbm_min_no_samples_per_bl = std::stoi(words[2 * i + 1]);
 
             else if (words[2 * i] == "dbm_portion_for_trees")
                 params.dbm_portion_for_trees = std::stod(words[2 * i + 1]);

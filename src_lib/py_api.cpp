@@ -80,10 +80,10 @@ BOOST_PYTHON_MODULE(lib_dbm_cpp_to_python_interface)
             .def_readwrite("dbm_nonoverlapping_training",
                            &dbm::Params::dbm_nonoverlapping_training)
 
-            .def_readwrite("remove_rows_containing_nans",
-                           &dbm::Params::remove_rows_containing_nans)
-            .def_readwrite("min_no_samples_per_bl",
-                           &dbm::Params::min_no_samples_per_bl)
+            .def_readwrite("dbm_remove_rows_containing_nans",
+                           &dbm::Params::dbm_remove_rows_containing_nans)
+            .def_readwrite("dbm_min_no_samples_per_bl",
+                           &dbm::Params::dbm_min_no_samples_per_bl)
 
             .def_readwrite("dbm_portion_for_trees",
                            &dbm::Params::dbm_portion_for_trees)

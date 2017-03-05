@@ -199,8 +199,7 @@
 <span class="sd">        Assign the data stored in a two-dimensional numpy array to</span>
 <span class="sd">        this matrix.</span>
 
-<span class="sd">        :param source: a two-dimensional numpy array of the same</span>
-<span class="sd">        shape as this matrix</span>
+<span class="sd">        :param source: a two-dimensional numpy array of the same shape as this matrix</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">__len__</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
@@ -218,11 +217,9 @@
     <span class="c1"># conversion of Matrix to Numpy 2d array</span>
 <div class="viewcode-block" id="Matrix.to_np2darray"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Matrix.to_np2darray">[docs]</a>    <span class="k">def</span> <span class="nf">to_np2darray</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Assign the data stored in this matrix to a two-dimensional</span>
-<span class="sd">        numpy array and return it.</span>
+<span class="sd">        Assign the data stored in this matrix to a two-dimensional numpy array and return it.</span>
 
-<span class="sd">        :return: a two-dimensional numpy array of the same shape as</span>
-<span class="sd">        this matrix</span>
+<span class="sd">        :return: a two-dimensional numpy array of the same shape as this matrix</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_height</span><span class="p">(),</span>
                            <span class="bp">self</span><span class="o">.</span><span class="n">mat</span><span class="o">.</span><span class="n">get_width</span><span class="p">()])</span>
@@ -237,14 +234,12 @@
 
 <div class="viewcode-block" id="Data_set.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">data_y</span><span class="p">,</span> <span class="n">portion_for_validating</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        This is the class of Data_set that provides an easy to tool</span>
-<span class="sd">        for splitting all data into training and validating</span>
+<span class="sd">        This is the class of Data_set that provides an easy to tool for splitting all data into training and validating</span>
 <span class="sd">        parts.</span>
 
 <span class="sd">        :param data_x: a Matrix object</span>
 <span class="sd">        :param data_y: a Matrix object</span>
-<span class="sd">        :param portion_for_validating: percentage of the whole data</span>
-<span class="sd">        used for validating</span>
+<span class="sd">        :param portion_for_validating: percentage of the whole data used for validating</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span> <span class="o">=</span> \
             <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Data_Set</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
@@ -303,9 +298,7 @@
 <span class="sd">        Usage: [sep] represents the character used as the separator</span>
 
 <span class="sd">                &#39;parameter_name[sep]parameter_value&#39;</span>
-<span class="sd">                &#39;parameter_name[sep]parameter_value[sep]</span>
-<span class="sd">                            parameter_name[sep]parameter_value&#39;</span>
-
+<span class="sd">                &#39;parameter_name[sep]parameter_value[sep]parameter_name[sep]parameter_value&#39;</span>
 
 <span class="sd">        :param string: a string storing the parameters to be set</span>
 <span class="sd">        :param sep: separator used in the string</span>
@@ -356,10 +349,8 @@
 <span class="sd">        Calculate the data used in partial dependence plots.</span>
 
 <span class="sd">        :param data_x: a Matrix object used for calculating</span>
-<span class="sd">        :param feature_index: the index of the predictor of</span>
-<span class="sd">        interest (the No. of the column)</span>
-<span class="sd">        :return: a Matrix object storing the data used in partial</span>
-<span class="sd">        dependence plots</span>
+<span class="sd">        :param feature_index: the index of the predictor of interest (the No. of the column)</span>
+<span class="sd">        :return: a Matrix object storing the data used in partial dependence plots</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                               <span class="n">feature_index</span><span class="p">))</span></div>
@@ -452,8 +443,7 @@
 
 <div class="viewcode-block" id="AUTO_DBM.predict"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Predict if it has been trained or it has been loaded from</span>
-<span class="sd">        a trained model.</span>
+<span class="sd">        Predict if it has been trained or it has been loaded from a trained model.</span>
 
 <span class="sd">        :param data_x: a Matrix object</span>
 <span class="sd">        :return:</span>
@@ -467,10 +457,8 @@
 <span class="sd">        Calculate the data used in partial dependence plots.</span>
 
 <span class="sd">        :param data_x: a Matrix object used for calculating</span>
-<span class="sd">        :param feature_index: the index of the predictor of interest</span>
-<span class="sd">        (the No. of the column)</span>
-<span class="sd">        :return: a Matrix object storing the data used in partial</span>
-<span class="sd">        dependence plots</span>
+<span class="sd">        :param feature_index: the index of the predictor of interest (the No. of the column)</span>
+<span class="sd">        :return: a Matrix object storing the data used in partial dependence plots</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                               <span class="n">feature_index</span><span class="p">))</span></div>
@@ -565,8 +553,7 @@
 <span class="sd">    Convert a Matrix to a two-dimensional numpy array.</span>
 
 <span class="sd">    :param source: a Matrix object</span>
-<span class="sd">    :return: a two-dimensional numpy array of the same shape as the</span>
-<span class="sd">    Matrix</span>
+<span class="sd">    :return: a two-dimensional numpy array of the same shape as the Matrix</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Matrix</span>

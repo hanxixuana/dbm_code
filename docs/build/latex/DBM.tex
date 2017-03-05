@@ -41,7 +41,7 @@
 
 
 \title{DBM Documentation}
-\date{Mar 02, 2017}
+\date{Mar 05, 2017}
 \release{1.1}
 \author{Simon Lee}
 \newcommand{\sphinxlogo}{}
@@ -64,7 +64,10 @@ This is the document of the Python APIs of Delta Boosting Machine. Classes and f
 
 
 \chapter{Classes}
-\label{\detokenize{index:welcome-to-dbm-s-documentation}}\label{\detokenize{index:classes}}\index{Matrix (class in dbm\_py.interface)}
+\label{\detokenize{index:welcome-to-dbm-s-documentation}}\label{\detokenize{index:classes}}
+
+\section{Matrix}
+\label{\detokenize{index:matrix}}\index{Matrix (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.Matrix}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{Matrix}}{\emph{height=None}, \emph{width=None}, \emph{val=None}, \emph{file\_name=None}, \emph{sep=None}, \emph{mat=None}}{}~\index{\_\_init\_\_() (dbm\_py.interface.Matrix method)}
@@ -145,11 +148,9 @@ Assign the data stored in a two-dimensional numpy array to
 this matrix.
 \begin{quote}\begin{description}
 \item[{Parameters}] \leavevmode
-\sphinxstyleliteralstrong{source} -- a two-dimensional numpy array of the same
+\sphinxstyleliteralstrong{source} -- a two-dimensional numpy array of the same shape as this matrix
 
 \end{description}\end{quote}
-
-shape as this matrix
 
 \end{fulllineitems}
 
@@ -221,30 +222,29 @@ Print to screen the data stored in the matrix.
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.Matrix.to_np2darray}}\pysiglinewithargsret{\sphinxbfcode{to\_np2darray}}{}{}
-Assign the data stored in this matrix to a two-dimensional
-numpy array and return it.
+Assign the data stored in this matrix to a two-dimensional numpy array and return it.
 \begin{quote}\begin{description}
 \item[{Returns}] \leavevmode
-a two-dimensional numpy array of the same shape as
+a two-dimensional numpy array of the same shape as this matrix
 
 \end{description}\end{quote}
 
-this matrix
-
 \end{fulllineitems}
 
 
 \end{fulllineitems}
 
-\index{Data\_set (class in dbm\_py.interface)}
+
+
+\section{Data Set}
+\label{\detokenize{index:data-set}}\index{Data\_set (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.Data_set}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{Data\_set}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}}{}~\index{\_\_init\_\_() (dbm\_py.interface.Data\_set method)}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.Data_set.__init__}}\pysiglinewithargsret{\sphinxbfcode{\_\_init\_\_}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}}{}
-This is the class of Data\_set that provides an easy to tool
-for splitting all data into training and validating
+This is the class of Data\_set that provides an easy to tool for splitting all data into training and validating
 parts.
 \begin{quote}\begin{description}
 \item[{Parameters}] \leavevmode\begin{itemize}
@@ -255,13 +255,11 @@ parts.
 \sphinxstyleliteralstrong{data\_y} -- a Matrix object
 
 \item {} 
-\sphinxstyleliteralstrong{portion\_for\_validating} -- percentage of the whole data
+\sphinxstyleliteralstrong{portion\_for\_validating} -- percentage of the whole data used for validating
 
 \end{itemize}
 
 \end{description}\end{quote}
-
-used for validating
 
 \end{fulllineitems}
 
@@ -320,6 +318,397 @@ a Matrix object
 
 \end{fulllineitems}
 
+
+
+\section{Parameters}
+\label{\detokenize{index:parameters}}\begin{quote}
+
+\begin{longtable}{|l|l|l|}
+\hline
+\endfirsthead
+
+\multicolumn{3}{c}%
+{{\tablecontinued{\tablename\ \thetable{} -- continued from previous page}}} \\
+\hline
+\endhead
+
+\hline \multicolumn{3}{|r|}{{\tablecontinued{Continued on next page}}} \\ \hline
+\endfoot
+
+\endlastfoot
+
+
+Parameter Name
+&
+Type
+&
+Meaning
+\\
+\hline
+dbm\_no\_bunches\_of\_learners
+&
+int
+&
+number of boostraped BLs
+\\
+\hline
+dbm\_no\_candidate\_feature
+&
+int
+&\multirow{2}{*}{\relax 
+number of features for each BL
+(\textless{} total number of features)
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_portion\_train\_sample
+&
+double
+&
+percentage for training each BL
+\\
+\hline
+dbm\_no\_cores
+&
+int
+&\multirow{2}{*}{\relax 
+number of BL in each bunch
+(number of cores used)
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_loss\_function
+&
+char
+&\multirow{2}{*}{\relax 
+(n)ormal, (b)ernoulli, (p)oisson
+or (t)weedie
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_display\_training\_progress
+&
+bool
+&
+whether to display training progress or not
+\\
+\hline
+dbm\_record\_every\_tree
+&
+bool
+&
+whether to record trees in a file or not
+\\
+\hline
+dbm\_freq\_showing\_loss\_on\_test
+&
+int
+&\multirow{2}{*}{\relax 
+show loss on test after how many
+bunches of BLs
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_shrinkage
+&
+double
+&
+shrinkage for each BL
+\\
+\hline
+dbm\_nonoverlapping\_training
+&
+int
+&\multirow{2}{*}{\relax 
+whether to BLs in a bunch use
+nonoverlapping samples or not
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_remove\_rows\_containing\_nans
+&
+int
+&\multirow{2}{*}{\relax 
+whether to remove rows containing NaNs in
+training every BL
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_min\_no\_samples\_per\_bl
+&
+int
+&\multirow{2}{*}{\relax 
+minimal number of samples for trainin
+every BL
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_portion\_for\_trees
+&
+double
+&
+percentage of BLs using trees
+\\
+\hline
+dbm\_portion\_for\_lr
+&
+double
+&
+percentage of BLs using linear regression
+\\
+\hline
+dbm\_portion\_for\_s
+&
+double
+&
+percentage of BLs using splines
+\\
+\hline
+dbm\_portion\_for\_k
+&
+double
+&
+percentage of BLs using k-means
+\\
+\hline
+dbm\_portion\_for\_nn
+&
+double
+&
+should be 0
+\\
+\hline
+dbm\_portion\_for\_d
+&
+double
+&\multirow{2}{*}{\relax 
+percentage of BLs using dominating
+principal component stairs
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dbm\_accumulated\_portion
+&
+double
+&\multirow{2}{*}{\relax 
+unused
+\unskip}\relax \\
+\cline{1-2}
+\_shrinkage\_for\_selected\_b
+&&\\
+\hline
+dbm\_portion\_shrinkage\_for\_unselected\_bl
+&
+double
+&
+unused
+\\
+\hline
+tweedie\_p
+&
+double
+&
+p of tweedie should in (1, 2)
+\\
+\hline
+splines\_no\_knot
+&
+int
+&
+number of knots of splines
+\\
+\hline
+splines\_portion\_of\_pairs
+&
+double
+&\multirow{2}{*}{\relax 
+percentage of pairs of perdictors
+considered
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+splines\_regularization
+&
+double
+&
+ridge regression penalty
+\\
+\hline
+splines\_hinge\_coefficient
+&
+double
+&
+coefficient in splines
+\\
+\hline
+kmeans\_no\_centroids
+&
+int
+&
+number of centroids
+\\
+\hline
+kmeans\_max\_iteration
+&
+int
+&
+max number of iterations of training
+\\
+\hline
+kmeans\_tolerance
+&
+double
+&
+max tolerated error
+\\
+\hline
+kmeans\_fraction\_of\_pairs
+&
+double
+&\multirow{2}{*}{\relax 
+percentage of pairs of predictors
+considered
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+nn\_no\_hidden\_neurons
+&
+int
+&
+number of hidden neurons
+\\
+\hline
+nn\_step\_size
+&
+double
+&
+stochastic gradient descent step size
+\\
+\hline
+nn\_validate\_portion
+&
+double
+&
+percentage of samples used for validating
+\\
+\hline
+nn\_batch\_size
+&
+int
+&
+number of samples in a batch
+\\
+\hline
+nn\_max\_iteration
+&
+int
+&
+maximal number of iterations of training
+\\
+\hline
+nn\_no\_rise\_of\_loss\_on\_validate
+&
+int
+&\multirow{2}{*}{\relax 
+maximal number rises of loss on
+validation set
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+cart\_min\_samples\_in\_a\_node
+&
+int
+&
+minimal numbers in a node of a tree
+\\
+\hline
+cart\_max\_depth
+&
+int
+&
+maximal numbers of levels of a tree
+\\
+\hline
+cart\_prune
+&
+int
+&
+whether to prune after training
+\\
+\hline
+lr\_regularization
+&
+double
+&
+ridge regression penalty
+\\
+\hline
+dpcs\_no\_ticks
+&
+int
+&\multirow{2}{*}{\relax 
+number of stairs in the direction of
+dominating principal component
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+dpcs\_range\_shrinkage\_of\_ticks
+&
+double
+&\multirow{3}{*}{\relax \eqparbox{140240150869776}{\vspace{.5\baselineskip}
+shrinkage~of~the~range~in~the~\\
+direction~of~dominating~principal~\\
+component~\\
+\unskip}\relax }\\
+\cline{1-2}&&\\
+\cline{1-2}&&\\
+\hline
+dbm\_do\_perf
+&
+bool
+&\multirow{2}{*}{\relax 
+whether to record performance on both
+training and validation sets
+\unskip}\relax \\
+\cline{1-2}&&\\
+\hline
+pdp\_no\_x\_ticks
+&
+int
+&
+number of ticks in x-axis
+\\
+\hline
+pdp\_no\_resamplings
+&
+int
+&
+number of resamplings for bootstrapping
+\\
+\hline
+pdp\_resampling\_portion
+&
+double
+&
+percentage of samples in each bootstrap
+\\
+\hline
+pdp\_ci\_bandwidth
+&
+double
+&
+width of the confidence interval
+\\
+\hline
+pdp\_save\_files
+&
+int
+&
+whether to save the result
+\\
+\hline\end{longtable}
+
+\end{quote}
 \index{Params (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
@@ -354,11 +743,7 @@ Usage: {[}sep{]} represents the character used as the separator
 \begin{quote}
 
 `parameter\_name{[}sep{]}parameter\_value'
-`parameter\_name{[}sep{]}parameter\_value{[}sep{]}
-\begin{quote}
-
-parameter\_name{[}sep{]}parameter\_value'
-\end{quote}
+`parameter\_name{[}sep{]}parameter\_value{[}sep{]}parameter\_name{[}sep{]}parameter\_value'
 \end{quote}
 \begin{quote}\begin{description}
 \item[{Parameters}] \leavevmode\begin{itemize}
@@ -377,7 +762,10 @@ parameter\_name{[}sep{]}parameter\_value'
 
 \end{fulllineitems}
 
-\index{DBM (class in dbm\_py.interface)}
+
+
+\section{Delta Boosting Machines}
+\label{\detokenize{index:delta-boosting-machines}}\index{DBM (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.DBM}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{DBM}}{\emph{params}}{}~\index{\_\_init\_\_() (dbm\_py.interface.DBM method)}
@@ -470,15 +858,14 @@ Calculate the data used in partial dependence plots.
 \sphinxstyleliteralstrong{data\_x} -- a Matrix object used for calculating
 
 \item {} 
-\sphinxstyleliteralstrong{feature\_index} -- the index of the predictor of
+\sphinxstyleliteralstrong{feature\_index} -- the index of the predictor of interest (the No. of the column)
 
 \end{itemize}
 
-\end{description}\end{quote}
+\item[{Returns}] \leavevmode
+a Matrix object storing the data used in partial dependence plots
 
-interest (the No. of the column)
-:return: a Matrix object storing the data used in partial
-dependence plots
+\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -557,7 +944,10 @@ Train the DBM.
 
 \end{fulllineitems}
 
-\index{AUTO\_DBM (class in dbm\_py.interface)}
+
+
+\section{Delta Boosting Machines with Automatic BL Selection}
+\label{\detokenize{index:delta-boosting-machines-with-automatic-bl-selection}}\index{AUTO\_DBM (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.AUTO_DBM}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{AUTO\_DBM}}{\emph{params}}{}~\index{\_\_init\_\_() (dbm\_py.interface.AUTO\_DBM method)}
@@ -650,15 +1040,14 @@ Calculate the data used in partial dependence plots.
 \sphinxstyleliteralstrong{data\_x} -- a Matrix object used for calculating
 
 \item {} 
-\sphinxstyleliteralstrong{feature\_index} -- the index of the predictor of interest
+\sphinxstyleliteralstrong{feature\_index} -- the index of the predictor of interest (the No. of the column)
 
 \end{itemize}
 
-\end{description}\end{quote}
+\item[{Returns}] \leavevmode
+a Matrix object storing the data used in partial dependence plots
 
-(the No. of the column)
-:return: a Matrix object storing the data used in partial
-dependence plots
+\end{description}\end{quote}
 
 \end{fulllineitems}
 
@@ -666,8 +1055,7 @@ dependence plots
 
 \begin{fulllineitems}
 \phantomsection\label{\detokenize{index:dbm_py.interface.AUTO_DBM.predict}}\pysiglinewithargsret{\sphinxbfcode{predict}}{\emph{data\_x}}{}
-Predict if it has been trained or it has been loaded from
-a trained model.
+Predict if it has been trained or it has been loaded from a trained model.
 \begin{quote}\begin{description}
 \item[{Parameters}] \leavevmode
 \sphinxstyleliteralstrong{data\_x} -- a Matrix object
@@ -766,11 +1154,9 @@ Convert a Matrix to a two-dimensional numpy array.
 \sphinxstyleliteralstrong{source} -- a Matrix object
 
 \item[{Returns}] \leavevmode
-a two-dimensional numpy array of the same shape as the
+a two-dimensional numpy array of the same shape as the Matrix
 
 \end{description}\end{quote}
-
-Matrix
 
 \end{fulllineitems}
 

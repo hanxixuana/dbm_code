@@ -49,8 +49,8 @@ namespace dbm {
     class Neural_network_trainer {
     private:
 
-        int remove_rows_containing_nans;
-        int min_no_samples_per_bl;
+        int dbm_remove_rows_containing_nans;
+        int dbm_min_no_samples_per_bl;
 
         int batch_size;
         int nn_max_iteration;
@@ -95,8 +95,8 @@ namespace dbm {
     class Splines_trainer {
     private:
 
-        int remove_rows_containing_nans;
-        int min_no_samples_per_bl;
+        int dbm_remove_rows_containing_nans;
+        int dbm_min_no_samples_per_bl;
 
         int no_pairs;
 
@@ -131,8 +131,8 @@ namespace dbm {
     class Kmeans2d_trainer {
     private:
 
-        int remove_rows_containing_nans;
-        int min_no_samples_per_bl;
+        int dbm_remove_rows_containing_nans;
+        int dbm_min_no_samples_per_bl;
 
         char loss_type;
 
@@ -174,8 +174,8 @@ namespace dbm {
     class Linear_regression_trainer {
     private:
 
-        int remove_rows_containing_nans;
-        int min_no_samples_per_bl;
+        int dbm_remove_rows_containing_nans;
+        int dbm_min_no_samples_per_bl;
 
         T regularization;
 
@@ -204,8 +204,8 @@ namespace dbm {
     class DPC_stairs_trainer {
     private:
 
-        int remove_rows_containing_nans;
-        int min_no_samples_per_bl;
+        int dbm_remove_rows_containing_nans;
+        int dbm_min_no_samples_per_bl;
 
         char loss_type;
 
@@ -237,7 +237,7 @@ namespace dbm {
 
     private:
 
-        int remove_rows_containing_nans;
+        int dbm_remove_rows_containing_nans;
 
         const int threshold_using_all_split_point = 10;
 

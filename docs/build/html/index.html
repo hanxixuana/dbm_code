@@ -53,6 +53,8 @@
 </div>
 <div class="section" id="classes">
 <h1>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="matrix">
+<h2>Matrix<a class="headerlink" href="#matrix" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dbm_py.interface.Matrix">
 <em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Matrix</code><span class="sig-paren">(</span><em>height=None</em>, <em>width=None</em>, <em>val=None</em>, <em>file_name=None</em>, <em>sep=None</em>, <em>mat=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix" title="Permalink to this definition">¶</a></dt>
@@ -123,11 +125,10 @@ this matrix.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a two-dimensional numpy array of the same</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a two-dimensional numpy array of the same shape as this matrix</td>
 </tr>
 </tbody>
 </table>
-<p>shape as this matrix</p>
 </dd></dl>
 
 <dl class="method">
@@ -193,29 +194,29 @@ this matrix.</p>
 <dl class="method">
 <dt id="dbm_py.interface.Matrix.to_np2darray">
 <code class="descname">to_np2darray</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Matrix.to_np2darray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Matrix.to_np2darray" title="Permalink to this definition">¶</a></dt>
-<dd><p>Assign the data stored in this matrix to a two-dimensional
-numpy array and return it.</p>
+<dd><p>Assign the data stored in this matrix to a two-dimensional numpy array and return it.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as this matrix</td>
 </tr>
 </tbody>
 </table>
-<p>this matrix</p>
 </dd></dl>
 
 </dd></dl>
 
+</div>
+<div class="section" id="data-set">
+<h2>Data Set<a class="headerlink" href="#data-set" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dbm_py.interface.Data_set">
 <em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Data_set</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="dbm_py.interface.Data_set.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is the class of Data_set that provides an easy to tool
-for splitting all data into training and validating
+<dd><p>This is the class of Data_set that provides an easy to tool for splitting all data into training and validating
 parts.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -224,13 +225,12 @@ parts.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>data_x</strong> &#8211; a Matrix object</li>
 <li><strong>data_y</strong> &#8211; a Matrix object</li>
-<li><strong>portion_for_validating</strong> &#8211; percentage of the whole data</li>
+<li><strong>portion_for_validating</strong> &#8211; percentage of the whole data used for validating</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<p>used for validating</p>
 </dd></dl>
 
 <dl class="method">
@@ -291,6 +291,275 @@ parts.</p>
 
 </dd></dl>
 
+</div>
+<div class="section" id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><table border="1" class="docutils">
+<colgroup>
+<col width="47%" />
+<col width="7%" />
+<col width="45%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Parameter Name</td>
+<td>Type</td>
+<td>Meaning</td>
+</tr>
+<tr class="row-even"><td>dbm_no_bunches_of_learners</td>
+<td>int</td>
+<td>number of boostraped BLs</td>
+</tr>
+<tr class="row-odd"><td>dbm_no_candidate_feature</td>
+<td>int</td>
+<td rowspan="2">number of features for each BL
+(&lt; total number of features)</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>dbm_portion_train_sample</td>
+<td>double</td>
+<td>percentage for training each BL</td>
+</tr>
+<tr class="row-even"><td>dbm_no_cores</td>
+<td>int</td>
+<td rowspan="2">number of BL in each bunch
+(number of cores used)</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_loss_function</td>
+<td>char</td>
+<td rowspan="2">(n)ormal, (b)ernoulli, (p)oisson
+or (t)weedie</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_display_training_progress</td>
+<td>bool</td>
+<td>whether to display training progress or not</td>
+</tr>
+<tr class="row-odd"><td>dbm_record_every_tree</td>
+<td>bool</td>
+<td>whether to record trees in a file or not</td>
+</tr>
+<tr class="row-even"><td>dbm_freq_showing_loss_on_test</td>
+<td>int</td>
+<td rowspan="2">show loss on test after how many
+bunches of BLs</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_shrinkage</td>
+<td>double</td>
+<td>shrinkage for each BL</td>
+</tr>
+<tr class="row-odd"><td>dbm_nonoverlapping_training</td>
+<td>int</td>
+<td rowspan="2">whether to BLs in a bunch use
+nonoverlapping samples or not</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>dbm_remove_rows_containing_nans</td>
+<td>int</td>
+<td rowspan="2">whether to remove rows containing NaNs in
+training every BL</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>dbm_min_no_samples_per_bl</td>
+<td>int</td>
+<td rowspan="2">minimal number of samples for trainin
+every BL</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>dbm_portion_for_trees</td>
+<td>double</td>
+<td>percentage of BLs using trees</td>
+</tr>
+<tr class="row-even"><td>dbm_portion_for_lr</td>
+<td>double</td>
+<td>percentage of BLs using linear regression</td>
+</tr>
+<tr class="row-odd"><td>dbm_portion_for_s</td>
+<td>double</td>
+<td>percentage of BLs using splines</td>
+</tr>
+<tr class="row-even"><td>dbm_portion_for_k</td>
+<td>double</td>
+<td>percentage of BLs using k-means</td>
+</tr>
+<tr class="row-odd"><td>dbm_portion_for_nn</td>
+<td>double</td>
+<td>should be 0</td>
+</tr>
+<tr class="row-even"><td>dbm_portion_for_d</td>
+<td>double</td>
+<td rowspan="2">percentage of BLs using dominating
+principal component stairs</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_accumulated_portion</td>
+<td>double</td>
+<td rowspan="2">unused</td>
+</tr>
+<tr class="row-odd"><td>_shrinkage_for_selected_b</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_portion_shrinkage_for_unselected_bl</td>
+<td>double</td>
+<td>unused</td>
+</tr>
+<tr class="row-odd"><td>tweedie_p</td>
+<td>double</td>
+<td>p of tweedie should in (1, 2)</td>
+</tr>
+<tr class="row-even"><td>splines_no_knot</td>
+<td>int</td>
+<td>number of knots of splines</td>
+</tr>
+<tr class="row-odd"><td>splines_portion_of_pairs</td>
+<td>double</td>
+<td rowspan="2">percentage of pairs of perdictors
+considered</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>splines_regularization</td>
+<td>double</td>
+<td>ridge regression penalty</td>
+</tr>
+<tr class="row-even"><td>splines_hinge_coefficient</td>
+<td>double</td>
+<td>coefficient in splines</td>
+</tr>
+<tr class="row-odd"><td>kmeans_no_centroids</td>
+<td>int</td>
+<td>number of centroids</td>
+</tr>
+<tr class="row-even"><td>kmeans_max_iteration</td>
+<td>int</td>
+<td>max number of iterations of training</td>
+</tr>
+<tr class="row-odd"><td>kmeans_tolerance</td>
+<td>double</td>
+<td>max tolerated error</td>
+</tr>
+<tr class="row-even"><td>kmeans_fraction_of_pairs</td>
+<td>double</td>
+<td rowspan="2">percentage of pairs of predictors
+considered</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>nn_no_hidden_neurons</td>
+<td>int</td>
+<td>number of hidden neurons</td>
+</tr>
+<tr class="row-odd"><td>nn_step_size</td>
+<td>double</td>
+<td>stochastic gradient descent step size</td>
+</tr>
+<tr class="row-even"><td>nn_validate_portion</td>
+<td>double</td>
+<td>percentage of samples used for validating</td>
+</tr>
+<tr class="row-odd"><td>nn_batch_size</td>
+<td>int</td>
+<td>number of samples in a batch</td>
+</tr>
+<tr class="row-even"><td>nn_max_iteration</td>
+<td>int</td>
+<td>maximal number of iterations of training</td>
+</tr>
+<tr class="row-odd"><td>nn_no_rise_of_loss_on_validate</td>
+<td>int</td>
+<td rowspan="2">maximal number rises of loss on
+validation set</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>cart_min_samples_in_a_node</td>
+<td>int</td>
+<td>minimal numbers in a node of a tree</td>
+</tr>
+<tr class="row-even"><td>cart_max_depth</td>
+<td>int</td>
+<td>maximal numbers of levels of a tree</td>
+</tr>
+<tr class="row-odd"><td>cart_prune</td>
+<td>int</td>
+<td>whether to prune after training</td>
+</tr>
+<tr class="row-even"><td>lr_regularization</td>
+<td>double</td>
+<td>ridge regression penalty</td>
+</tr>
+<tr class="row-odd"><td>dpcs_no_ticks</td>
+<td>int</td>
+<td rowspan="2">number of stairs in the direction of
+dominating principal component</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>dpcs_range_shrinkage_of_ticks</td>
+<td>double</td>
+<td rowspan="3">shrinkage of the range in the
+direction of dominating principal
+component</td>
+</tr>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>dbm_do_perf</td>
+<td>bool</td>
+<td rowspan="2">whether to record performance on both
+training and validation sets</td>
+</tr>
+<tr class="row-odd"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+<tr class="row-even"><td>pdp_no_x_ticks</td>
+<td>int</td>
+<td>number of ticks in x-axis</td>
+</tr>
+<tr class="row-odd"><td>pdp_no_resamplings</td>
+<td>int</td>
+<td>number of resamplings for bootstrapping</td>
+</tr>
+<tr class="row-even"><td>pdp_resampling_portion</td>
+<td>double</td>
+<td>percentage of samples in each bootstrap</td>
+</tr>
+<tr class="row-odd"><td>pdp_ci_bandwidth</td>
+<td>double</td>
+<td>width of the confidence interval</td>
+</tr>
+<tr class="row-even"><td>pdp_save_files</td>
+<td>int</td>
+<td>whether to save the result</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
 <dl class="class">
 <dt id="dbm_py.interface.Params">
 <em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Params</code><span class="sig-paren">(</span><em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Params" title="Permalink to this definition">¶</a></dt>
@@ -320,11 +589,8 @@ parts.</p>
 <dd><p>Set values of parameters.</p>
 <p>Usage: [sep] represents the character used as the separator</p>
 <blockquote>
-<div><p>&#8216;parameter_name[sep]parameter_value&#8217;
-&#8216;parameter_name[sep]parameter_value[sep]</p>
-<blockquote>
-<div>parameter_name[sep]parameter_value&#8217;</div></blockquote>
-</div></blockquote>
+<div>&#8216;parameter_name[sep]parameter_value&#8217;
+&#8216;parameter_name[sep]parameter_value[sep]parameter_name[sep]parameter_value&#8217;</div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -341,6 +607,9 @@ parts.</p>
 
 </dd></dl>
 
+</div>
+<div class="section" id="delta-boosting-machines">
+<h2>Delta Boosting Machines<a class="headerlink" href="#delta-boosting-machines" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dbm_py.interface.DBM">
 <em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">DBM</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM" title="Permalink to this definition">¶</a></dt>
@@ -425,17 +694,17 @@ parts.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>data_x</strong> &#8211; a Matrix object used for calculating</li>
-<li><strong>feature_index</strong> &#8211; the index of the predictor of</li>
+<li><strong>feature_index</strong> &#8211; the index of the predictor of interest (the No. of the column)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Matrix object storing the data used in partial dependence plots</p>
 </td>
 </tr>
 </tbody>
 </table>
-<p>interest (the No. of the column)
-:return: a Matrix object storing the data used in partial
-dependence plots</p>
 </dd></dl>
 
 <dl class="method">
@@ -515,6 +784,9 @@ a trained model.</p>
 
 </dd></dl>
 
+</div>
+<div class="section" id="delta-boosting-machines-with-automatic-bl-selection">
+<h2>Delta Boosting Machines with Automatic BL Selection<a class="headerlink" href="#delta-boosting-machines-with-automatic-bl-selection" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dbm_py.interface.AUTO_DBM">
 <em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">AUTO_DBM</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM" title="Permalink to this definition">¶</a></dt>
@@ -599,24 +871,23 @@ a trained model.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>data_x</strong> &#8211; a Matrix object used for calculating</li>
-<li><strong>feature_index</strong> &#8211; the index of the predictor of interest</li>
+<li><strong>feature_index</strong> &#8211; the index of the predictor of interest (the No. of the column)</li>
 </ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Matrix object storing the data used in partial dependence plots</p>
 </td>
 </tr>
 </tbody>
 </table>
-<p>(the No. of the column)
-:return: a Matrix object storing the data used in partial
-dependence plots</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="dbm_py.interface.AUTO_DBM.predict">
 <code class="descname">predict</code><span class="sig-paren">(</span><em>data_x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.predict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict if it has been trained or it has been loaded from
-a trained model.</p>
+<dd><p>Predict if it has been trained or it has been loaded from a trained model.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -690,6 +961,7 @@ a trained model.</p>
 </dd></dl>
 
 </div>
+</div>
 <div class="section" id="functions">
 <h1>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
@@ -718,11 +990,10 @@ a trained model.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> &#8211; a Matrix object</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as the</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a two-dimensional numpy array of the same shape as the Matrix</td>
 </tr>
 </tbody>
 </table>
-<p>Matrix</p>
 </dd></dl>
 
 <dl class="function">
@@ -757,7 +1028,14 @@ a trained model.</p>
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Welcome to DBM&#8217;s documentation!</a></li>
-<li><a class="reference internal" href="#classes">Classes</a></li>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#matrix">Matrix</a></li>
+<li><a class="reference internal" href="#data-set">Data Set</a></li>
+<li><a class="reference internal" href="#parameters">Parameters</a></li>
+<li><a class="reference internal" href="#delta-boosting-machines">Delta Boosting Machines</a></li>
+<li><a class="reference internal" href="#delta-boosting-machines-with-automatic-bl-selection">Delta Boosting Machines with Automatic BL Selection</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 <div class="relations">

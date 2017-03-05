@@ -40,8 +40,8 @@ namespace dbm {
 
         int dbm_nonoverlapping_training = 1;
 
-        int remove_rows_containing_nans = 1;
-        int min_no_samples_per_bl = 50;
+        int dbm_remove_rows_containing_nans = 1;
+        int dbm_min_no_samples_per_bl = 50;
 
         // portions should be summed to 1
         double dbm_portion_for_trees = 0.2;

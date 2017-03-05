@@ -154,8 +154,7 @@ class Matrix(object):
         Assign the data stored in a two-dimensional numpy array to
         this matrix.
 
-        :param source: a two-dimensional numpy array of the same
-        shape as this matrix
+        :param source: a two-dimensional numpy array of the same shape as this matrix
         """
         try:
             assert source.shape.__len__() == 2
@@ -173,11 +172,9 @@ class Matrix(object):
     # conversion of Matrix to Numpy 2d array
     def to_np2darray(self):
         """
-        Assign the data stored in this matrix to a two-dimensional
-        numpy array and return it.
+        Assign the data stored in this matrix to a two-dimensional numpy array and return it.
 
-        :return: a two-dimensional numpy array of the same shape as
-        this matrix
+        :return: a two-dimensional numpy array of the same shape as this matrix
         """
         result = np.zeros([self.mat.get_height(),
                            self.mat.get_width()])
@@ -192,14 +189,12 @@ class Data_set(object):
 
     def __init__(self, data_x, data_y, portion_for_validating):
         """
-        This is the class of Data_set that provides an easy to tool
-        for splitting all data into training and validating
+        This is the class of Data_set that provides an easy to tool for splitting all data into training and validating
         parts.
 
         :param data_x: a Matrix object
         :param data_y: a Matrix object
-        :param portion_for_validating: percentage of the whole data
-        used for validating
+        :param portion_for_validating: percentage of the whole data used for validating
         """
         self.data_set = \
             dbm_cpp_interface.Data_Set(data_x.mat,
@@ -258,9 +253,7 @@ class Params(object):
         Usage: [sep] represents the character used as the separator
 
                 'parameter_name[sep]parameter_value'
-                'parameter_name[sep]parameter_value[sep]
-                            parameter_name[sep]parameter_value'
-
+                'parameter_name[sep]parameter_value[sep]parameter_name[sep]parameter_value'
 
         :param string: a string storing the parameters to be set
         :param sep: separator used in the string
@@ -311,10 +304,8 @@ class DBM(object):
         Calculate the data used in partial dependence plots.
 
         :param data_x: a Matrix object used for calculating
-        :param feature_index: the index of the predictor of
-        interest (the No. of the column)
-        :return: a Matrix object storing the data used in partial
-        dependence plots
+        :param feature_index: the index of the predictor of interest (the No. of the column)
+        :return: a Matrix object storing the data used in partial dependence plots
         """
         return Matrix(mat = self.dbm.pdp_auto(data_x.mat,
                                               feature_index))
@@ -407,8 +398,7 @@ class AUTO_DBM(object):
 
     def predict(self, data_x):
         """
-        Predict if it has been trained or it has been loaded from
-        a trained model.
+        Predict if it has been trained or it has been loaded from a trained model.
 
         :param data_x: a Matrix object
         :return:
@@ -422,10 +412,8 @@ class AUTO_DBM(object):
         Calculate the data used in partial dependence plots.
 
         :param data_x: a Matrix object used for calculating
-        :param feature_index: the index of the predictor of interest
-        (the No. of the column)
-        :return: a Matrix object storing the data used in partial
-        dependence plots
+        :param feature_index: the index of the predictor of interest (the No. of the column)
+        :return: a Matrix object storing the data used in partial dependence plots
         """
         return Matrix(mat = self.dbm.pdp_auto(data_x.mat,
                                               feature_index))
@@ -520,8 +508,7 @@ def float_matrix_to_np2darray(source):
     Convert a Matrix to a two-dimensional numpy array.
 
     :param source: a Matrix object
-    :return: a two-dimensional numpy array of the same shape as the
-    Matrix
+    :return: a two-dimensional numpy array of the same shape as the Matrix
     """
     try:
         assert type(source) is Matrix

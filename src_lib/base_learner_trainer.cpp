@@ -111,8 +111,8 @@ namespace dbm {
 
     template <typename T>
     Neural_network_trainer<T>::Neural_network_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
-            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
+            dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             batch_size(params.nn_batch_size),
             nn_max_iteration(params.nn_max_iteration),
             step_size(params.nn_step_size),
@@ -172,14 +172,14 @@ namespace dbm {
                 assert(no_rows > 0 && neural_network->no_predictors == no_cols);
             #endif
 
-            if(remove_rows_containing_nans)
+            if(dbm_remove_rows_containing_nans)
                 remove_nan_row_inds(row_inds,
                                     no_rows,
                                     col_inds,
                                     no_cols,
                                     train_x);
 
-            if(no_rows < min_no_samples_per_bl) {
+            if(no_rows < dbm_min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
                 for(int i = 0; i < neural_network->no_predictors; ++i)
                     neural_network->col_inds[i] = 0;
@@ -324,8 +324,8 @@ namespace dbm {
 
     template <typename T>
     Splines_trainer<T>::Splines_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
-            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
+            dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             regularization(params.splines_regularization),
             fraction_of_pairs(params.splines_portion_of_pairs){
 
@@ -374,14 +374,14 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols >= splines->no_predictors);
             #endif
 
-            if(remove_rows_containing_nans)
+            if(dbm_remove_rows_containing_nans)
                 remove_nan_row_inds(row_inds,
                                     no_rows,
                                     col_inds,
                                     no_cols,
                                     train_x);
 
-            if(no_rows < min_no_samples_per_bl) {
+            if(no_rows < dbm_min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
                 for(int i = 0; i < splines->no_predictors; ++i)
                     splines->col_inds[i] = 0;
@@ -635,8 +635,8 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d_trainer<T>::Kmeans2d_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
-            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
+            dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             loss_type(params.dbm_loss_function),
             no_centroids(params.kmeans_no_centroids),
             no_candidate_feature(params.dbm_no_candidate_feature),
@@ -689,14 +689,14 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols == no_candidate_feature);
             #endif
 
-            if(remove_rows_containing_nans)
+            if(dbm_remove_rows_containing_nans)
                 remove_nan_row_inds(row_inds,
                                     no_rows,
                                     col_inds,
                                     no_cols,
                                     train_x);
 
-            if(no_rows < min_no_samples_per_bl) {
+            if(no_rows < dbm_min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
                 for(int i = 0; i < kmeans2d->no_predictors; ++i)
                     kmeans2d->col_inds[i] = 0;
@@ -990,8 +990,8 @@ namespace dbm {
 
     template <typename T>
     Linear_regression_trainer<T>::Linear_regression_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
-            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
+            dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             regularization(params.lr_regularization) {}
 
     template <typename T>
@@ -1017,14 +1017,14 @@ namespace dbm {
                 assert(no_rows > 0 && no_cols == linear_regression->no_predictors);
             #endif
 
-            if(remove_rows_containing_nans)
+            if(dbm_remove_rows_containing_nans)
                 remove_nan_row_inds(row_inds,
                                     no_rows,
                                     col_inds,
                                     no_cols,
                                     train_x);
 
-            if(no_rows < min_no_samples_per_bl) {
+            if(no_rows < dbm_min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
                 for(int i = 0; i < no_cols; ++i)
                     linear_regression->col_inds[i] = col_inds[i];
@@ -1134,8 +1134,8 @@ namespace dbm {
 
     template <typename T>
     DPC_stairs_trainer<T>::DPC_stairs_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
-            min_no_samples_per_bl(params.min_no_samples_per_bl),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
+            dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             loss_type(params.dbm_loss_function),
             range_shrinkage_of_ticks(params.dpcs_range_shrinkage_of_ticks) {}
 
@@ -1163,14 +1163,14 @@ namespace dbm {
                 assert(no_cols == dpc_stairs->no_predictors);
             #endif
 
-            if(remove_rows_containing_nans)
+            if(dbm_remove_rows_containing_nans)
                 remove_nan_row_inds(row_inds,
                                     no_rows,
                                     col_inds,
                                     no_cols,
                                     train_x);
 
-            if(no_rows < min_no_samples_per_bl) {
+            if(no_rows < dbm_min_no_samples_per_bl) {
                 std::cout << "Too few training samples (" << no_rows << ") without NaNs and Omit the BL." << std::endl;
                 for(int i = 0; i < no_cols; ++i)
                     dpc_stairs->col_inds[i] = col_inds[i];
@@ -1288,7 +1288,7 @@ namespace dbm {
 
     template<typename T>
     Fast_tree_trainer<T>::Fast_tree_trainer(const Params &params) :
-            remove_rows_containing_nans(params.remove_rows_containing_nans),
+            dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
             min_samples_in_a_node(params.cart_min_samples_in_a_node),
             max_depth(params.cart_max_depth),
             loss_function(Loss_function<T>(params)) {};
@@ -1338,7 +1338,7 @@ namespace dbm {
             #endif
 
             if(tree->depth == 0) {
-                if(remove_rows_containing_nans)
+                if(dbm_remove_rows_containing_nans)
                     remove_nan_row_inds(row_inds,
                                         no_rows,
                                         col_inds,
