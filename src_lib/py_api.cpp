@@ -85,6 +85,9 @@ BOOST_PYTHON_MODULE(lib_dbm_cpp_to_python_interface)
             .def_readwrite("dbm_min_no_samples_per_bl",
                            &dbm::Params::dbm_min_no_samples_per_bl)
 
+            .def_readwrite("dbm_random_seed",
+                           &dbm::Params::dbm_random_seed)
+
             .def_readwrite("dbm_portion_for_trees",
                            &dbm::Params::dbm_portion_for_trees)
             .def_readwrite("dbm_portion_for_lr",

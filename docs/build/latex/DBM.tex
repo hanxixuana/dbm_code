@@ -41,7 +41,7 @@
 
 
 \title{DBM Documentation}
-\date{Mar 05, 2017}
+\date{Mar 07, 2017}
 \release{1.1}
 \author{Simon Lee}
 \newcommand{\sphinxlogo}{}
@@ -235,10 +235,10 @@ a two-dimensional numpy array of the same shape as this matrix
 \label{\detokenize{index:data-set}}\index{Data\_set (class in dbm\_py.interface)}
 
 \begin{fulllineitems}
-\phantomsection\label{\detokenize{index:dbm_py.interface.Data_set}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{Data\_set}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}}{}~\index{\_\_init\_\_() (dbm\_py.interface.Data\_set method)}
+\phantomsection\label{\detokenize{index:dbm_py.interface.Data_set}}\pysiglinewithargsret{\sphinxstrong{class }\sphinxcode{dbm\_py.interface.}\sphinxbfcode{Data\_set}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}, \emph{random\_seed=-1}}{}~\index{\_\_init\_\_() (dbm\_py.interface.Data\_set method)}
 
 \begin{fulllineitems}
-\phantomsection\label{\detokenize{index:dbm_py.interface.Data_set.__init__}}\pysiglinewithargsret{\sphinxbfcode{\_\_init\_\_}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}}{}
+\phantomsection\label{\detokenize{index:dbm_py.interface.Data_set.__init__}}\pysiglinewithargsret{\sphinxbfcode{\_\_init\_\_}}{\emph{data\_x}, \emph{data\_y}, \emph{portion\_for\_validating}, \emph{random\_seed=-1}}{}
 This is the class of Data\_set that provides an easy to tool for splitting all data into training and validating
 parts.
 \begin{quote}\begin{description}
@@ -251,6 +251,9 @@ parts.
 
 \item {} 
 \sphinxstyleliteralstrong{portion\_for\_validating} -- percentage of the whole data used for validating
+
+\item {} 
+\sphinxstyleliteralstrong{random\_seed} -- optional random seed (random if negative or fixed if non-negative)
 
 \end{itemize}
 
@@ -443,6 +446,13 @@ dbm\_portion\_for\_trees
 double
 &
 percentage of BLs using trees
+\\
+\hline
+dbm\_random\_seed
+&
+int
+&
+random seed (random \textless{} 0 and fixed \textgreater{}= 0)
 \\
 \hline
 dbm\_portion\_for\_lr
@@ -661,7 +671,7 @@ dbm\_do\_perf
 bool
 &\multirow{2}{*}{\relax 
 whether to record performance on both
-training and validation sets
+training sets
 \unskip}\relax \\
 \cline{1-2}&&\\
 \hline

@@ -209,10 +209,10 @@ this matrix.</p>
 <h2>Data Set<a class="headerlink" href="#data-set" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="dbm_py.interface.Data_set">
-<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Data_set</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">dbm_py.interface.</code><code class="descname">Data_set</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em>, <em>random_seed=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="dbm_py.interface.Data_set.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>data_x</em>, <em>data_y</em>, <em>portion_for_validating</em>, <em>random_seed=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#Data_set.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.Data_set.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the class of Data_set that provides an easy to tool for splitting all data into training and validating
 parts.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -223,6 +223,7 @@ parts.</p>
 <li><strong>data_x</strong> &#8211; a Matrix object</li>
 <li><strong>data_y</strong> &#8211; a Matrix object</li>
 <li><strong>portion_for_validating</strong> &#8211; percentage of the whole data used for validating</li>
+<li><strong>random_seed</strong> &#8211; optional random seed (random if negative or fixed if non-negative)</li>
 </ul>
 </td>
 </tr>
@@ -383,170 +384,174 @@ every BL</td>
 <td>double</td>
 <td>percentage of BLs using trees</td>
 </tr>
-<tr class="row-even"><td>dbm_portion_for_lr</td>
+<tr class="row-even"><td>dbm_random_seed</td>
+<td>int</td>
+<td>random seed (random &lt; 0 and fixed &gt;= 0)</td>
+</tr>
+<tr class="row-odd"><td>dbm_portion_for_lr</td>
 <td>double</td>
 <td>percentage of BLs using linear regression</td>
 </tr>
-<tr class="row-odd"><td>dbm_portion_for_s</td>
+<tr class="row-even"><td>dbm_portion_for_s</td>
 <td>double</td>
 <td>percentage of BLs using splines</td>
 </tr>
-<tr class="row-even"><td>dbm_portion_for_k</td>
+<tr class="row-odd"><td>dbm_portion_for_k</td>
 <td>double</td>
 <td>percentage of BLs using k-means</td>
 </tr>
-<tr class="row-odd"><td>dbm_portion_for_nn</td>
+<tr class="row-even"><td>dbm_portion_for_nn</td>
 <td>double</td>
 <td>should be 0</td>
 </tr>
-<tr class="row-even"><td>dbm_portion_for_d</td>
+<tr class="row-odd"><td>dbm_portion_for_d</td>
 <td>double</td>
 <td rowspan="2">percentage of BLs using dominating
 principal component stairs</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
+<tr class="row-even"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td>dbm_accumulated_portion</td>
+<tr class="row-odd"><td>dbm_accumulated_portion</td>
 <td>double</td>
 <td rowspan="2">unused</td>
 </tr>
-<tr class="row-odd"><td>_shrinkage_for_selected_b</td>
+<tr class="row-even"><td>_shrinkage_for_selected_b</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td>dbm_portion_shrinkage_for_unselected_bl</td>
+<tr class="row-odd"><td>dbm_portion_shrinkage_for_unselected_bl</td>
 <td>double</td>
 <td>unused</td>
 </tr>
-<tr class="row-odd"><td>tweedie_p</td>
+<tr class="row-even"><td>tweedie_p</td>
 <td>double</td>
 <td>p of tweedie should in (1, 2)</td>
 </tr>
-<tr class="row-even"><td>splines_no_knot</td>
+<tr class="row-odd"><td>splines_no_knot</td>
 <td>int</td>
 <td>number of knots of splines</td>
 </tr>
-<tr class="row-odd"><td>splines_portion_of_pairs</td>
+<tr class="row-even"><td>splines_portion_of_pairs</td>
 <td>double</td>
 <td rowspan="2">percentage of pairs of perdictors
 considered</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>splines_regularization</td>
+<tr class="row-even"><td>splines_regularization</td>
 <td>double</td>
 <td>ridge regression penalty</td>
 </tr>
-<tr class="row-even"><td>splines_hinge_coefficient</td>
+<tr class="row-odd"><td>splines_hinge_coefficient</td>
 <td>double</td>
 <td>coefficient in splines</td>
 </tr>
-<tr class="row-odd"><td>kmeans_no_centroids</td>
+<tr class="row-even"><td>kmeans_no_centroids</td>
 <td>int</td>
 <td>number of centroids</td>
 </tr>
-<tr class="row-even"><td>kmeans_max_iteration</td>
+<tr class="row-odd"><td>kmeans_max_iteration</td>
 <td>int</td>
 <td>max number of iterations of training</td>
 </tr>
-<tr class="row-odd"><td>kmeans_tolerance</td>
+<tr class="row-even"><td>kmeans_tolerance</td>
 <td>double</td>
 <td>max tolerated error</td>
 </tr>
-<tr class="row-even"><td>kmeans_fraction_of_pairs</td>
+<tr class="row-odd"><td>kmeans_fraction_of_pairs</td>
 <td>double</td>
 <td rowspan="2">percentage of pairs of predictors
 considered</td>
 </tr>
-<tr class="row-odd"><td>&#160;</td>
+<tr class="row-even"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-even"><td>nn_no_hidden_neurons</td>
+<tr class="row-odd"><td>nn_no_hidden_neurons</td>
 <td>int</td>
 <td>number of hidden neurons</td>
 </tr>
-<tr class="row-odd"><td>nn_step_size</td>
+<tr class="row-even"><td>nn_step_size</td>
 <td>double</td>
 <td>stochastic gradient descent step size</td>
 </tr>
-<tr class="row-even"><td>nn_validate_portion</td>
+<tr class="row-odd"><td>nn_validate_portion</td>
 <td>double</td>
 <td>percentage of samples used for validating</td>
 </tr>
-<tr class="row-odd"><td>nn_batch_size</td>
+<tr class="row-even"><td>nn_batch_size</td>
 <td>int</td>
 <td>number of samples in a batch</td>
 </tr>
-<tr class="row-even"><td>nn_max_iteration</td>
+<tr class="row-odd"><td>nn_max_iteration</td>
 <td>int</td>
 <td>maximal number of iterations of training</td>
 </tr>
-<tr class="row-odd"><td>nn_no_rise_of_loss_on_validate</td>
+<tr class="row-even"><td>nn_no_rise_of_loss_on_validate</td>
 <td>int</td>
 <td rowspan="2">maximal number rises of loss on
 validation set</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>cart_min_samples_in_a_node</td>
+<tr class="row-even"><td>cart_min_samples_in_a_node</td>
 <td>int</td>
 <td>minimal numbers in a node of a tree</td>
 </tr>
-<tr class="row-even"><td>cart_max_depth</td>
+<tr class="row-odd"><td>cart_max_depth</td>
 <td>int</td>
 <td>maximal numbers of levels of a tree</td>
 </tr>
-<tr class="row-odd"><td>cart_prune</td>
+<tr class="row-even"><td>cart_prune</td>
 <td>int</td>
 <td>whether to prune after training</td>
 </tr>
-<tr class="row-even"><td>lr_regularization</td>
+<tr class="row-odd"><td>lr_regularization</td>
 <td>double</td>
 <td>ridge regression penalty</td>
 </tr>
-<tr class="row-odd"><td>dpcs_no_ticks</td>
+<tr class="row-even"><td>dpcs_no_ticks</td>
 <td>int</td>
 <td rowspan="2">number of stairs in the direction of
 dominating principal component</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>dpcs_range_shrinkage_of_ticks</td>
+<tr class="row-even"><td>dpcs_range_shrinkage_of_ticks</td>
 <td>double</td>
 <td rowspan="2">shrinkage of the range in the direction of
 dominating principal component</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>dbm_do_perf</td>
+<tr class="row-even"><td>dbm_do_perf</td>
 <td>bool</td>
 <td rowspan="2">whether to record performance on both
-training and validation sets</td>
+training sets</td>
 </tr>
-<tr class="row-even"><td>&#160;</td>
+<tr class="row-odd"><td>&#160;</td>
 <td>&#160;</td>
 </tr>
-<tr class="row-odd"><td>pdp_no_x_ticks</td>
+<tr class="row-even"><td>pdp_no_x_ticks</td>
 <td>int</td>
 <td>number of ticks in x-axis</td>
 </tr>
-<tr class="row-even"><td>pdp_no_resamplings</td>
+<tr class="row-odd"><td>pdp_no_resamplings</td>
 <td>int</td>
 <td>number of resamplings for bootstrapping</td>
 </tr>
-<tr class="row-odd"><td>pdp_resampling_portion</td>
+<tr class="row-even"><td>pdp_resampling_portion</td>
 <td>double</td>
 <td>percentage of samples in each bootstrap</td>
 </tr>
-<tr class="row-even"><td>pdp_ci_bandwidth</td>
+<tr class="row-odd"><td>pdp_ci_bandwidth</td>
 <td>double</td>
 <td>width of the confidence interval</td>
 </tr>
-<tr class="row-odd"><td>pdp_save_files</td>
+<tr class="row-even"><td>pdp_save_files</td>
 <td>int</td>
 <td>whether to save the result</td>
 </tr>

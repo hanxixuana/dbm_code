@@ -63,9 +63,21 @@ namespace dbm {
             params(params),
             loss_function(Loss_function<T>(params)) {
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
         std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+        double *type_choices = new double[params.dbm_no_bunches_of_learners];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            for(int i = 0; i < no_bunches_of_learners; ++i)
+                type_choices[i] = dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            for(int i = 0; i < params.dbm_no_bunches_of_learners; ++i)
+                type_choices[i] = dist(mt);
+        }
 
         no_cores = params.dbm_no_cores;
         no_bunches_of_learners = params.dbm_no_bunches_of_learners;
@@ -115,7 +127,7 @@ namespace dbm {
         double type_choose;
         for (int i = 1; i < no_bunches_of_learners; ++i) {
 
-            type_choose = dist(mt);
+            type_choose = type_choices[i];
 
             if(type_choose < params.dbm_portion_for_trees)
                 for(int j = 0; j < no_cores; ++j)
@@ -163,6 +175,8 @@ namespace dbm {
         splines_trainer = new Splines_trainer<T>(params);
         kmeans2d_trainer = new Kmeans2d_trainer<T>(params);
         dpc_stairs_trainer = new DPC_stairs_trainer<T>(params);
+
+        delete[] type_choices;
 
     }
 
@@ -296,12 +310,21 @@ namespace dbm {
             omp_set_num_threads(no_cores);
         #endif
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
-            seeds[i] = (unsigned int)dist(mt);
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
 
         std::cout << "Learner " << "(" << learners[0]->get_type() << ") "
                   << " No. " << 0 << " -> ";
@@ -366,6 +389,7 @@ namespace dbm {
                 shuffle(whole_row_inds,
                         n_samples,
                         seeds[no_cores * (i - 1) + 1]);
+//                std::cout << seeds[no_cores * (i - 1) + 1] << std::endl;
             }
 
             type = learners[(i - 1) * no_cores + 1]->get_type();
@@ -386,22 +410,24 @@ namespace dbm {
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Tree at %p "
                                                     "number of samples: %d "
-                                                    "max_depth: %d ...\n",
+                                                    "max_depth: %d %d...\n",
                                             type,
                                             learner_id,
                                             learners[learner_id],
                                             no_samples_in_nonoverlapping_batch,
-                                            params.cart_max_depth);
+                                            params.cart_max_depth,
+                                            seeds[learner_id - 1]);
                             else
                                 std::printf("Learner (%c) No. %d -> "
                                                     "Training Tree at %p "
                                                     "number of samples: %d "
-                                                    "max_depth: %d ...\n",
+                                                    "max_depth: %d %d...\n",
                                             type,
                                             learner_id,
                                             learners[learner_id],
                                             no_train_sample,
-                                            params.cart_max_depth);
+                                            params.cart_max_depth,
+                                            seeds[learner_id - 1]);
                         }
                         else {
                             printf(".");
@@ -412,6 +438,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -450,12 +480,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
                                                                                     *prediction_train_data,
@@ -569,6 +605,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -595,12 +635,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
                                                              (learners[learner_id]),
@@ -688,6 +734,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -713,12 +763,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
@@ -804,6 +860,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -830,12 +890,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             splines_trainer->train(dynamic_cast<Splines<T> *>
                                                    (learners[learner_id]),
@@ -922,6 +988,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -947,12 +1017,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             neural_network_trainer->train(dynamic_cast<Neural_network<T> *>
                                                           (learners[learner_id]),
@@ -1038,6 +1114,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1064,12 +1144,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             dpc_stairs_trainer->train(dynamic_cast<DPC_stairs<T> *>
                                                       (learners[learner_id]),
@@ -1254,12 +1340,21 @@ namespace dbm {
             omp_set_num_threads(no_cores);
         #endif
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
-            seeds[i] = (unsigned int)dist(mt);
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
 
         std::cout << "Learner " << "(" << learners[0]->get_type() << ") "
                   << " No. " << 0 << " -> ";
@@ -1370,6 +1465,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1408,12 +1507,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
                                                                                     *prediction_train_data,
@@ -1527,6 +1632,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1553,12 +1662,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
                                                              (learners[learner_id]),
@@ -1646,6 +1761,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1671,12 +1790,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
@@ -1762,6 +1887,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1788,12 +1917,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             splines_trainer->train(dynamic_cast<Splines<T> *>
                                                    (learners[learner_id]),
@@ -1880,6 +2015,9 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -1905,12 +2043,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             neural_network_trainer->train(dynamic_cast<Neural_network<T> *>
                                                           (learners[learner_id]),
@@ -1996,6 +2140,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -2022,12 +2170,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             dpc_stairs_trainer->train(dynamic_cast<DPC_stairs<T> *>
                                                       (learners[learner_id]),
@@ -2465,12 +2619,28 @@ namespace dbm {
 
             omp_set_num_threads(no_cores);
 
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
+//            std::random_device rd;
+//            std::mt19937 mt(rd());
+//            std::uniform_real_distribution<T> dist(0, 1000);
+//            unsigned int *seeds = new unsigned int[total_no_resamplings];
+//            for(int i = 0; i < total_no_resamplings; ++i)
+//                seeds[i] = (unsigned int)dist(mt);
+
+            unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+            if(params.dbm_random_seed < 0) {
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
+            else {
+                std::mt19937 mt(params.dbm_random_seed);
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
 
         #else
 
@@ -3468,12 +3638,8 @@ namespace dbm {
                                          const Matrix<T> &ind_delta,
                                          const Matrix<T> &prediction_test_data,
                                          const Matrix<T> &input_monotonic_constraints,
-                                         const int &bunch_no) {
-
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<double> dist(0.0, 1.0);
-        double type_choose = dist(mt);
+                                         const int &bunch_no,
+                                         const double &type_choose) {
 
         const T min_portion = 0.2;
 
@@ -3659,12 +3825,32 @@ namespace dbm {
             omp_set_num_threads(no_cores);
         #endif
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
-            seeds[i] = (unsigned int)dist(mt);
+        double *type_choices = new double[no_bunches_of_learners];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+
+            std::uniform_real_distribution<double> dist_0_1(0, 1);
+            for(int i = 0; i < no_bunches_of_learners; ++i)
+                type_choices[i] = dist_0_1(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+
+            std::uniform_real_distribution<double> dist_0_1(0, 1);
+            for(int i = 0; i < no_bunches_of_learners; ++i)
+                type_choices[i] = dist_0_1(mt);
+        }
 
         int chosen_bl_index;
         char chosen_bl_type;
@@ -3745,7 +3931,8 @@ namespace dbm {
                                                   ind_delta,
                                                   prediction_test_data,
                                                   input_monotonic_constraints,
-                                                  i);
+                                                  i,
+                                                  type_choices[i]);
             chosen_bl_type = names_base_learners[chosen_bl_index];
 
             if (params.dbm_display_training_progress) {
@@ -3813,6 +4000,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -3851,12 +4042,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
                                                                                     *prediction_train_data,
@@ -3976,6 +4173,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4002,12 +4203,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
                                                              (learners[learner_id]),
@@ -4099,6 +4306,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4124,12 +4335,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
@@ -4223,6 +4440,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4249,12 +4470,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             splines_trainer->train(dynamic_cast<Splines<T> *>
                                                    (learners[learner_id]),
@@ -4349,6 +4576,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4374,12 +4605,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             neural_network_trainer->train(dynamic_cast<Neural_network<T> *>
                                                           (learners[learner_id]),
@@ -4473,6 +4710,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4499,13 +4740,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
 
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
                             dpc_stairs_trainer->train(dynamic_cast<DPC_stairs<T> *>
                                                       (learners[learner_id]),
                                                       train_x,
@@ -4700,12 +4946,32 @@ namespace dbm {
             omp_set_num_threads(no_cores);
         #endif
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
         unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
-        for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
-            seeds[i] = (unsigned int)dist(mt);
+        double *type_choices = new double[no_bunches_of_learners];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+
+            std::uniform_real_distribution<double> dist_0_1(0, 1);
+            for(int i = 0; i < no_bunches_of_learners; ++i)
+                type_choices[i] = dist_0_1(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+
+            std::uniform_real_distribution<double> dist_0_1(0, 1);
+            for(int i = 0; i < no_bunches_of_learners; ++i)
+                type_choices[i] = dist_0_1(mt);
+        }
 
         int chosen_bl_index;
         char chosen_bl_type;
@@ -4786,7 +5052,8 @@ namespace dbm {
                                                   ind_delta,
                                                   prediction_test_data,
                                                   input_monotonic_constraints,
-                                                  i);
+                                                  i,
+                                                  type_choices[i]);
             chosen_bl_type = names_base_learners[chosen_bl_index];
 
             if (params.dbm_display_training_progress) {
@@ -4854,6 +5121,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -4892,13 +5163,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
 
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
                             Matrix<T> first_comp_in_loss = loss_function.first_comp(train_y,
                                                                                     *prediction_train_data,
                                                                                     params.dbm_loss_function);
@@ -5017,6 +5293,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -5043,12 +5323,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             linear_regression_trainer->train(dynamic_cast<Linear_regression<T> *>
                                                              (learners[learner_id]),
@@ -5140,6 +5426,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -5165,12 +5455,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             kmeans2d_trainer->train(dynamic_cast<Kmeans2d<T> *> (learners[learner_id]),
                                                     train_x,
@@ -5264,6 +5560,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -5290,12 +5590,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             splines_trainer->train(dynamic_cast<Splines<T> *>
                                                    (learners[learner_id]),
@@ -5390,6 +5696,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -5415,12 +5725,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             neural_network_trainer->train(dynamic_cast<Neural_network<T> *>
                                                           (learners[learner_id]),
@@ -5514,6 +5830,10 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
                             shuffle(thread_col_inds,
                                     n_features,
                                     seeds[learner_id - 1]);
@@ -5540,12 +5860,18 @@ namespace dbm {
                             std::copy(col_inds,
                                       col_inds + n_features,
                                       thread_col_inds);
-                            shuffle(thread_row_inds,
-                                    n_samples,
-                                    seeds[learner_id - 1]);
-                            shuffle(thread_col_inds,
-                                    n_features,
-                                    seeds[learner_id - 1]);
+
+                            #ifdef _OMP
+                            #pragma omp critical
+                            #endif
+                            {
+                                shuffle(thread_row_inds,
+                                        n_samples,
+                                        seeds[learner_id - 1]);
+                                shuffle(thread_col_inds,
+                                        n_features,
+                                        seeds[learner_id - 1]);
+                            }
 
                             dpc_stairs_trainer->train(dynamic_cast<DPC_stairs<T> *>
                                                       (learners[learner_id]),
@@ -5642,6 +5968,7 @@ namespace dbm {
         delete[] row_inds;
         delete[] col_inds;
         delete[] seeds;
+        delete[] type_choices;
         delete[] whole_row_inds;
         delete[] thread_row_inds_vec;
 
@@ -5742,12 +6069,21 @@ namespace dbm {
 
             omp_set_num_threads(no_cores);
 
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
+            unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+            if(params.dbm_random_seed < 0) {
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
+            else {
+                std::mt19937 mt(params.dbm_random_seed);
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
 
         #else
 
@@ -5859,12 +6195,21 @@ namespace dbm {
 
             omp_set_num_threads(no_cores);
 
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
+            unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+            if(params.dbm_random_seed < 0) {
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
+            else {
+                std::mt19937 mt(params.dbm_random_seed);
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
 
         #else
 
@@ -5988,12 +6333,21 @@ namespace dbm {
 
             omp_set_num_threads(no_cores);
 
-            std::random_device rd;
-            std::mt19937 mt(rd());
-            std::uniform_real_distribution<T> dist(0, 1000);
-            unsigned int *seeds = new unsigned int[total_no_resamplings];
-            for(int i = 0; i < total_no_resamplings; ++i)
-                seeds[i] = (unsigned int)dist(mt);
+            unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+            if(params.dbm_random_seed < 0) {
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
+            else {
+                std::mt19937 mt(params.dbm_random_seed);
+                std::uniform_real_distribution<T> dist(0, 1000);
+                for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                    seeds[i] = (unsigned int) dist(mt);
+            }
 
         #else
 

@@ -187,7 +187,7 @@ class Matrix(object):
 
 class Data_set(object):
 
-    def __init__(self, data_x, data_y, portion_for_validating):
+    def __init__(self, data_x, data_y, portion_for_validating, random_seed = -1):
         """
         This is the class of Data_set that provides an easy to tool for splitting all data into training and validating
         parts.
@@ -195,11 +195,13 @@ class Data_set(object):
         :param data_x: a Matrix object
         :param data_y: a Matrix object
         :param portion_for_validating: percentage of the whole data used for validating
+        :param random_seed: optional random seed (random if negative or fixed if non-negative)
         """
         self.data_set = \
             dbm_cpp_interface.Data_Set(data_x.mat,
                                        data_y.mat,
-                                       portion_for_validating)
+                                       portion_for_validating,
+                                       random_seed)
 
     def get_train_x(self):
         """

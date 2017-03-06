@@ -22,7 +22,8 @@ namespace dbm {
     template<typename T>
     Data_set<T>::Data_set(const Matrix<T> &data_x,
                           const Matrix<T> &data_y,
-                          T test_portion):
+                          T test_portion,
+                          int random_seed):
             portion_for_test(test_portion) {
 
         no_samples = data_x.get_height();
@@ -41,7 +42,12 @@ namespace dbm {
         for (int i = 0; i < no_samples; ++i) {
             row_inds[i] = i;
         }
-        shuffle(row_inds, no_samples);
+
+        if(random_seed < 0)
+            shuffle(row_inds, no_samples);
+        else
+            shuffle(row_inds, no_samples, (unsigned int) random_seed);
+
         for (int i = 0; i < no_train_samples; ++i) {
             train_row_inds[i] = row_inds[i];
         }
@@ -104,7 +110,7 @@ namespace dbm {
     }
 
     template<typename T>
-    void Data_set<T>::shuffle_all() {
+    void Data_set<T>::shuffle_all(int random_seed) {
 
         Matrix<T> data_x = vert_merge(*train_x, *test_x);
         Matrix<T> data_y = vert_merge(*train_y, *test_y);
@@ -120,7 +126,12 @@ namespace dbm {
         for (int i = 0; i < no_samples; ++i) {
             row_inds[i] = i;
         }
-        shuffle(row_inds, no_samples);
+
+        if(random_seed < 0)
+            shuffle(row_inds, no_samples);
+        else
+            shuffle(row_inds, no_samples, (unsigned int) random_seed);
+
         for (int i = 0; i < no_train_samples; ++i) {
             train_row_inds[i] = row_inds[i];
         }

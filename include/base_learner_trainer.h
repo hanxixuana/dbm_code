@@ -131,6 +131,8 @@ namespace dbm {
     class Kmeans2d_trainer {
     private:
 
+        int random_seed;
+
         int dbm_remove_rows_containing_nans;
         int dbm_min_no_samples_per_bl;
 

@@ -43,6 +43,8 @@ namespace dbm {
         int dbm_remove_rows_containing_nans = 1;
         int dbm_min_no_samples_per_bl = 50;
 
+        int dbm_random_seed = -1;
+
         // portions should be summed to 1
         double dbm_portion_for_trees = 0.2;
         double dbm_portion_for_lr = 0.2;
@@ -142,7 +144,7 @@ namespace dbm {
 
     // add nans to a matrix
     template <typename T>
-    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan);
+    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan, int random_seed = -1);
 
 }
 
@@ -163,7 +165,7 @@ namespace dbm {
 
     // shuffle an array
     template<typename T>
-    void shuffle(T *values, int no_values, unsigned int seed = (unsigned int)(std::time(NULL)));
+    void shuffle(T *values, int no_values, int seed = -1);
 
     template<typename T>
     void make_data(const std::string &file_name, int n_samples = 100000, int n_features = 30, char data_type = 'n',

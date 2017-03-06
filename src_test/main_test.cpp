@@ -19,8 +19,8 @@ void prepare_data();
 
 int main() {
 
-    train_test_save_load_dbm();
-//    train_test_save_load_auto_dbm();
+//    train_test_save_load_dbm();
+    train_test_save_load_auto_dbm();
 
     return 0;
 
@@ -36,7 +36,7 @@ void train_test_save_load_auto_dbm() {
 
     dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
-    dbm::add_nans_to_mat(train_data, 2);
+    dbm::add_nans_to_mat(train_data, 2, 1);
 
     int *col_inds = new int[n_features];
 
@@ -62,7 +62,7 @@ void train_test_save_load_auto_dbm() {
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.1);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.1, 1);
     dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
     dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
     dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
@@ -70,8 +70,9 @@ void train_test_save_load_auto_dbm() {
     // ================
 //    string param_string = "dbm_no_bunches_of_learners 20000 dbm_no_cores 3 dbm_loss_function b "
 //            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.001";
-    string param_string = "dbm_no_bunches_of_learners 50 dbm_no_cores 3 dbm_loss_function b "
-            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1";
+    string param_string = "dbm_no_bunches_of_learners 10 dbm_no_cores 3 dbm_loss_function b "
+            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1 "
+            "dbm_random_seed -1 ";
 
     dbm::Params params = dbm::set_params(param_string);
     dbm::AUTO_DBM<float> auto_dbm(params);
@@ -138,7 +139,7 @@ void train_test_save_load_dbm() {
 
     dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
-    dbm::add_nans_to_mat(train_data, 2);
+    dbm::add_nans_to_mat(train_data, 2, 1);
 
     int *col_inds = new int[n_features];
 
@@ -159,12 +160,12 @@ void train_test_save_load_dbm() {
     // ================
 
     dbm::Matrix<float> monotonic_constraints(n_features, 1, 0);
-    for(int i = 0; i < n_features; ++i)
-        monotonic_constraints.assign(i, 0, 1);
+//    for(int i = 0; i < n_features; ++i)
+//        monotonic_constraints.assign(i, 0, 1);
 
     // ================
 
-    dbm::Data_set<float> data_set(train_x, train_y, 0.1);
+    dbm::Data_set<float> data_set(train_x, train_y, 0.1, 1);
     dbm::Matrix<float> train_prediction(data_set.get_train_x().get_height(), 1, 0);
     dbm::Matrix<float> test_prediction(data_set.get_test_x().get_height(), 1, 0);
     dbm::Matrix<float> re_test_prediction(data_set.get_test_x().get_height(), 1, 0);
@@ -175,10 +176,10 @@ void train_test_save_load_dbm() {
 //            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.0005 "
 //            "dbm_portion_for_trees 0 dbm_portion_for_lr 0 dbm_portion_for_s 1 "
 //            "dbm_portion_for_k 0 dbm_portion_for_d 0 ";
-    string param_string = "dbm_no_bunches_of_learners 100 dbm_no_cores 3 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 10 dbm_no_cores 3 dbm_loss_function b "
             "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1 "
             "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
-            "dbm_portion_for_k 0.2 dbm_portion_for_d 0.2 ";
+            "dbm_portion_for_k 0.2 dbm_portion_for_d 0.2 dbm_random_seed 1 ";
 
     dbm::Params params = dbm::set_params(param_string);
     dbm::DBM<float> dbm(params);
@@ -212,9 +213,9 @@ void train_test_save_load_dbm() {
 
     dbm.calibrate_plot(data_set.get_test_y(), pred, 20, "cal_plot.txt");
 
-    const int predictor_ind = 6;
-    float h_value = dbm.interact(data_set.get_train_x(), &predictor_ind, n_features);
-    cout << "H Value: " << h_value << endl;
+//    const int predictor_ind = 6;
+//    float h_value = dbm.interact(data_set.get_train_x(), &predictor_ind, n_features);
+//    cout << "H Value: " << h_value << endl;
 
     // ===================
 

@@ -38,7 +38,13 @@ namespace dbm {
             std::cout << "Instantiating Matrix at " << this << "." << std::endl;
         #endif
 
+//        if(random_seed < 0)
+//            std::srand((unsigned int)(std::time(nullptr)));
+//        else
+//            std::srand((unsigned int) random_seed);
+
         std::srand((unsigned int)(std::time(nullptr)));
+
         data = new T *[height];
 #ifdef _PLAIN_MATRIX_OP
         for (int i = 0; i < height; ++i) {

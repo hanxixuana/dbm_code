@@ -232,7 +232,7 @@
 
 <div class="viewcode-block" id="Data_set"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set">[docs]</a><span class="k">class</span> <span class="nc">Data_set</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-<div class="viewcode-block" id="Data_set.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">data_y</span><span class="p">,</span> <span class="n">portion_for_validating</span><span class="p">):</span>
+<div class="viewcode-block" id="Data_set.__init__"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">data_y</span><span class="p">,</span> <span class="n">portion_for_validating</span><span class="p">,</span> <span class="n">random_seed</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This is the class of Data_set that provides an easy to tool for splitting all data into training and validating</span>
 <span class="sd">        parts.</span>
@@ -240,11 +240,13 @@
 <span class="sd">        :param data_x: a Matrix object</span>
 <span class="sd">        :param data_y: a Matrix object</span>
 <span class="sd">        :param portion_for_validating: percentage of the whole data used for validating</span>
+<span class="sd">        :param random_seed: optional random seed (random if negative or fixed if non-negative)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data_set</span> <span class="o">=</span> \
             <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">Data_Set</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                        <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
-                                       <span class="n">portion_for_validating</span><span class="p">)</span></div>
+                                       <span class="n">portion_for_validating</span><span class="p">,</span>
+                                       <span class="n">random_seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Data_set.get_train_x"><a class="viewcode-back" href="../../index.html#dbm_py.interface.Data_set.get_train_x">[docs]</a>    <span class="k">def</span> <span class="nf">get_train_x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>

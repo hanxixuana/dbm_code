@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <chrono>
 
 namespace dbm {
 
@@ -82,7 +83,13 @@ namespace dbm {
     }
 
     template <typename T>
-    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan) {
+    void add_nans_to_mat(Matrix<T> &mat, int max_no_nan, int random_seed) {
+
+        if(random_seed < 0)
+            std::srand((unsigned int)(std::time(nullptr)));
+        else
+            std::srand((unsigned int) random_seed);
+
         int height = mat.get_height(), width = mat.get_width() - 1;
 
         int *mat_col_inds = new int[width];
@@ -132,10 +139,15 @@ namespace dbm {
     }
 
     template<typename T>
-    inline void shuffle(T *values,
-                        int no_values,
-                        unsigned int seed) {
-        std::srand(seed);
+    void shuffle(T *values,
+                int no_values,
+                int seed) {
+        if(seed < 0)
+            std::srand((unsigned int)
+                               std::chrono::duration_cast< std::chrono::milliseconds >
+                                       (std::chrono::system_clock::now().time_since_epoch()).count());
+        else
+            std::srand((unsigned int) seed);
         std::random_shuffle(values, values + no_values);
     }
 
@@ -310,6 +322,9 @@ namespace dbm {
             else if (words[2 * i] == "dbm_min_no_samples_per_bl")
                 params.dbm_min_no_samples_per_bl = std::stoi(words[2 * i + 1]);
 
+            else if (words[2 * i] == "dbm_random_seed")
+                params.dbm_random_seed = std::stoi(words[2 * i + 1]);
+
             else if (words[2 * i] == "dbm_portion_for_trees")
                 params.dbm_portion_for_trees = std::stod(words[2 * i + 1]);
             else if (words[2 * i] == "dbm_portion_for_lr")
@@ -428,9 +443,9 @@ namespace dbm {
 
     template void remove_nan_row_inds<float>(int *row_inds, int &no_rows, const int *col_inds, const int &no_cols, const Matrix<float> &train_x);
 
-    template void add_nans_to_mat<double>(Matrix<double> &mat, int max_no_nan);
+    template void add_nans_to_mat<double>(Matrix<double> &mat, int max_no_nan, int random_seed);
 
-    template void add_nans_to_mat<float>(Matrix<float> &mat, int max_no_nan);
+    template void add_nans_to_mat<float>(Matrix<float> &mat, int max_no_nan, int random_seed);
 
     template void range<double>(const double &start, const double &end, const int & number, double *result, const double &scaling);
 
@@ -440,11 +455,11 @@ namespace dbm {
 
     template int middles<double>(double *uniqes, int no_uniques);
 
-    template void shuffle<int>(int *values, int no_values, unsigned int seed);
+    template void shuffle<int>(int *values, int no_values, int seed);
 
-    template void shuffle<float>(float *values, int no_values, unsigned int seed);
+    template void shuffle<float>(float *values, int no_values, int seed);
 
-    template void shuffle<double>(double *values, int no_values, unsigned int seed);
+    template void shuffle<double>(double *values, int no_values, int seed);
 
     template void make_data<double>(const std::string &file_name, int n_samples, int n_features, char data_type,
                                     const int *sig_lin_inds, const double *coef_sig_lin, int n_sig_lin_feats,

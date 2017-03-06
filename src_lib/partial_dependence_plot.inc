@@ -49,12 +49,21 @@ namespace dbm {
 
         omp_set_num_threads(no_cores);
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
-        unsigned int *seeds = new unsigned int[total_no_resamplings];
-        for (int i = 0; i < total_no_resamplings; i++)
-            seeds[i] = (unsigned int) dist(mt);
+        unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
 
 #else
 
@@ -157,12 +166,21 @@ namespace dbm {
 
         omp_set_num_threads(no_cores);
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
-        unsigned int *seeds = new unsigned int[total_no_resamplings];
-        for (int i = 0; i < total_no_resamplings; i++)
-            seeds[i] = (unsigned int) dist(mt);
+        unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
 
 #else
 
@@ -280,12 +298,21 @@ namespace dbm {
 
         omp_set_num_threads(no_cores);
 
-        std::random_device rd;
-        std::mt19937 mt(rd());
-        std::uniform_real_distribution<T> dist(0, 1000);
-        unsigned int *seeds = new unsigned int[total_no_resamplings];
-        for (int i = 0; i < total_no_resamplings; i++)
-            seeds[i] = (unsigned int) dist(mt);
+        unsigned int *seeds = new unsigned int[(no_bunches_of_learners - 1) * no_cores];
+
+        if(params.dbm_random_seed < 0) {
+            std::random_device rd;
+            std::mt19937 mt(rd());
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
+        else {
+            std::mt19937 mt(params.dbm_random_seed);
+            std::uniform_real_distribution<T> dist(0, 1000);
+            for(int i = 0; i < (no_bunches_of_learners - 1) * no_cores; ++i)
+                seeds[i] = (unsigned int) dist(mt);
+        }
 
 #else
 

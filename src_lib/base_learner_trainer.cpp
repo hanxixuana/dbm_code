@@ -635,6 +635,7 @@ namespace dbm {
 
     template <typename T>
     Kmeans2d_trainer<T>::Kmeans2d_trainer(const Params &params) :
+            random_seed(params.dbm_random_seed),
             dbm_remove_rows_containing_nans(params.dbm_remove_rows_containing_nans),
             dbm_min_no_samples_per_bl(params.dbm_min_no_samples_per_bl),
             loss_type(params.dbm_loss_function),
@@ -753,6 +754,22 @@ namespace dbm {
 
             T denominator_in_prediction;
 
+            unsigned int *seeds = new unsigned int[no_pairs];
+
+            if(random_seed < 0) {
+                std::random_device rd;
+                std::mt19937 mt(rd());
+                std::uniform_real_distribution<T> distri(0, 1000);
+                for(int i = 0; i < no_pairs; ++i)
+                    seeds[i] = (unsigned int) distri(mt);
+            }
+            else {
+                std::mt19937 mt(random_seed);
+                std::uniform_real_distribution<T> distri(0, 1000);
+                for(int i = 0; i < no_pairs; ++i)
+                    seeds[i] = (unsigned int) distri(mt);
+            }
+
             for(int l = 0; l < no_pairs * fraction_of_pairs; ++l) {
 
                 for(int i = 0; i < kmeans2d->no_predictors; ++i) {
@@ -764,9 +781,11 @@ namespace dbm {
 
                 }
 
-                std::srand((unsigned int)
-                                   std::chrono::duration_cast< std::chrono::milliseconds >
-                                           (std::chrono::system_clock::now().time_since_epoch()).count() );
+//                std::srand((unsigned int)
+//                                   std::chrono::duration_cast< std::chrono::milliseconds >
+//                                           (std::chrono::system_clock::now().time_since_epoch()).count() );
+
+                std::srand(seeds[l]);
 
                 for(int i = 0; i < no_centroids; ++i)
                     for(int j = 0; j < kmeans2d->no_predictors; ++j) {
@@ -1338,6 +1357,7 @@ namespace dbm {
             #endif
 
             if(tree->depth == 0) {
+
                 if(dbm_remove_rows_containing_nans)
                     remove_nan_row_inds(row_inds,
                                         no_rows,

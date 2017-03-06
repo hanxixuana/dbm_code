@@ -232,7 +232,8 @@ namespace dbm {
                                 const Matrix<T> &ind_delta,
                                 const Matrix<T> &prediction_test_data,
                                 const Matrix<T> &input_monotonic_constraints,
-                                const int &bunch_no);
+                                const int &bunch_no,
+                                const double &type_choose);
 
         void update_new_losses_for_bl(const Matrix<T> &train_y, int bl_no);
 

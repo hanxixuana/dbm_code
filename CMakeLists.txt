@@ -5,8 +5,8 @@ project(dbm_code)
 SET(MKL_OPT "-I$ENV{MKLROOT}/include")
 SET(MKL_LIB "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
 
-#SET(CMAKE_BUILD_TYPE DEBUG)
-SET(CMAKE_BUILD_TYPE RELEASE)
+SET(CMAKE_BUILD_TYPE DEBUG)
+#SET(CMAKE_BUILD_TYPE RELEASE)
 
 # version
 
