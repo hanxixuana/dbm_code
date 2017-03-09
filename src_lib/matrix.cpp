@@ -1383,11 +1383,12 @@ namespace dbm {
         if(height == 1) {
             return true;
         }
-        T min_pos_val = std::numeric_limits<T>::min() * 1e0;
+        T min_pos_val = std::numeric_limits<T>::min() * 1e30;
         for(int i = 1; i < height; ++i) {
             for(int j = i; j < width; ++j) {
-                if( (data[i][j] - data[j][i]) * (data[i][j] - data[j][i]) > min_pos_val)
+                if( (data[i][j] - data[j][i]) * (data[i][j] - data[j][i]) > min_pos_val) {
                     return false;
+                }
             }
         }
         return true;

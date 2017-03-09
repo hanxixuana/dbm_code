@@ -35,7 +35,7 @@ void train_test_save_load_auto_dbm() {
     int n_samples = 136573, n_features = 50, n_width = 51;
     dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
-//    dbm::add_nans_to_mat(train_data, 2, 1);
+    dbm::add_nans_to_mat(train_data, 5, 1);
 
     int *col_inds = new int[n_features];
 
@@ -69,7 +69,7 @@ void train_test_save_load_auto_dbm() {
     // ================
 //    string param_string = "dbm_no_bunches_of_learners 20000 dbm_no_cores 3 dbm_loss_function b "
 //            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.001";
-    string param_string = "dbm_no_bunches_of_learners 100 dbm_no_cores 3 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 30 dbm_no_cores 3 dbm_loss_function b "
             "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1 "
             "dbm_random_seed -1 ";
 
@@ -85,7 +85,7 @@ void train_test_save_load_auto_dbm() {
     dbm::Matrix<float> pred = auto_dbm.predict(data_set.get_test_x());
     pred.print_to_file("pred.txt");
 
-//    dbm::Matrix<float> pdp = auto_dbm.partial_dependence_plot(data_set.get_train_x(), 6);
+    dbm::Matrix<float> pdp = auto_dbm.partial_dependence_plot(data_set.get_train_x(), 6);
 //    pdp.print_to_file("pdp.txt");
 
 //    dbm::Matrix<float> ss = auto_dbm.statistical_significance(data_set.get_train_x());
