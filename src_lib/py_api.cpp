@@ -38,7 +38,7 @@ BOOST_PYTHON_MODULE(lib_dbm_cpp_to_python_interface)
     class_<dbm::Data_set<float>>("Data_Set",
                                  init<const dbm::Matrix<float> &,
                                          const dbm::Matrix<float> &,
-                                         float>())
+                                         float, int>())
             .def("get_train_x",
                  &dbm::Data_set<float>::get_train_x,
                  return_value_policy<copy_const_reference>())

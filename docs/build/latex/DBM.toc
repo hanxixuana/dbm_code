@@ -6,4 +6,4 @@
 \contentsline {section}{\numberline {1.4}Delta Boosting Machines}{6}{section.1.4}
 \contentsline {section}{\numberline {1.5}Delta Boosting Machines with Automatic BL Selection}{8}{section.1.5}
 \contentsline {chapter}{\numberline {2}Functions}{11}{chapter.2}
-\contentsline {chapter}{Index}{13}{section*.48}
+\contentsline {chapter}{Index}{13}{section*.50}

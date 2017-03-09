@@ -63,9 +63,13 @@ namespace dbm {
             params(params),
             loss_function(Loss_function<T>(params)) {
 
+        no_cores = params.dbm_no_cores;
+        no_bunches_of_learners = params.dbm_no_bunches_of_learners;
+        no_candidate_feature = params.dbm_no_candidate_feature;
+
         std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-        double *type_choices = new double[params.dbm_no_bunches_of_learners];
+        double *type_choices = new double[no_bunches_of_learners];
 
         if(params.dbm_random_seed < 0) {
             std::random_device rd;
@@ -75,13 +79,9 @@ namespace dbm {
         }
         else {
             std::mt19937 mt(params.dbm_random_seed);
-            for(int i = 0; i < params.dbm_no_bunches_of_learners; ++i)
+            for(int i = 0; i < no_bunches_of_learners; ++i)
                 type_choices[i] = dist(mt);
         }
-
-        no_cores = params.dbm_no_cores;
-        no_bunches_of_learners = params.dbm_no_bunches_of_learners;
-        no_candidate_feature = params.dbm_no_candidate_feature;
 
         #ifdef _OMP
         if(no_cores == 0 || no_cores > omp_get_max_threads()) {
@@ -234,7 +234,10 @@ namespace dbm {
                   << "dbm_no_cores: " << params.dbm_no_cores << std::endl
                   << "dbm_portion_train_sample: " << params.dbm_portion_train_sample << std::endl
                   << "dbm_no_candidate_feature: " << params.dbm_no_candidate_feature << std::endl
-                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl;
+                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl
+                  << "random_seed in Parameters: " << params.dbm_random_seed << std::endl
+                  << "random_seed in Data_set: " << data_set.random_seed << std::endl;
+
 
         Time_measurer timer(no_cores);
 
@@ -1260,7 +1263,9 @@ namespace dbm {
                   << "dbm_no_cores: " << params.dbm_no_cores << std::endl
                   << "dbm_portion_train_sample: " << params.dbm_portion_train_sample << std::endl
                   << "dbm_no_candidate_feature: " << params.dbm_no_candidate_feature << std::endl
-                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl;
+                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl
+                  << "random_seed in Parameters: " << params.dbm_random_seed << std::endl
+                  << "random_seed in Data_set: " << data_set.random_seed << std::endl;
 
         Time_measurer timer(no_cores);
 
@@ -3742,7 +3747,10 @@ namespace dbm {
                   << "dbm_no_cores: " << params.dbm_no_cores << std::endl
                   << "dbm_portion_train_sample: " << params.dbm_portion_train_sample << std::endl
                   << "dbm_no_candidate_feature: " << params.dbm_no_candidate_feature << std::endl
-                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl;
+                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl
+                  << "random_seed in Parameters: " << params.dbm_random_seed << std::endl
+                  << "random_seed in Data_set: " << data_set.random_seed << std::endl;
+
 
         Time_measurer timer(no_cores);
 
@@ -4859,7 +4867,10 @@ namespace dbm {
                   << "dbm_no_cores: " << params.dbm_no_cores << std::endl
                   << "dbm_portion_train_sample: " << params.dbm_portion_train_sample << std::endl
                   << "dbm_no_candidate_feature: " << params.dbm_no_candidate_feature << std::endl
-                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl;
+                  << "dbm_shrinkage: " << params.dbm_shrinkage << std::endl
+                  << "random_seed in Parameters: " << params.dbm_random_seed << std::endl
+                  << "random_seed in Data_set: " << data_set.random_seed << std::endl;
+
 
         Time_measurer timer(no_cores);
 

@@ -3,15 +3,15 @@ project(dbm_code)
 
 # MKL
 SET(MKL_OPT "-I$ENV{MKLROOT}/include")
-SET(MKL_LIB "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl")
+SET(MKL_LIB "-L$ENV{MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lmkl_def -lmkl_avx2 -lpthread -lm -ldl")
 
-SET(CMAKE_BUILD_TYPE DEBUG)
-#SET(CMAKE_BUILD_TYPE RELEASE)
+#SET(CMAKE_BUILD_TYPE DEBUG)
+SET(CMAKE_BUILD_TYPE RELEASE)
 
 # version
 
 set(DBM_CODE_MAJOR_VERSION 1)
-set(DBM_CODE_MINOR_VERSION 1)
+set(DBM_CODE_MINOR_VERSION 2)
 set(DBM_CODE_PATCH_VERSION 1)
 set(DBM_CODE_VERSION
         ${DBM_CODE_MAJOR_VERSION}.${DBM_CODE_MINOR_VERSION}.${DBM_CODE_PATCH_VERSION})
@@ -128,7 +128,15 @@ elseif(not PythonLibs_FOUND)
 endif()
 
 add_library(_dbm_cpp_to_python_interface SHARED ${PY_API_LIB_FILES})
-target_link_libraries(_dbm_cpp_to_python_interface _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
+#target_link_libraries(_dbm_cpp_to_python_interface _dbm_code ${PYTHON_LIBRARIES} ${Boost_LIBRARIES} )
+#target_compile_options(_dbm_cpp_to_python_interface -D_MKL ${MKL_OPT})
+target_link_libraries(_dbm_cpp_to_python_interface
+        _dbm_code_mkl
+        -D_MKL
+        ${PYTHON_LIBRARIES}
+        ${Boost_LIBRARIES}
+        ${MKL_OPT}
+        ${MKL_LIB})
 
 ################
 #     Test     #
@@ -166,6 +174,10 @@ configure_file("${CMAKE_HOME_DIRECTORY}/src_test/main_test.py"
         "${CMAKE_HOME_DIRECTORY}/api/main_test.py"
         COPYONLY)
 
+configure_file("${CMAKE_HOME_DIRECTORY}/src_test/dbmPythonApplication.ipynb"
+        "${CMAKE_HOME_DIRECTORY}/api/dbmPythonApplication.ipynb"
+        COPYONLY)
+
 # for r
 #configure_file("${CMAKE_HOME_DIRECTORY}/src_api/dbm_code_py.py"
 #        "${CMAKE_HOME_DIRECTORY}/api/dbm_r/dbm_py.py"
@@ -194,4 +206,8 @@ configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
 
 configure_file("${CMAKE_HOME_DIRECTORY}/numerai_tournament_data.csv"
         "${CMAKE_HOME_DIRECTORY}/build/numerai_tournament_data.csv"
+        COPYONLY)
+
+configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
+        "${CMAKE_HOME_DIRECTORY}/api/numerai_training_data.csv"
         COPYONLY)

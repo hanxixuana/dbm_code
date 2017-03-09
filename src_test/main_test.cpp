@@ -33,10 +33,9 @@ void prepare_data() {
 
 void train_test_save_load_auto_dbm() {
     int n_samples = 136573, n_features = 50, n_width = 51;
-
     dbm::Matrix<float> train_data(n_samples, n_width, "numerai_training_data.csv", ',');
 
-    dbm::add_nans_to_mat(train_data, 2, 1);
+//    dbm::add_nans_to_mat(train_data, 2, 1);
 
     int *col_inds = new int[n_features];
 
@@ -70,7 +69,7 @@ void train_test_save_load_auto_dbm() {
     // ================
 //    string param_string = "dbm_no_bunches_of_learners 20000 dbm_no_cores 3 dbm_loss_function b "
 //            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.001";
-    string param_string = "dbm_no_bunches_of_learners 10 dbm_no_cores 3 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 100 dbm_no_cores 3 dbm_loss_function b "
             "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1 "
             "dbm_random_seed -1 ";
 
@@ -98,9 +97,9 @@ void train_test_save_load_auto_dbm() {
 
     auto_dbm.calibrate_plot(data_set.get_test_y(), pred, 20, "cal_plot.txt");
 
-    const int predictor_ind = 6;
-    float h_value = auto_dbm.interact(data_set.get_train_x(), &predictor_ind, n_features);
-    cout << "H Value: " << h_value << endl;
+//    const int predictor_ind = 6;
+//    float h_value = auto_dbm.interact(data_set.get_train_x(), &predictor_ind, n_features);
+//    cout << "H Value: " << h_value << endl;
 
     // ===================
 
@@ -176,7 +175,7 @@ void train_test_save_load_dbm() {
 //            "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.0005 "
 //            "dbm_portion_for_trees 0 dbm_portion_for_lr 0 dbm_portion_for_s 1 "
 //            "dbm_portion_for_k 0 dbm_portion_for_d 0 ";
-    string param_string = "dbm_no_bunches_of_learners 10 dbm_no_cores 3 dbm_loss_function b "
+    string param_string = "dbm_no_bunches_of_learners 31 dbm_no_cores 3 dbm_loss_function b "
             "dbm_portion_train_sample 0.3 dbm_no_candidate_feature 30 dbm_shrinkage 0.1 "
             "dbm_portion_for_trees 0.2 dbm_portion_for_lr 0.2 dbm_portion_for_s 0.2 "
             "dbm_portion_for_k 0.2 dbm_portion_for_d 0.2 dbm_random_seed 1 ";

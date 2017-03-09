@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to DBM’s documentation! &#8212; DBM 1.1 documentation</title>
+    <title>Welcome to DBM’s documentation! &#8212; Delta Boosting Machines 1.2.1 documentation</title>
     
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.1',
+        VERSION:     '1.2.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -780,6 +780,26 @@ a trained model.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="dbm_py.interface.DBM.train_with_monotonic_constraints">
+<code class="descname">train_with_monotonic_constraints</code><span class="sig-paren">(</span><em>data_set</em>, <em>monotonic_constraints</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#DBM.train_with_monotonic_constraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.DBM.train_with_monotonic_constraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the DBM with monotonic constraints. Negative values
+indicate a decreasing relationship and positive values indicates
+an increasing relationship.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_set</strong> &#8211; a Data_set object</li>
+<li><strong>monotonic_constraints</strong> &#8211; a Matrix object of the dimension p*1</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -951,6 +971,26 @@ a trained model.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_set</strong> &#8211; a Data_set object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dbm_py.interface.AUTO_DBM.train_with_monotonic_constraints">
+<code class="descname">train_with_monotonic_constraints</code><span class="sig-paren">(</span><em>data_set</em>, <em>monotonic_constraints</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dbm_py/interface.html#AUTO_DBM.train_with_monotonic_constraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#dbm_py.interface.AUTO_DBM.train_with_monotonic_constraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Train the DBM with monotonic constraints. Negative values
+indicate a decreasing relationship, positive values indicates
+an increasing relationship and zero indicates no constraints.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_set</strong> &#8211; a Data_set object</li>
+<li><strong>monotonic_constraints</strong> &#8211; a Matrix object of the dimension p*1</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>

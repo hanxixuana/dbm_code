@@ -29,17 +29,19 @@
 \indexentry{save\_performance() (dbm\_py.interface.DBM method)|hyperpage}{7}
 \indexentry{ss() (dbm\_py.interface.DBM method)|hyperpage}{7}
 \indexentry{train() (dbm\_py.interface.DBM method)|hyperpage}{7}
+\indexentry{train\_with\_monotonic\_constraints() (dbm\_py.interface.DBM method)|hyperpage}{8}
 \indexentry{AUTO\_DBM (class in dbm\_py.interface)|hyperpage}{8}
 \indexentry{\_\_init\_\_() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
 \indexentry{calibrate\_plot() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
 \indexentry{interact() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
 \indexentry{load() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
 \indexentry{pdp() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
-\indexentry{predict() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
-\indexentry{save() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{8}
+\indexentry{predict() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
+\indexentry{save() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
 \indexentry{save\_performance() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
 \indexentry{ss() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
 \indexentry{train() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
+\indexentry{train\_with\_monotonic\_constraints() (dbm\_py.interface.AUTO\_DBM method)|hyperpage}{9}
 \indexentry{np2darray\_to\_float\_matrix() (in module dbm\_py.interface)|hyperpage}{11}
 \indexentry{float\_matrix\_to\_np2darray() (in module dbm\_py.interface)|hyperpage}{11}
 \indexentry{string\_to\_params() (in module dbm\_py.interface)|hyperpage}{11}

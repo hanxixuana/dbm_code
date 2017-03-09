@@ -4,26 +4,30 @@ import numpy as np
 import os
 import pandas as pd
 import sys
+import random
+
+random.seed(1)
 
 sys.path.append(os.getcwd())
 
 import dbm_py.interface as dbm
 
-x = dbm.Matrix(50000, 10)
+x = dbm.Matrix(500000, 10)
 x_nd_array = dbm.float_matrix_to_np2darray(x)
 y_nd_array = x_nd_array[:, 0] ** 2 / 2  - \
              x_nd_array[:, 3] * 2 * np.exp(x_nd_array[:, 6] / 10) + \
              4 * np.cos(x_nd_array[:, 8] / 2) * np.exp(x_nd_array[:, 5] / 2) + \
-             1.5 * np.random.randn(50000)
+             1.5 * np.random.randn(500000)
 y_nd_array = np.round(np.abs(y_nd_array))
 
 y = dbm.np2darray_to_float_matrix(y_nd_array[:, np.newaxis])
 
-c = dbm.Data_set(x, y, 0.2)
+c = dbm.Data_set(x, y, 0.2, 1)
 train_x = c.get_train_x()
 
-s = 'dbm_no_bunches_of_learners 41 dbm_portion_train_sample 0.85 dbm_no_cores 0 dbm_shrinkage 0.1 ' \
-    'dbm_no_candidate_feature 5 dbm_loss_function p'
+s = 'dbm_no_bunches_of_learners 30 dbm_no_cores 3 dbm_loss_function p ' \
+    'dbm_portion_train_sample 0.3 dbm_no_candidate_feature 5 dbm_shrinkage 0.1 ' \
+    'dbm_random_seed 1 '
 params = dbm.Params()
 params.set_params(s)
 # =====================================

@@ -26,6 +26,9 @@ namespace dbm {
         Matrix<T> *test_y = nullptr;
 
     public:
+
+        int random_seed;
+
         Data_set(const Matrix<T> &data_x, const Matrix<T> &data_y, T test_portion, int random_seed = -1);
 
         ~Data_set();

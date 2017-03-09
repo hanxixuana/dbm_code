@@ -60,13 +60,13 @@
   \item Params (class in dbm\_py.interface), \hyperpage{6}
   \item pdp() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{8}
   \item pdp() (dbm\_py.interface.DBM method), \hyperpage{7}
-  \item predict() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{8}
+  \item predict() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{9}
   \item predict() (dbm\_py.interface.DBM method), \hyperpage{7}
   \item print\_all() (dbm\_py.interface.Params method), \hyperpage{6}
 
   \indexspace
   \bigletter S
-  \item save() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{8}
+  \item save() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{9}
   \item save() (dbm\_py.interface.DBM method), \hyperpage{7}
   \item save() (dbm\_py.interface.Matrix method), \hyperpage{4}
   \item save\_performance() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{9}
@@ -83,5 +83,7 @@
   \item to\_np2darray() (dbm\_py.interface.Matrix method), \hyperpage{4}
   \item train() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{9}
   \item train() (dbm\_py.interface.DBM method), \hyperpage{7}
+  \item train\_with\_monotonic\_constraints() (dbm\_py.interface.AUTO\_DBM method), \hyperpage{9}
+  \item train\_with\_monotonic\_constraints() (dbm\_py.interface.DBM method), \hyperpage{8}
 
 \end{sphinxtheindex}

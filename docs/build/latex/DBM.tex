@@ -41,8 +41,8 @@
 
 
 \title{DBM Documentation}
-\date{Mar 07, 2017}
-\release{1.1}
+\date{Mar 09, 2017}
+\release{1.2.1}
 \author{Simon Lee}
 \newcommand{\sphinxlogo}{}
 \renewcommand{\releasename}{Release}
@@ -944,6 +944,27 @@ Train the DBM.
 
 \end{fulllineitems}
 
+\index{train\_with\_monotonic\_constraints() (dbm\_py.interface.DBM method)}
+
+\begin{fulllineitems}
+\phantomsection\label{\detokenize{index:dbm_py.interface.DBM.train_with_monotonic_constraints}}\pysiglinewithargsret{\sphinxbfcode{train\_with\_monotonic\_constraints}}{\emph{data\_set}, \emph{monotonic\_constraints}}{}
+Train the DBM with monotonic constraints. Negative values
+indicate a decreasing relationship and positive values indicates
+an increasing relationship.
+\begin{quote}\begin{description}
+\item[{Parameters}] \leavevmode\begin{itemize}
+\item {} 
+\sphinxstyleliteralstrong{data\_set} -- a Data\_set object
+
+\item {} 
+\sphinxstyleliteralstrong{monotonic\_constraints} -- a Matrix object of the dimension p*1
+
+\end{itemize}
+
+\end{description}\end{quote}
+
+\end{fulllineitems}
+
 
 \end{fulllineitems}
 
@@ -1120,6 +1141,27 @@ Train the DBM.
 \begin{quote}\begin{description}
 \item[{Parameters}] \leavevmode
 \sphinxstyleliteralstrong{data\_set} -- a Data\_set object
+
+\end{description}\end{quote}
+
+\end{fulllineitems}
+
+\index{train\_with\_monotonic\_constraints() (dbm\_py.interface.AUTO\_DBM method)}
+
+\begin{fulllineitems}
+\phantomsection\label{\detokenize{index:dbm_py.interface.AUTO_DBM.train_with_monotonic_constraints}}\pysiglinewithargsret{\sphinxbfcode{train\_with\_monotonic\_constraints}}{\emph{data\_set}, \emph{monotonic\_constraints}}{}
+Train the DBM with monotonic constraints. Negative values
+indicate a decreasing relationship, positive values indicates
+an increasing relationship and zero indicates no constraints.
+\begin{quote}\begin{description}
+\item[{Parameters}] \leavevmode\begin{itemize}
+\item {} 
+\sphinxstyleliteralstrong{data\_set} -- a Data\_set object
+
+\item {} 
+\sphinxstyleliteralstrong{monotonic\_constraints} -- a Matrix object of the dimension p*1
+
+\end{itemize}
 
 \end{description}\end{quote}
 

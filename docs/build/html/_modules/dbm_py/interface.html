@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>dbm_py.interface &#8212; DBM 1.1 documentation</title>
+    <title>dbm_py.interface &#8212; Delta Boosting Machines 1.2.1 documentation</title>
     
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.1',
+        VERSION:     '1.2.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true,
@@ -98,7 +98,9 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span><span class="p">(</span><span class="n">height</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">height</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+           <span class="ow">and</span> <span class="n">width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+           <span class="ow">and</span> <span class="n">mat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
 
             <span class="k">if</span><span class="p">(</span><span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span>
                <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -334,6 +336,20 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">train_val_no_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="DBM.train_with_monotonic_constraints"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.train_with_monotonic_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">train_with_monotonic_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                         <span class="n">data_set</span><span class="p">,</span>
+                                         <span class="n">monotonic_constraints</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the DBM with monotonic constraints. Negative values</span>
+<span class="sd">        indicate a decreasing relationship and positive values indicates</span>
+<span class="sd">        an increasing relationship.</span>
+
+<span class="sd">        :param data_set: a Data_set object</span>
+<span class="sd">        :param monotonic_constraints: a Matrix object of the dimension p*1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">train_val_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">,</span>
+                                    <span class="n">monotonic_constraints</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="DBM.predict"><a class="viewcode-back" href="../../index.html#dbm_py.interface.DBM.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Predict if it has been trained or it has been loaded from</span>
@@ -433,7 +449,7 @@
 
 <span class="sd">        :param params: a Params object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">AUTO_DBM</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span> <span class="o">=</span> <span class="n">dbm_cpp_interface</span><span class="o">.</span><span class="n">AUTO_DBM</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.train"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_set</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -441,7 +457,21 @@
 
 <span class="sd">        :param data_set: a Data_set object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">train_val_no_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">train_val_no_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AUTO_DBM.train_with_monotonic_constraints"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.train_with_monotonic_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">train_with_monotonic_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                         <span class="n">data_set</span><span class="p">,</span>
+                                         <span class="n">monotonic_constraints</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the DBM with monotonic constraints. Negative values</span>
+<span class="sd">        indicate a decreasing relationship, positive values indicates</span>
+<span class="sd">        an increasing relationship and zero indicates no constraints.</span>
+
+<span class="sd">        :param data_set: a Data_set object</span>
+<span class="sd">        :param monotonic_constraints: a Matrix object of the dimension p*1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">train_val_const</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">data_set</span><span class="p">,</span>
+                                 <span class="n">monotonic_constraints</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.predict"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -451,7 +481,7 @@
 <span class="sd">        :return:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data_y</span> <span class="o">=</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">shape</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">predict_in_place</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span> <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">predict_in_place</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span> <span class="n">data_y</span><span class="o">.</span><span class="n">mat</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data_y</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.pdp"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.pdp">[docs]</a>    <span class="k">def</span> <span class="nf">pdp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">,</span> <span class="n">feature_index</span><span class="p">):</span>
@@ -462,7 +492,7 @@
 <span class="sd">        :param feature_index: the index of the predictor of interest (the No. of the column)</span>
 <span class="sd">        :return: a Matrix object storing the data used in partial dependence plots</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">pdp_auto</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                               <span class="n">feature_index</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.ss"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.ss">[docs]</a>    <span class="k">def</span> <span class="nf">ss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_x</span><span class="p">):</span>
@@ -473,7 +503,7 @@
 <span class="sd">        :return: a Matrix object storing P-values for every predictor</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">statistical_significance</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">))</span></div>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">statistical_significance</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">mat</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.calibrate_plot"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.calibrate_plot">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">observation</span><span class="p">,</span>
@@ -489,7 +519,7 @@
 <span class="sd">        :param file_name: save the result if provided</span>
 <span class="sd">        :return: a Matrix object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">calibrate_plot</span><span class="p">(</span><span class="n">observation</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+        <span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">calibrate_plot</span><span class="p">(</span><span class="n">observation</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                                     <span class="n">prediction</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                                     <span class="n">resolution</span><span class="p">,</span>
                                                     <span class="n">file_name</span><span class="p">))</span></div>
@@ -503,7 +533,7 @@
 <span class="sd">        :param total_no_predictor: a scalar</span>
 <span class="sd">        :return: a scalar</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">interact</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">mat</span><span class="p">,</span>
                                  <span class="n">predictor_ind</span><span class="p">,</span>
                                  <span class="n">total_no_predictor</span><span class="p">)</span></div>
 
@@ -513,7 +543,7 @@
 
 <span class="sd">        :param file_name: a string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_performance</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">save_performance</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.save"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -521,7 +551,7 @@
 
 <span class="sd">        :param file_name: a string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">save_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">save_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AUTO_DBM.load"><a class="viewcode-back" href="../../index.html#dbm_py.interface.AUTO_DBM.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -529,7 +559,7 @@
 
 <span class="sd">        :param file_name: a string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dbm</span><span class="o">.</span><span class="n">load_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auto_dbm</span><span class="o">.</span><span class="n">load_dbm</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div></div>
 
 <div class="viewcode-block" id="np2darray_to_float_matrix"><a class="viewcode-back" href="../../index.html#dbm_py.interface.np2darray_to_float_matrix">[docs]</a><span class="k">def</span> <span class="nf">np2darray_to_float_matrix</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>

@@ -24,7 +24,8 @@ namespace dbm {
                           const Matrix<T> &data_y,
                           T test_portion,
                           int random_seed):
-            portion_for_test(test_portion) {
+            portion_for_test(test_portion),
+            random_seed(random_seed) {
 
         no_samples = data_x.get_height();
         no_features = data_x.get_width();

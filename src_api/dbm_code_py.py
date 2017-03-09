@@ -53,7 +53,9 @@ class Matrix(object):
 
         """
 
-        if(height is not None and width is not None and mat is None):
+        if(height is not None
+           and width is not None
+           and mat is None):
 
             if(val is None
                and file_name is None
@@ -289,6 +291,20 @@ class DBM(object):
         """
         self.dbm.train_val_no_const(data_set.data_set)
 
+    def train_with_monotonic_constraints(self,
+                                         data_set,
+                                         monotonic_constraints):
+        """
+        Train the DBM with monotonic constraints. Negative values
+        indicate a decreasing relationship and positive values indicates
+        an increasing relationship.
+
+        :param data_set: a Data_set object
+        :param monotonic_constraints: a Matrix object of the dimension p*1
+        """
+        self.dbm.train_val_const(data_set.data_set,
+                                    monotonic_constraints.mat)
+
     def predict(self, data_x):
         """
         Predict if it has been trained or it has been loaded from
@@ -388,7 +404,7 @@ class AUTO_DBM(object):
 
         :param params: a Params object
         """
-        self.dbm = dbm_cpp_interface.AUTO_DBM(params.params)
+        self.auto_dbm = dbm_cpp_interface.AUTO_DBM(params.params)
 
     def train(self, data_set):
         """
@@ -396,7 +412,21 @@ class AUTO_DBM(object):
 
         :param data_set: a Data_set object
         """
-        self.dbm.train_val_no_const(data_set.data_set)
+        self.auto_dbm.train_val_no_const(data_set.data_set)
+
+    def train_with_monotonic_constraints(self,
+                                         data_set,
+                                         monotonic_constraints):
+        """
+        Train the DBM with monotonic constraints. Negative values
+        indicate a decreasing relationship, positive values indicates
+        an increasing relationship and zero indicates no constraints.
+
+        :param data_set: a Data_set object
+        :param monotonic_constraints: a Matrix object of the dimension p*1
+        """
+        self.auto_dbm.train_val_const(data_set.data_set,
+                                 monotonic_constraints.mat)
 
     def predict(self, data_x):
         """
@@ -406,7 +436,7 @@ class AUTO_DBM(object):
         :return:
         """
         data_y = Matrix(data_x.shape()[0], 1, 0)
-        self.dbm.predict_in_place(data_x.mat, data_y.mat)
+        self.auto_dbm.predict_in_place(data_x.mat, data_y.mat)
         return data_y
 
     def pdp(self, data_x, feature_index):
@@ -417,7 +447,7 @@ class AUTO_DBM(object):
         :param feature_index: the index of the predictor of interest (the No. of the column)
         :return: a Matrix object storing the data used in partial dependence plots
         """
-        return Matrix(mat = self.dbm.pdp_auto(data_x.mat,
+        return Matrix(mat = self.auto_dbm.pdp_auto(data_x.mat,
                                               feature_index))
 
     def ss(self, data_x):
@@ -428,7 +458,7 @@ class AUTO_DBM(object):
         :return: a Matrix object storing P-values for every predictor
         """
         return Matrix(mat =
-                      self.dbm.statistical_significance(data_x.mat))
+                      self.auto_dbm.statistical_significance(data_x.mat))
 
     def calibrate_plot(self,
                        observation,
@@ -444,7 +474,7 @@ class AUTO_DBM(object):
         :param file_name: save the result if provided
         :return: a Matrix object
         """
-        return Matrix(mat = self.dbm.calibrate_plot(observation.mat,
+        return Matrix(mat = self.auto_dbm.calibrate_plot(observation.mat,
                                                     prediction.mat,
                                                     resolution,
                                                     file_name))
@@ -458,7 +488,7 @@ class AUTO_DBM(object):
         :param total_no_predictor: a scalar
         :return: a scalar
         """
-        return self.dbm.interact(data.mat,
+        return self.auto_dbm.interact(data.mat,
                                  predictor_ind,
                                  total_no_predictor)
 
@@ -468,7 +498,7 @@ class AUTO_DBM(object):
 
         :param file_name: a string
         """
-        self.dbm.save_performance(file_name)
+        self.auto_dbm.save_performance(file_name)
 
     def save(self, file_name):
         """
@@ -476,7 +506,7 @@ class AUTO_DBM(object):
 
         :param file_name: a string
         """
-        self.dbm.save_dbm(file_name)
+        self.auto_dbm.save_dbm(file_name)
 
     def load(self, file_name):
         """
@@ -484,7 +514,7 @@ class AUTO_DBM(object):
 
         :param file_name: a string
         """
-        self.dbm.load_dbm(file_name)
+        self.auto_dbm.load_dbm(file_name)
 
 def np2darray_to_float_matrix(source):
     """

@@ -167,13 +167,13 @@ Delta Boosting Machines
 -----------------------
 
 .. autoclass:: dbm_py.interface.DBM
-   :members: __init__, train, predict, pdp, ss, calibrate_plot, interact, save_performance, save, load
+   :members: __init__, train, train_with_monotonic_constraints, predict, pdp, ss, calibrate_plot, interact, save_performance, save, load
 
 Delta Boosting Machines with Automatic BL Selection
 ---------------------------------------------------
 
 .. autoclass:: dbm_py.interface.AUTO_DBM
-   :members: __init__, train, predict, pdp, ss, calibrate_plot, interact, save_performance, save, load
+   :members: __init__, train, train_with_monotonic_constraints, predict, pdp, ss, calibrate_plot, interact, save_performance, save, load
 
 Functions
 =========
