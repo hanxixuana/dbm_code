@@ -1,4 +1,36 @@
-# dbm_code
+## Log-In Procedures for Simon
+
+1. Use Cisco AnyConnect to connect to the VPN of our univ
+2. Open Xmanager and 'ssh -Y simon@147.8.108.52'
+3. 'vncserver :3'
+4. Open VNCViewer and set up a connection as
+	- ip address: 148.8.108.52
+	- port: 5903
+	- password: your ssh login password
+5. Use VNCViewer open a desktop
+6. Launch a terminal
+7. 'mkdir dbm_experiment'
+8. 'cd dbm_experiment'
+9. 'git clone https://github.com/[your github account]/dbm_code'
+10. 'cd dbm_code'
+11. 'sudo cp -R /opt/numerai_data/numerai_t* ./'
+12. 'cmake CMakeLists.txt'
+13. 'make -j 12'
+14. 'cd ..'
+15. 'mkdir ipnb_experiment'
+16. 'cd ipnb_experiment'
+17. 'cp -R ../dbm_code/api/dbm_py ./'
+18. 'cp ../dbm_code/api/dbmPythonApplication.ipynb ./'
+19. 'cp ../dbm_code/lib/lib_dbm_code_mkl.so dbm_py/'
+20. 'cp ../dbm_code/numerai_t* ./'
+21. 'ipython notebook &'
+22. click on dbmPythonApplication.ipynb then you may run the blocks of code
+
+NOTE: Your ssh login, vncserver login, sudo and keyring password is c,123456
+
+
+## dbm_code
+
 This is a C++ implementation of Delta Boosting Machines.
 
 Note on adding new base learners:
