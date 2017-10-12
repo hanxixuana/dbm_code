@@ -18,3 +18,4 @@ APIs:
 Remark:
 
 - Details refer to the document.
+- Set MKLROOT for the root of Intel MKL in the environment.
