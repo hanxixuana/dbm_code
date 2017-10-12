@@ -35,9 +35,9 @@ params.set_params(s)
 auto_model = dbm.AUTO_DBM(params)
 auto_model.train(c)
 
-auto_predict = auto_model.predict(c.get_test_x())
+auto_predict = auto_model.predict(c.get_validate_x())
 
-auto_result = pd.DataFrame(np.concatenate([auto_predict.to_np2darray(), c.get_test_y().to_np2darray()], 1))
+auto_result = pd.DataFrame(np.concatenate([auto_predict.to_np2darray(), c.get_validate_y().to_np2darray()], 1))
 
 auto_model.save('auto_dbm.txt')
 # =====================================
@@ -46,9 +46,9 @@ model = dbm.DBM(params)
 
 model.train(c)
 
-predict = model.predict(c.get_test_x())
+predict = model.predict(c.get_validate_x())
 
-result = pd.DataFrame(np.concatenate([predict.to_np2darray(), c.get_test_y().to_np2darray()], 1))
+result = pd.DataFrame(np.concatenate([predict.to_np2darray(), c.get_validate_y().to_np2darray()], 1))
 
 model.save('dbm.txt')
 
@@ -59,11 +59,11 @@ ss = model.ss(c.get_train_x())
 re_model = dbm.DBM(dbm.Params())
 re_model.load('dbm.txt')
 
-re_predict = re_model.predict(c.get_test_x())
+re_predict = re_model.predict(c.get_validate_x())
 
 re_result = pd.DataFrame(np.concatenate([predict.to_np2darray(),
                                          re_predict.to_np2darray(),
-                                         c.get_test_y().to_np2darray()], 1))
+                                         c.get_validate_y().to_np2darray()], 1))
 
 re_pdp = re_model.pdp(c.get_train_x(), 3)
 
