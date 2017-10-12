@@ -200,14 +200,14 @@ add_custom_command(TARGET _dbm_cpp_to_python_interface
 #     Copy     #
 ################
 
-configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
-            "${CMAKE_HOME_DIRECTORY}/build/numerai_training_data.csv"
-            COPYONLY)
+# configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
+#             "${CMAKE_HOME_DIRECTORY}/build/numerai_training_data.csv"
+#             COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/numerai_tournament_data.csv"
-        "${CMAKE_HOME_DIRECTORY}/build/numerai_tournament_data.csv"
-        COPYONLY)
+# configure_file("${CMAKE_HOME_DIRECTORY}/numerai_tournament_data.csv"
+#         "${CMAKE_HOME_DIRECTORY}/build/numerai_tournament_data.csv"
+#         COPYONLY)
 
-configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
-        "${CMAKE_HOME_DIRECTORY}/api/numerai_training_data.csv"
-        COPYONLY)
+# configure_file("${CMAKE_HOME_DIRECTORY}/numerai_training_data.csv"
+#         "${CMAKE_HOME_DIRECTORY}/api/numerai_training_data.csv"
+#         COPYONLY)
